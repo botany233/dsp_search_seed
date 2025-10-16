@@ -1,4 +1,4 @@
-import search_seed
+from CApi import search_seed
 import json
 
 def check_planet(planet_data:dict, planet_condition:dict) -> bool:
