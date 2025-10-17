@@ -1,4 +1,6 @@
 *.txt
 *.pyc
+test.py
+/*.json
 
 __pycache__/
