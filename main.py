@@ -1,6 +1,6 @@
 from GUI.MainWindow import MainWindow
 from PySide6.QtWidgets import QApplication
-
+import sys
 
 
 def main():
@@ -10,7 +10,7 @@ def main():
     app = QApplication()
     window = MainWindow()
     window.show()
-    app.exec()
+    sys.exit(app.exec())
 
 
 

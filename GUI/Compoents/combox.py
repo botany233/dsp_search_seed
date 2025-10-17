@@ -3,6 +3,9 @@ from PySide6.QtWidgets import QHBoxLayout, QFrame, QGridLayout, QWidget
 from PySide6.QtCore import QEvent, QRectF
 from PySide6.QtGui import QPainter
 
+
+__all__ = ["LabelWithComboBox"]
+
 class LabelWithComboBox(QFrame):
     def __init__(self, label: str = "You should give me even a foo as least", parent=None):
         super().__init__(parent)

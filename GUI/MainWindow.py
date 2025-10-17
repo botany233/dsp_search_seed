@@ -4,16 +4,20 @@ from qframelesswindow import StandardTitleBar
 from qfluentwidgets import Pivot, setThemeColor, ProgressRing, setTheme, Theme
 from PySide6.QtGui import QIcon, QFont, QColor, QCursor
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip
+from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip, QTreeWidgetItem, QSizePolicy
 from qfluentwidgets import VBoxLayout, LineEdit, PushButton, ComboBox, TextEdit, BodyLabel, FlowLayout
 
 from .Compoents import LabelWithLineEdit, LabelWithComboBox
+from .Widgets import SortTreeWidget
 
 from GUI import vein_names, liquid, planet_types, star_types, singularity
+
 
 import signal
 
 class MainWindow(FramelessWindow):
+
+
     def __init__(self):
         super().__init__()
         self.setObjectName("MainWindow")
@@ -41,9 +45,9 @@ class MainWindow(FramelessWindow):
 
         self.mainLayout.addLayout(self.topLayout)
         
-        self.middleLayout = QGridLayout()
+        self.middleLayout = QHBoxLayout()
 
-        self.mainLayout.addLayout(self.middleLayout)
+        self.mainLayout.addLayout(self.middleLayout, stretch=1)
 
         self.buttonLayout = QHBoxLayout()
 
@@ -71,25 +75,10 @@ class MainWindow(FramelessWindow):
         self.button_start = PushButton("开始搜索")
         self.button_stop = PushButton("停止搜索")
 
-        # self.vein_label = BodyLabel("矿脉:")
-        self.vein_box = LabelWithComboBox("矿脉:")
-        self.vein_box.addItems(vein_names)
+        self.tree_view = SortTreeWidget()
+        self.tree_view.tree.add_item(["条件1", "银河系", "星系", "恒星", "行星"])
+        self.tree_view.tree.add_items()
 
-        #self.liquid_label = BodyLabel("液体:")
-        self.liquid_box = LabelWithComboBox("液体:")
-        self.liquid_box.addItems(liquid)
-
-        #self.planet_type_label = BodyLabel("行星类型:")
-        self.planet_type_box = LabelWithComboBox("行星类型:")
-        self.planet_type_box.addItems(planet_types)
-
-        #self.star_type_label = BodyLabel("恒星类型:")
-        self.star_type_box = LabelWithComboBox("恒星类型:")
-        self.star_type_box.addItems(star_types)
-
-        #self.singularity_label = BodyLabel("特殊:")
-        self.singularity_box = LabelWithComboBox("特殊:")
-        self.singularity_box.addItems(singularity)
 
     def __build__(self):
         self.__init__layout__()
@@ -108,16 +97,8 @@ class MainWindow(FramelessWindow):
         self.topLayout.addWidget(self.label_thread_num, 2, 2)
         self.topLayout.addWidget(self.input_thread_num, 2, 3)
 
-        #self.middleLayout.addWidget(self.vein_label, 0, 0)
-        self.middleLayout.addWidget(self.vein_box, 0, 0)
-        #self.middleLayout.addWidget(self.liquid_label, 0, 2)
-        self.middleLayout.addWidget(self.liquid_box, 0, 1)
-        #self.middleLayout.addWidget(self.planet_type_label, 0, 4)
-        self.middleLayout.addWidget(self.planet_type_box, 0, 2)
-        #self.middleLayout.addWidget(self.star_type_label, 0, 6)
-        self.middleLayout.addWidget(self.star_type_box, 0, 3)
-        #self.middleLayout.addWidget(self.singularity_label, 0, 8)
-        self.middleLayout.addWidget(self.singularity_box, 0, 4)
+        self.middleLayout.addWidget(self.tree_view)
+
 
         self.buttonLayout.addWidget(self.button_start)
         self.buttonLayout.addWidget(self.button_stop)
