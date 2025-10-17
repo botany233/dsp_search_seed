@@ -15,22 +15,44 @@ def check_batch(start_seed:int, end_seed:int, star_num: int, galaxy_condition:di
     result = []
     for seed in range(start_seed, end_seed):
         if check_seed(seed, star_num, galaxy_condition):
-            result.append(seed)
+            result.append(f"{star_num} {seed}")
     return result
 
 def batch_generator(galaxy_condition:dict,
-                    start_seed:int,
-                    end_seed:int,
-                    start_star_num: int,
-                    end_star_num: int,
+                    seeds: tuple[int, int],
+                    star_nums: tuple[int, int],
                     batch_size:int
                     ):
-    for star_num in range(start_star_num, end_star_num+1):
-        for seed in range(start_seed, end_seed+1, batch_size):
-            yield seed, min(seed+batch_size, end_seed+1), star_num, galaxy_condition
+    for star_num in range(star_nums[0], star_nums[1]+1):
+        for seed in range(seeds[0], seeds[1]+1, batch_size):
+            yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_condition
 
 def check_batch_wrapper(args):
     return check_batch(*args)
+
+def check_seed_single_thread(seeds: tuple[int, int],
+                             star_nums: tuple[int, int],
+                             galaxy_condition: dict
+                             ):
+    generator = batch_generator(galaxy_condition, seeds, star_nums, 1)
+    for seed, _, star_num, galaxy_condition in generator:
+        if check_seed(seed, star_num, galaxy_condition):
+            with open("result_single_thread.txt", "a") as f:
+                f.write(f"{star_num} {seed}\n")
+
+def check_seed_mult_thread(seeds: tuple[int, int],
+                           star_nums: tuple[int, int],
+                           galaxy_condition: dict,
+                           batch_size: int,
+                           max_thread: int
+                           ):
+    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
+        generator = batch_generator(galaxy_condition, seeds, star_nums, batch_size)
+
+        results = executor.map(check_batch_wrapper, generator)
+        for result in results:
+            with open("result_mult_thread.txt", "a") as f:
+                f.writelines(map(lambda x: f"{x}\n", result))
 
 if __name__ == "__main__":
     from time import perf_counter
@@ -44,24 +66,15 @@ if __name__ == "__main__":
 
     galaxy_condition = {"veins": {"单极磁石":4}, "stars":[star_condition_1, star_condition_2, star_condition_3]}
 
-    start_seed, end_seed = 0, 19999
-    start_star_num, end_star_num = 64, 64
+    seeds = (0, 999)
+    star_nums = (32, 64)
     batch_size = 128
     max_thread = 20
 
     flag = perf_counter()
-    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator(galaxy_condition, start_seed, end_seed, start_star_num, end_star_num, batch_size)
-
-        results = executor.map(check_batch_wrapper, generator)
-        for result in results:
-            with open("result.txt", "a") as f:
-                f.writelines(map(lambda x: f"{x}\n", result))
+    check_seed_single_thread(seeds, star_nums, galaxy_condition)
     print(f"用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
-    for seed in range(start_seed, end_seed+1):
-        if check_seed(seed, 64, galaxy_condition):
-            with open("result_single_thread.txt", "a") as f:
-                f.write(f"{seed}\n")
+    check_seed_mult_thread(seeds, star_nums, galaxy_condition, batch_size, max_thread)
     print(f"用时{perf_counter() - flag:.2f}s")
