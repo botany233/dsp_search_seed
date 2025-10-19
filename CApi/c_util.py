@@ -1,7 +1,8 @@
 from . import search_seed
+import json
 
 def check_planet_py(planet_data:dict, planet_condition:dict) -> bool:
-    if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"].split("|"):
+    if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"]:
         return False
     if "type" in planet_condition and planet_condition["type"] != planet_data["type"]:
         return False
@@ -41,7 +42,7 @@ def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
     return True
 
 def check_seed_py(seed:int, star_num:int, galaxy_condition:dict) -> bool:
-    galaxy_data = search_seed.get_galaxy_data(seed, star_num)
+    galaxy_data = json.loads(search_seed.get_galaxy_data_c(seed, star_num))
     return check_galaxy_py(galaxy_data, galaxy_condition)
 
 def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition:dict)->list[str]:
