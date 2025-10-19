@@ -7,8 +7,9 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip, QTreeWidgetItem, QSizePolicy
 from qfluentwidgets import VBoxLayout, LineEdit, PushButton, ComboBox, TextEdit, BodyLabel, FlowLayout
 
-from .Compoents import LabelWithLineEdit, LabelWithComboBox
+from .Compoents import LabelWithComboBox
 from .Widgets import SortTreeWidget
+from .Compoents.Widgets.line_edit import LabelWithLineEdit
 
 from GUI import vein_names, liquid, planet_types, star_types, singularity
 
@@ -29,7 +30,7 @@ class MainWindow(FramelessWindow):
         self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球种子搜索器")
         self.setWindowIcon(QIcon(r"assets\icon.jpg"))
-        self.resize(800, 600)
+        self.resize(1080, 750)
 
         
         self.mainLayout = VBoxLayout(self)
@@ -62,9 +63,10 @@ class MainWindow(FramelessWindow):
 
         self.label_seed_range = BodyLabel("种子范围:")
         self.input_seed_start = LineEdit()
-        self.input_seed_start.setMinimumWidth(80)
+        # self.input_seed_start.setMinimumWidth(80)
         self.input_seed_end = LineEdit()
-        self.input_seed_end.setMinimumWidth(80)
+        # self.input_seed_end.setMinimumWidth(80)
+        self.seed_step_range = LabelWithLineEdit("步长")
         self.label_star_num = BodyLabel("恒星数:")
         self.input_star_num_start = LineEdit()
         self.input_star_num_end = LineEdit()
@@ -76,8 +78,7 @@ class MainWindow(FramelessWindow):
         self.button_stop = PushButton("停止搜索")
 
         self.tree_view = SortTreeWidget()
-        self.tree_view.tree.add_item(["条件1", "银河系", "星系", "恒星", "行星"])
-        self.tree_view.tree.add_items()
+        self.tree_view.tree.addLeaf().addLeaf().addLeaf().addLeaf().addLeaf()
 
 
     def __build__(self):
@@ -88,14 +89,15 @@ class MainWindow(FramelessWindow):
         self.topLayout.addWidget(self.input_seed_start, 0, 1)
         self.topLayout.addWidget(BodyLabel("至"), 0, 2)
         self.topLayout.addWidget(self.input_seed_end, 0, 3)
-        self.topLayout.addWidget(self.label_star_num, 1, 0)
-        self.topLayout.addWidget(self.input_star_num_start, 1, 1)
-        self.topLayout.addWidget(BodyLabel("至"), 1, 2)
-        self.topLayout.addWidget(self.input_star_num_end, 1, 3)
-        self.topLayout.addWidget(self.label_batch_size, 2, 0)
-        self.topLayout.addWidget(self.input_batch_size, 2, 1)
-        self.topLayout.addWidget(self.label_thread_num, 2, 2)
-        self.topLayout.addWidget(self.input_thread_num, 2, 3)
+        self.topLayout.addWidget(self.seed_step_range, 0, 4)
+        self.topLayout.addWidget(self.label_star_num, 0, 5)
+        self.topLayout.addWidget(self.input_star_num_start, 0, 6)
+        self.topLayout.addWidget(BodyLabel("至"), 0, 7)
+        self.topLayout.addWidget(self.input_star_num_end, 0, 8)
+        self.topLayout.addWidget(self.label_batch_size, 1, 0)
+        self.topLayout.addWidget(self.input_batch_size, 1, 1)
+        self.topLayout.addWidget(self.label_thread_num, 1, 2)
+        self.topLayout.addWidget(self.input_thread_num, 1, 3)
 
         self.middleLayout.addWidget(self.tree_view)
 

@@ -4,7 +4,22 @@ from PySide6.QtCore import QEvent, QRectF
 from PySide6.QtGui import QPainter
 
 
-__all__ = ["LabelWithComboBox"]
+
+class AutoFixedComboBox(ComboBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        
+    def addItems(self, texts):
+        for text in texts:
+            self.addItem(text)
+
+        font_metrics = self.fontMetrics()
+        # 使用列表推导式找到最大宽度
+        max_width = max(font_metrics.horizontalAdvance(text) for text in texts)
+        # 添加边距
+        max_width += 45
+        
+        self.setMinimumWidth(int(max_width))
 
 class LabelWithComboBox(QFrame):
     def __init__(self, label: str = "You should give me even a foo as least", parent=None):
