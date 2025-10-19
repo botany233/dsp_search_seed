@@ -1,5 +1,6 @@
 from . import search_seed
 import json
+import copy
 
 def check_planet_py(planet_data:dict, planet_condition:dict) -> bool:
     if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"]:
@@ -52,10 +53,9 @@ def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition
             result.append(f"{star_num} {seed}")
     return result
 
-vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
-              "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
-
 def change_veins_to_legal(galaxy_condition:dict) -> dict:
+    vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
+                  "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
     if "veins" in galaxy_condition:
         galaxy_veins = [0] * 14
         for key, value in galaxy_condition["veins"].items():
@@ -75,4 +75,27 @@ def change_veins_to_legal(galaxy_condition:dict) -> dict:
                 for key, value in planet_condition["veins"].items():
                     planet_veins[vein_names.index(key)] = value
                 planet_condition["veins"] = planet_veins
+    return del_empty_condition(galaxy_condition)
+
+def get_galaxy_condition_no_veins(galaxy_condition:dict) -> dict:
+    new_galaxy_condition = copy.deepcopy(galaxy_condition)
+    new_galaxy_condition.pop("veins", 0)
+    for new_star_condition in new_galaxy_condition.get("stars", []):
+        new_star_condition.pop("veins", 0)
+        for new_planet_condition in new_star_condition.get("planets", []):
+            new_planet_condition.pop("veins", 0)
+    return del_empty_condition(new_galaxy_condition)
+
+def del_empty_condition(galaxy_condition:dict) -> dict:
+    if "stars" in galaxy_condition:
+        for i in range(len(galaxy_condition["stars"])-1, -1, -1):
+            star_condition = galaxy_condition["stars"][i]
+            if "planets" in star_condition:
+                for j in range(len(star_condition["planets"])-1, -1, -1):
+                    if not star_condition["planets"][j]:
+                        star_condition["planets"].pop(j)
+                if not star_condition["planets"]:
+                    star_condition.pop("planets")
+            if not star_condition:
+                galaxy_condition["stars"].pop(i)
     return galaxy_condition
