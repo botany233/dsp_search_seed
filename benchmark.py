@@ -75,12 +75,13 @@ if __name__ == "__main__":
     planet_condition_5 = {"type": "气态巨星"}
     planet_condition_6 = {"liquid": "水"}
     planet_condition_7 = {"liquid": "硫酸"}
+    planet_condition_8 = {"is_in_dsp": True}
 
     star_condition_1 = {"planets": [planet_condition_1]}
     star_condition_2 = {"planets": [planet_condition_2]}
     star_condition_3 = {"planets": [planet_condition_3,]}
-    star_condition_4 = {"planets": [planet_condition_4, planet_condition_5, planet_condition_6, planet_condition_7],
-                        "veins": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "distance":5}
+    star_condition_4 = {"planets": [planet_condition_4, planet_condition_5, planet_condition_6, planet_condition_7, planet_condition_8],
+                        "veins": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}}
 
     galaxy_condition = {"veins": {"单极磁石":4}, "stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
 
@@ -90,8 +91,8 @@ if __name__ == "__main__":
     galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
     galaxy_str_no_veins = json.dumps(galaxy_condition_no_veins, ensure_ascii = False)
 
-    seeds = (0, 999999)
-    star_nums = (64, 64)
+    seeds = (0, 19999)
+    star_nums = (32, 64)
     batch_size = 512
     max_thread = 20
 
