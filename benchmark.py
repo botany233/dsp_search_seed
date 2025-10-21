@@ -9,7 +9,7 @@ import json
 #                 "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩", "樱林海",
 #                 "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
 # star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
-#               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星", "X型恒星"]
+#               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
 
 def batch_generator(galaxy_condition:dict|str,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
     from time import perf_counter
     from benchmark_condition import *
 
-    galaxy_condition = get_impossible_condition()
+    galaxy_condition = get_100k_factory_condition()
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -78,16 +78,16 @@ if __name__ == "__main__":
     galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
     galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
 
-    seeds = (0, 9999999)
-    star_nums = (64, 64)
-    batch_size = 512
+    seeds = (0, 9999)
+    star_nums = (32, 64)
+    batch_size = 256
     max_thread = 20
 
     record_seed = 1
 
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    flag = perf_counter()
+    check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
+    print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
