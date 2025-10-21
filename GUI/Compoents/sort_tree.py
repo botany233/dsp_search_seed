@@ -30,10 +30,13 @@ from qfluentwidgets import (
     FluentIcon,
     ToolButton,
     TransparentToolButton,
+    SwitchButton,
 )
 
 from .combox import AutoFixedComboBox
 
+from config import cfg
+from config.cfg_dict_tying import GalaxyCondition, PlanetCondition, StarSystemCondition
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid
 
@@ -41,6 +44,12 @@ star_types = ["无 / 任意"] + star_types
 planet_types = ["无 / 任意"] + planet_types
 liquid = ["无 / 任意"] + liquid
 singularity = ["无 / 任意"] + singularity
+
+class LeaveBase(QWidget):
+    def __init__(self, parent = None, config_obj = None):
+        self.config_obj = config_obj
+        super().__init__(parent)
+
 
 class TreeWidgetItem(QTreeWidgetItem):
 
@@ -70,9 +79,9 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.parent().removeChild(self)
 
 
-class TreeWidgetLeave(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class TreeWidgetLeave(LeaveBase):
+    def __init__(self, parent=None, config_obj = None):
+        super().__init__(parent, config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
@@ -95,9 +104,14 @@ class TreeWidgetLeave(QWidget):
 class RootTreeWidgetItem(TreeWidgetItem):
     """条件项"""
     def __init__(self, root: 'SortTree', *args, **kwargs):
+        self.index = root.topLevelItemCount()
         text = f"条件{root.topLevelItemCount() + 1}"
         texts = [text]
         super().__init__(root, texts, *args, root=root, **kwargs)
+
+        self.config_key = f"conditions[{self.index}]"
+    
+        self.config_obj = cfg.config.conditions[self.index]
 
         self.__bind__widgets__()
 
@@ -116,11 +130,15 @@ class RootTreeWidgetItem(TreeWidgetItem):
 
 class GalaxyTreeWidgetItem(TreeWidgetItem):
     """银河系条件项"""
-    def __init__(self, root: 'SortTree', branch: RootTreeWidgetItem,*args, **kwargs):
+    def __init__(self, root: 'SortTree', branch: RootTreeWidgetItem, *args, **kwargs):
         text = "银河系条件"
         texts = [text]
         super().__init__(branch, texts, *args, root=root, **kwargs)
         self.branch = branch
+
+        self.config_key = "galaxy_condition"
+
+        self.config_obj = getattr(self.branch.config_obj, self.config_key)
 
         self.__bind__widgets__()
     
@@ -137,11 +155,16 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
 
 class SystemTreeWidgetItem(TreeWidgetItem):
     """恒星系条件项"""
-    def __init__(self, root: 'SortTree', branch: GalaxyTreeWidgetItem,*args, **kwargs):
+    def __init__(self, root: 'SortTree', branch: GalaxyTreeWidgetItem, *args, **kwargs):
+        self.index = branch.childCount()
         text = f"恒星系条件{branch.childCount() + 1}"
         texts = [text]
         super().__init__(branch, texts, *args, root=root, **kwargs)
         self.branch = branch
+
+        self.config_key = "star_system_conditions"
+
+        self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
 
         self.__bind__widgets__()
     
@@ -155,61 +178,38 @@ class SystemTreeWidgetItem(TreeWidgetItem):
         self.setExpanded(True)
         return leaf
 
-# class StarTreeWidgetItem(TreeWidgetItem):
-#     """恒星条件项"""
-#     def __init__(self, root: 'SortTree', branch: SystemTreeWidgetItem,*args, **kwargs):
-#         text = f"恒星条件{branch.childCount() + 1}"
-#         texts = [text]
-#         super().__init__(root, branch, texts, *args, **kwargs)
-#         self.root = root
-#         self.branch = branch
-
-#         self.__bind__widgets__()
-    
-#     def __bind__widgets__(self):
-#         pass
-
-#     def addLeaf(self) -> 'PlanetTreeWidgetItem':
-#         leaf = PlanetTreeWidgetItem(self.root, self)
-#         self.addChild(leaf)
-#         self.setExpanded(True)
-#         return leaf
 
 class PlanetTreeWidgetItem(TreeWidgetItem):
     """行星条件项"""
-    def __init__(self, root: 'SortTree', branch: SystemTreeWidgetItem,*args, **kwargs):
+    def __init__(self, root: 'SortTree', branch: SystemTreeWidgetItem, *args, **kwargs):
+        self.index = branch.childCount()
         text = f"行星条件{branch.childCount() + 1}"
         texts = [text]
         super().__init__(branch, texts, *args, root=root, **kwargs)
+
         self.branch = branch
+
+        self.config_key = "planet_conditions"
+
+        try:
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+
+        except IndexError:
+            a:list = getattr(self.branch.config_obj, self.config_key)
+            a.append(PlanetCondition())
+            cfg.save()
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.adjust_del_button()
 
         self.__bind__widgets__()
     
     def __bind__widgets__(self):
-        self.root.setItemWidget(self, 1, PlanetTreeLeave())
+        self.root.setItemWidget(self, 1, PlanetTreeLeave(config_obj=self.config_obj))
 
     def addLeaf(self) -> None:
         return
-        # leaf = MoonTreeWidgetItem(self.root, self)
-        # self.addChild(leaf)
-        # self.setExpanded(True)
-        # return leaf
-
-# class MoonTreeWidgetItem(TreeWidgetItem):
-#     """卫星条件项"""
-#     def __init__(self, root: 'SortTree', branch: PlanetTreeWidgetItem,*args, **kwargs):
-#         text = f"卫星条件{branch.childCount() + 1}"
-#         texts = [text]
-#         super().__init__(root, branch, texts, *args, **kwargs)
-#         self.root = root
-#         self.branch = branch
-
-#         self.__bind__widgets__()
-    
-#     def __bind__widgets__(self):
-#         pass
 
 
 class SettingsTreeLeave(PushButton):
@@ -224,9 +224,9 @@ class SettingsTreeLeave(PushButton):
     def _createSettingsWindow(self):
         SortTreeMessages.CreateSettingsWindow.emit(self)
 
-class SystemTreeLeave(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class SystemTreeLeave(LeaveBase):
+    def __init__(self, parent=None, config_obj = None):
+        super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.starTypeLabel = BodyLabel("恒星类型")
@@ -238,6 +238,20 @@ class SystemTreeLeave(QWidget):
         self.mainLayout.addWidget(self.luminosityLabel)
         self.luminosityLineEdit = LineEdit()
         self.mainLayout.addWidget(self.luminosityLineEdit)
+
+        self.distanceLabel = BodyLabel("最远距离")
+        self.mainLayout.addWidget(self.distanceLabel)
+        self.distanceLineEdit = LineEdit()
+        self.mainLayout.addWidget(self.distanceLineEdit)
+
+        self.hitStarNumLabel = BodyLabel("符合的恒星数")
+        self.mainLayout.addWidget(self.hitStarNumLabel)
+        self.hitStarNumLineEdit = LineEdit()
+        self.mainLayout.addWidget(self.hitStarNumLineEdit)
+        self.distanceLineEdit.setMaximumHeight(28)
+        self.distanceLineEdit.setFixedHeight(28)
+        self.hitStarNumLineEdit.setMaximumHeight(28)
+        self.hitStarNumLineEdit.setFixedHeight(28)
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
         self.settingsButton = SettingsTreeLeave()
@@ -245,27 +259,34 @@ class SystemTreeLeave(QWidget):
         self.mainLayout.addWidget(self.settingsButton)
         self.settingsButton.setToolTip("设置恒星系筛选条件")
 
-class PlanetTreeLeave(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
+class PlanetTreeLeave(LeaveBase):
+    def __init__(self, parent=None, config_obj = None):
+        super().__init__(parent, config_obj=config_obj)
+
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignLeft)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.planetTypeLabel = BodyLabel("行星类型")
         self.mainLayout.addWidget(self.planetTypeLabel)
-        self.planetTypeComboBox = AutoFixedComboBox()
+        self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
         self.planetTypeComboBox.addItems(planet_types)
         self.mainLayout.addWidget(self.planetTypeComboBox)
         self.singularityLabel = BodyLabel("特点")
         self.mainLayout.addWidget(self.singularityLabel)
-        self.singularityComboBox = AutoFixedComboBox()
+        self.singularityComboBox = AutoFixedComboBox(config_key="singularity")
         self.singularityComboBox.addItems(singularity)
         self.mainLayout.addWidget(self.singularityComboBox)
         self.liquidLabel = BodyLabel("液体类型")
         self.mainLayout.addWidget(self.liquidLabel)
-        self.liquidComboBox = AutoFixedComboBox()
+        self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type")
         self.liquidComboBox.addItems(liquid)
         self.mainLayout.addWidget(self.liquidComboBox)
+        # self.fullCoverdPlanetLabel = BodyLabel("是否为全包星")
+        # self.mainLayout.addWidget(self.fullCoverdPlanetLabel)
+        self.fullCoverdPlanetSwitch = SwitchButton("是<u><i>否</i></u>为全包星", indicatorPos=1)
+        self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否为全包星")
+        self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
+
         self.settingsButton = SettingsTreeLeave()
         self.mainLayout.addWidget(self.settingsButton)
 

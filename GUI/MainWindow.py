@@ -5,14 +5,15 @@ from qfluentwidgets import Pivot, setThemeColor, ProgressRing, setTheme, Theme
 from PySide6.QtGui import QIcon, QFont, QColor, QCursor
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip, QTreeWidgetItem, QSizePolicy
-from qfluentwidgets import VBoxLayout, LineEdit, PushButton, ComboBox, TextEdit, BodyLabel, FlowLayout
+from qfluentwidgets import VBoxLayout, PushButton, ComboBox, TextEdit, BodyLabel, FlowLayout
 
 from .Compoents import LabelWithComboBox
 from .Widgets import SortTreeWidget
-from .Compoents.Widgets.line_edit import LabelWithLineEdit
+from .Compoents.Widgets.line_edit import LabelWithLineEdit, ConfigLineEdit
 
 from GUI import vein_names, liquid, planet_types, star_types, singularity
 
+from config import cfg
 
 import signal
 
@@ -30,7 +31,9 @@ class MainWindow(FramelessWindow):
         self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球种子搜索器")
         self.setWindowIcon(QIcon(r"assets\icon.jpg"))
-        self.resize(1080, 750)
+        width: int = 1200
+        height: int = width // 16 * 10
+        self.resize(width, height)
 
         
         self.mainLayout = VBoxLayout(self)
@@ -62,18 +65,18 @@ class MainWindow(FramelessWindow):
     def __init__widgets__(self):
 
         self.label_seed_range = BodyLabel("种子范围:")
-        self.input_seed_start = LineEdit()
+        self.input_seed_start = ConfigLineEdit(config_key="seed_range[0]")
         # self.input_seed_start.setMinimumWidth(80)
-        self.input_seed_end = LineEdit()
+        self.input_seed_end = ConfigLineEdit(config_key="seed_range[1]")
         # self.input_seed_end.setMinimumWidth(80)
-        self.seed_step_range = LabelWithLineEdit("步长")
+        self.seed_step_range = LabelWithLineEdit("步长", config_key="step_size")
         self.label_star_num = BodyLabel("恒星数:")
-        self.input_star_num_start = LineEdit()
-        self.input_star_num_end = LineEdit()
+        self.input_star_num_start = ConfigLineEdit(config_key="star_num_range[0]")
+        self.input_star_num_end = ConfigLineEdit(config_key="star_num_range[1]")
         self.label_batch_size = BodyLabel("批处理大小:")
-        self.input_batch_size = LineEdit()
+        self.input_batch_size = ConfigLineEdit(config_key="batch_size")
         self.label_thread_num = BodyLabel("线程数:")
-        self.input_thread_num = LineEdit()
+        self.input_thread_num = ConfigLineEdit(config_key="max_thread")
         self.button_start = PushButton("开始搜索")
         self.button_stop = PushButton("停止搜索")
 
@@ -94,10 +97,10 @@ class MainWindow(FramelessWindow):
         self.topLayout.addWidget(self.input_star_num_start, 0, 6)
         self.topLayout.addWidget(BodyLabel("至"), 0, 7)
         self.topLayout.addWidget(self.input_star_num_end, 0, 8)
-        self.topLayout.addWidget(self.label_batch_size, 1, 0)
-        self.topLayout.addWidget(self.input_batch_size, 1, 1)
-        self.topLayout.addWidget(self.label_thread_num, 1, 2)
-        self.topLayout.addWidget(self.input_thread_num, 1, 3)
+        self.topLayout.addWidget(self.label_batch_size, 0, 9)
+        self.topLayout.addWidget(self.input_batch_size, 0, 10)
+        self.topLayout.addWidget(self.label_thread_num, 0, 11)
+        self.topLayout.addWidget(self.input_thread_num, 0, 12)
 
         self.middleLayout.addWidget(self.tree_view)
 
