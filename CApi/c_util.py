@@ -3,6 +3,8 @@ import json
 import copy
 
 def check_planet_py(planet_data:dict, planet_condition:dict) -> bool:
+    if "is_in_dsp" in planet_condition and not planet_data["is_in_dsp"]:
+        return False
     if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"]:
         return False
     if "type" in planet_condition and planet_condition["type"] != planet_data["type"]:
@@ -28,7 +30,13 @@ def check_star_py(star_data:dict, star_condition:dict) -> bool:
             return False
     if "planets" in star_condition:
         for planet_condition in star_condition["planets"]:
-            if not any(check_planet_py(planet_data, planet_condition) for planet_data in star_data["planets"]):
+            left_satisfy_num = planet_condition["satisfy_num"]
+            for planet_data in star_data["planets"]:
+                if check_planet_py(planet_data, planet_condition):
+                    left_satisfy_num -= 1
+                    if not left_satisfy_num:
+                        break
+            if left_satisfy_num:
                 return False
     return True
 
@@ -38,7 +46,13 @@ def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
             return False
     if "stars" in galaxy_condition:
         for star_condition in galaxy_condition["stars"]:
-            if not any(check_star_py(star_data, star_condition) for star_data in galaxy_data["stars"]):
+            left_satisfy_num = star_condition["satisfy_num"]
+            for star_data in galaxy_data["stars"]:
+                if check_star_py(star_data, star_condition):
+                    left_satisfy_num -= 1
+                    if not left_satisfy_num:
+                        break
+            if left_satisfy_num:
                 return False
     return True
 
@@ -53,7 +67,7 @@ def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition
             result.append(f"{star_num} {seed}")
     return result
 
-def change_veins_to_legal(galaxy_condition:dict) -> dict:
+def change_condition_to_legal(galaxy_condition:dict) -> dict:
     vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
                   "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
     if "veins" in galaxy_condition:
@@ -63,6 +77,9 @@ def change_veins_to_legal(galaxy_condition:dict) -> dict:
         galaxy_condition["veins"] = galaxy_veins
 
     for star_condition in galaxy_condition.get("stars", []):
+        if "satisfy_num" not in star_condition:
+            star_condition["satisfy_num"] = 1
+
         if "veins" in star_condition:
             star_veins = [0] * 14
             for key, value in star_condition["veins"].items():
@@ -70,6 +87,9 @@ def change_veins_to_legal(galaxy_condition:dict) -> dict:
             star_condition["veins"] = star_veins
 
         for planet_condition in star_condition.get("planets", []):
+            if "satisfy_num" not in planet_condition:
+                planet_condition["satisfy_num"] = 1
+
             if "veins" in planet_condition:
                 planet_veins = [0] * 14
                 for key, value in planet_condition["veins"].items():
@@ -77,14 +97,14 @@ def change_veins_to_legal(galaxy_condition:dict) -> dict:
                 planet_condition["veins"] = planet_veins
     return del_empty_condition(galaxy_condition)
 
-def get_galaxy_condition_no_veins(galaxy_condition:dict) -> dict:
-    new_galaxy_condition = copy.deepcopy(galaxy_condition)
-    new_galaxy_condition.pop("veins", 0)
-    for new_star_condition in new_galaxy_condition.get("stars", []):
+def get_galaxy_condition_simple(galaxy_condition:dict) -> dict:
+    galaxy_condition_simple = copy.deepcopy(galaxy_condition)
+    galaxy_condition_simple.pop("veins", 0)
+    for new_star_condition in galaxy_condition_simple.get("stars", []):
         new_star_condition.pop("veins", 0)
         for new_planet_condition in new_star_condition.get("planets", []):
             new_planet_condition.pop("veins", 0)
-    return del_empty_condition(new_galaxy_condition)
+    return del_empty_condition(galaxy_condition_simple)
 
 def del_empty_condition(galaxy_condition:dict) -> dict:
     if "stars" in galaxy_condition:

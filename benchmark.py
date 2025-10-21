@@ -21,13 +21,13 @@ def batch_generator(galaxy_condition:dict|str,
             yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_condition
 
 def batch_generator_c(galaxy_str:str,
-                      galaxy_str_no_veins:str,
+                      galaxy_str_simple:str,
                       seeds: tuple[int, int],
                       star_nums: tuple[int, int],
                       batch_size:int):
     for star_num in range(star_nums[0], star_nums[1]+1):
         for seed in range(seeds[0], seeds[1]+1, batch_size):
-            yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_str, galaxy_str_no_veins
+            yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_str, galaxy_str_simple
 
 def check_batch_wrapper(args):
     return check_batch_c(*args)
@@ -53,12 +53,12 @@ def check_seeds_py(seeds: tuple[int, int],
 def check_seeds_c(seeds: tuple[int, int],
                            star_nums: tuple[int, int],
                            galaxy_str: str,
-                           galaxy_str_no_veins: str,
+                           galaxy_str_simple: str,
                            batch_size: int,
                            max_thread: int,
                            record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator_c(galaxy_str, galaxy_str_no_veins, seeds, star_nums, batch_size)
+        generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper, generator)
         for result in results:
@@ -68,31 +68,18 @@ def check_seeds_c(seeds: tuple[int, int],
 
 if __name__ == "__main__":
     from time import perf_counter
-    planet_condition_1 = {"veins": {"金伯利":1, "刺笋结晶":1, "煤":1}, "type": "红石"}
-    planet_condition_2 = {"veins": {"分型硅":1, "油":1, "刺笋结晶":1, "煤":1}, "type": "潘多拉沼泽"}
-    planet_condition_3 = {"veins": {"光栅石":1}, "singularity": "卫星", "type": "橙晶荒漠"}
-    planet_condition_4 = {"singularity": "潮汐锁定永昼永夜"}
-    planet_condition_5 = {"type": "气态巨星"}
-    planet_condition_6 = {"liquid": "水"}
-    planet_condition_7 = {"liquid": "硫酸"}
-    planet_condition_8 = {"is_in_dsp": True}
+    from benchmark_condition import *
 
-    star_condition_1 = {"planets": [planet_condition_1]}
-    star_condition_2 = {"planets": [planet_condition_2]}
-    star_condition_3 = {"planets": [planet_condition_3,]}
-    star_condition_4 = {"planets": [planet_condition_4, planet_condition_5, planet_condition_6, planet_condition_7, planet_condition_8],
-                        "veins": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}}
+    galaxy_condition = get_impossible_condition()
 
-    galaxy_condition = {"veins": {"单极磁石":4}, "stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
-
-    galaxy_condition = change_veins_to_legal(galaxy_condition)
-    galaxy_condition_no_veins = get_galaxy_condition_no_veins(galaxy_condition)
+    galaxy_condition = change_condition_to_legal(galaxy_condition)
+    galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
 
     galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
-    galaxy_str_no_veins = json.dumps(galaxy_condition_no_veins, ensure_ascii = False)
+    galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
 
-    seeds = (0, 19999)
-    star_nums = (32, 64)
+    seeds = (0, 9999999)
+    star_nums = (64, 64)
     batch_size = 512
     max_thread = 20
 
@@ -103,5 +90,5 @@ if __name__ == "__main__":
     # print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_no_veins, batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")
