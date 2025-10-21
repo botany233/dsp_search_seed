@@ -30,7 +30,7 @@ class MainWindow(FramelessWindow):
 
         self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球种子搜索器")
-        self.setWindowIcon(QIcon(r"assets\icon.jpg"))
+        self.setWindowIcon(QIcon(r"assets\icon.png"))
         width: int = 1200
         height: int = width // 16 * 10
         self.resize(width, height)
