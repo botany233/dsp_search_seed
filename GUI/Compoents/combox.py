@@ -27,6 +27,17 @@ class AutoFixedComboBox(ComboBox):
         if self.config_key is not None:
             self.change_config(self.currentText())
 
+    def load_config(self) -> None:
+        if self.config_key is None:
+            return
+        if hasattr(self.parent(), "config_obj"):
+            config_obj = self.parent().config_obj
+            config_value = getattr(config_obj, self.config_key)
+            index = self.findText(config_value)
+            if index != -1:
+                self.setCurrentIndex(index)
+        pass
+
     def change_config(self, config_value: str) -> None:
         if self.config_key is None:
             return

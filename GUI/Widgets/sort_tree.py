@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QApplication
 
 from qfluentwidgets import VBoxLayout, PushButton, PopUpAniStackedWidget
 
-
+from config import cfg
 
 class SortTreeWidget(QWidget):
 
@@ -62,15 +62,18 @@ class SortTreeWidget(QWidget):
         item = self.tree.currentItem()
         if item:
             if hasattr(item, 'addLeaf'):
-                item.addLeaf()
+                leaf = item.addLeaf()
+                while leaf is not None:
+                    leaf = leaf.addLeaf()
         else:
-            self.tree.addLeaf()
+            leaf = self.tree.addLeaf()
+            while leaf is not None:
+                leaf = leaf.addLeaf()
 
     def _create_settings_window(self, obj):
         settings_window = SettingsWindow(context=obj)
         self.addWidgetPopRight(settings_window)
         self.stackedWidget.setCurrentWidget(settings_window)
-        pass
 
     def add_item(self, texts):
         return self.tree.add_item(texts)
@@ -83,3 +86,5 @@ class SortTreeWidget(QWidget):
 
     def __on_clear_button_clicked__(self):
         self.tree.clear()
+        cfg.config.conditions = []
+        cfg.save()

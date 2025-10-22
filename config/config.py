@@ -13,6 +13,7 @@ class Config:
         except FileNotFoundError:
             print("配置文件不存在，使用默认配置")
             self.config = GUIConfig()
+            self.save()
         except Exception as e:
             self.config = GUIConfig()
             print(f"加载配置文件失败: {e}")

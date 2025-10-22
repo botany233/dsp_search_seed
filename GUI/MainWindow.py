@@ -31,7 +31,7 @@ class MainWindow(FramelessWindow):
         self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球种子搜索器")
         self.setWindowIcon(QIcon(r"assets\icon.png"))
-        width: int = 1200
+        width: int = 1220
         height: int = width // 16 * 10
         self.resize(width, height)
 
@@ -81,7 +81,32 @@ class MainWindow(FramelessWindow):
         self.button_stop = PushButton("停止搜索")
 
         self.tree_view = SortTreeWidget()
-        self.tree_view.tree.addLeaf().addLeaf().addLeaf().addLeaf().addLeaf()
+
+        copy_cfg = cfg.config.model_copy()
+
+        for condition_config in copy_cfg.conditions:
+            # ConditionConfig 层级
+            condition_leaf = self.tree_view.tree.addLeaf()
+            
+            galaxy_condition = condition_config.galaxy_condition
+            if not galaxy_condition:
+                continue
+            
+            # GalaxyCondition 层级
+            galaxy_leaf = condition_leaf.addLeaf()
+            
+            # 处理StarSystemConditions
+            for star_system_condition in galaxy_condition.star_system_conditions:
+                # StarSystemCondition 层级
+                star_system_leaf = galaxy_leaf.addLeaf()
+                
+                # 处理PlanetConditions
+                for planet_condition in star_system_condition.planet_conditions:
+                    # PlanetCondition 层级
+                    star_system_leaf.addLeaf()
+
+
+        
 
 
     def __build__(self):
