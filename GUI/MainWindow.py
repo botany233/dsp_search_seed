@@ -1,10 +1,10 @@
 
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qframelesswindow import StandardTitleBar
-from qfluentwidgets import Pivot, setThemeColor, ProgressRing, setTheme, Theme
-from PySide6.QtGui import QIcon, QFont, QColor, QCursor
+from qfluentwidgets import Pivot, setThemeColor, ProgressRing, setTheme, Theme, qconfig
+from PySide6.QtGui import QIcon, QFont, QColor, QCursor, QFontDatabase
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip, QTreeWidgetItem, QSizePolicy
+from PySide6.QtWidgets import QHBoxLayout, QGridLayout, QToolTip, QTreeWidgetItem, QSizePolicy, QApplication
 from qfluentwidgets import VBoxLayout, PushButton, ComboBox, TextEdit, BodyLabel, FlowLayout
 
 from .Compoents import LabelWithComboBox
@@ -25,19 +25,45 @@ class MainWindow(FramelessWindow):
         self.setObjectName("MainWindow")
 
         setThemeColor("#409EFF")
-        self.setFont(QFont("微软雅黑", 12))
-        title_bar = StandardTitleBar(self)
 
+        # 设置字体，提供多个备选
+        font_families = [
+            "Microsoft YaHei",  # 微软雅黑
+            "微软雅黑",          # 微软雅黑中文名
+            "Segoe UI",         # Windows 现代UI字体
+            "PingFang SC",      # macOS 中文字体
+            "Hiragino Sans GB", # macOS 备选中文字体
+            "WenQuanYi Micro Hei", # Linux 中文字体
+            "Noto Sans CJK SC", # 跨平台中文字体
+            "sans-serif"        # 最后回退到无衬线字体
+        ]
+        
+        qconfig.fontFamilies.value = font_families
+
+
+
+        title_bar = StandardTitleBar(self)
+        title_bar.titleLabel.setStyleSheet("""
+            QLabel{
+                background: transparent;
+                font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
+                font-size: 13px;
+                padding: 0 4px
+            }
+        """)
         self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球种子搜索器")
         self.setWindowIcon(QIcon(r"assets\icon.png"))
-        width: int = 1220
+        width: int = 1210
         height: int = width // 16 * 10
         self.resize(width, height)
+        setTheme(Theme.AUTO)
+        # 启用云母效果（如果系统支持）
+        self.titleBar.raise_()
+        self.windowEffect.setMicaEffect(self.winId(), False, True)  # 启用云母效果
 
-        
         self.mainLayout = VBoxLayout(self)
-        
+
         self.setLayout(self.mainLayout)
         self.__build__()
         #self.show()
@@ -84,22 +110,17 @@ class MainWindow(FramelessWindow):
 
         copy_cfg = cfg.config.model_copy()
 
-        for condition_config in copy_cfg.conditions:
-            # ConditionConfig 层级
-            condition_leaf = self.tree_view.tree.addLeaf()
-            
-            galaxy_condition = condition_config.galaxy_condition
-            if not galaxy_condition:
-                continue
-            
+        if copy_cfg.conditions:
             # GalaxyCondition 层级
-            galaxy_leaf = condition_leaf.addLeaf()
-            
+            galaxy_leaf = self.tree_view.tree.addLeaf()
+
+            galaxy_condition = copy_cfg.conditions
+
             # 处理StarSystemConditions
             for star_system_condition in galaxy_condition.star_system_conditions:
                 # StarSystemCondition 层级
                 star_system_leaf = galaxy_leaf.addLeaf()
-                
+
                 # 处理PlanetConditions
                 for planet_condition in star_system_condition.planet_conditions:
                     # PlanetCondition 层级

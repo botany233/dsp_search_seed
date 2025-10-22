@@ -1,6 +1,6 @@
 __all__ = ["LabelWithLineEdit"]
 from qfluentwidgets import LineEdit, BodyLabel
-
+from PySide6.QtCore import QTimer
 
 from config import cfg
 
@@ -78,11 +78,32 @@ class LabelWithLineEdit(ConfigLineEdit):
     def __init__(self, label: str = "You should give me even a foo as least", parent=None, config_key: str | None = None):
         super().__init__(parent, config_key=config_key)
         self.label_box = BodyLabel(label)
+        self.setToolTip(label)
+        self.label_box.setToolTip(label)
         self.hBoxLayout.insertWidget(0, self.label_box)
         self._text = self.text()
+        self.textChanged.connect(self._shadow_label)
+        QTimer.singleShot(0, self._shadow_label)
 
     def SetEnableVerify(self) -> None:
         self.textEdited.connect(self._on_text_edited_verify)
+
+    def setShadow(self, enable: bool, extra = None) -> None:
+        if enable:
+            self.label_box.setStyleSheet("color: gray;")
+        else:
+            self.label_box.setStyleSheet("color: black;")
+        pass
+
+    def _shadow_label(self) -> None:
+        text_width = self.fontMetrics().horizontalAdvance(self.text())
+        label_width = self.fontMetrics().horizontalAdvance(self.label_box.text())
+        width = self.width()
+        if text_width + label_width + 15 > width:
+            self.setShadow(True)
+        else:
+            self.setShadow(False)
+        pass
 
     def _on_text_edited_verify(self, text: str) -> None:
         text = text.strip()
@@ -97,6 +118,8 @@ class LabelWithLineEdit(ConfigLineEdit):
         except Exception as e:
             self.setPlaceholderText("请输入有效数字")
             self.setText(self._text)
+
+        self._shadow_label()
     
 
 

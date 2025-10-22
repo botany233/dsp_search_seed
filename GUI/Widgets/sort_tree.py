@@ -35,13 +35,6 @@ class SortTreeWidget(QWidget):
 
         self.mainLayout.addLayout(self.buttonLayout)
         
-        self.clearButton = PushButton("清空")
-        self.clearButton.clicked.connect(self.__on_clear_button_clicked__)
-        self.addItemButton = PushButton("添加项")
-        self.buttonLayout.addWidget(self.clearButton)
-        self.buttonLayout.addWidget(self.addItemButton)
-
-        self.addItemButton.clicked.connect(self._on_add_item_button_clicked__)
 
         SortTreeMessages.CreateSettingsWindow.connect(self._create_settings_window)
 
@@ -49,26 +42,7 @@ class SortTreeWidget(QWidget):
         self.stackedWidget.addWidget(widget, deltaX=76, deltaY=0)
 
     def _on_stacked_widget_changed(self, index: int):
-        if hasattr(self, 'buttonLayout'):
-            if index != 0:
-                self.clearButton.setHidden(True)
-                self.addItemButton.setHidden(True)
-            else:
-                self.clearButton.setHidden(False)
-                self.addItemButton.setHidden(False)
         pass
-
-    def _on_add_item_button_clicked__(self):
-        item = self.tree.currentItem()
-        if item:
-            if hasattr(item, 'addLeaf'):
-                leaf = item.addLeaf()
-                while leaf is not None:
-                    leaf = leaf.addLeaf()
-        else:
-            leaf = self.tree.addLeaf()
-            while leaf is not None:
-                leaf = leaf.addLeaf()
 
     def _create_settings_window(self, obj):
         settings_window = SettingsWindow(context=obj)
@@ -83,8 +57,3 @@ class SortTreeWidget(QWidget):
 
     def setBorderRadius(self, radius: int):
         self.tree.setBorderRadius(radius)
-
-    def __on_clear_button_clicked__(self):
-        self.tree.clear()
-        cfg.config.conditions = []
-        cfg.save()

@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 
+
 class VeinsName(BaseModel):
     iron: str = "铁"
     copper: str = "铜"
@@ -16,6 +17,7 @@ class VeinsName(BaseModel):
     bamboo_shoot_crystal: str = "竹笋晶体"
     monopolar_magnet: str = "单极磁石"
 
+
 class VeinsCondition(BaseModel):
     iron: int = -1
     copper: int = -1
@@ -31,6 +33,7 @@ class VeinsCondition(BaseModel):
     grating_stone: int = -1
     bamboo_shoot_crystal: int = -1
     monopolar_magnet: int = -1
+
 
 class CelestialCondition(BaseModel):
     mediterranean: int = -1
@@ -56,7 +59,7 @@ class CelestialCondition(BaseModel):
     orange_crystal_desert: int = -1
     frigid_tundra: int = -1
     pandora_swamp: int = -1
-    
+
     @classmethod
     def get_field_mapping(cls) -> dict[str, str]:
         """返回中文名称到英文字段名的映射"""
@@ -83,13 +86,14 @@ class CelestialCondition(BaseModel):
             "热带草原": "tropical_savanna",
             "橙晶荒漠": "orange_crystal_desert",
             "极寒冻土": "frigid_tundra",
-            "潘多拉沼泽": "pandora_swamp"
+            "潘多拉沼泽": "pandora_swamp",
         }
-    
+
 
 class PlanetCondition(BaseModel):
     custom_name: str = "行星条件"
-    veins_condition: VeinsCondition = VeinsCondition()
+    checked: int = 2
+
     planet_type: str = "无 / 任意"
     singularity: str = "无 / 任意"
     liquid_type: str = "无 / 任意"
@@ -97,29 +101,31 @@ class PlanetCondition(BaseModel):
     full_coverd_dsp: bool = False
     fc_hited_planet_num: int = -1
 
+    veins_condition: VeinsCondition = VeinsCondition()
+
 
 class StarSystemCondition(BaseModel):
     custom_name: str = "恒星系条件"
-    veins_condition: VeinsCondition = VeinsCondition()
+    checked: int = 2
+
     star_type: str = "无 / 任意"
     lumino_level: float = -1.0
-
-
     distance_level: float = -1.0
     distance_hited_star_num: int = -1
 
+    veins_condition: VeinsCondition = VeinsCondition()
+    celestial_condition: CelestialCondition = CelestialCondition()
     planet_conditions: list[PlanetCondition] = [PlanetCondition()]
+
 
 class GalaxyCondition(BaseModel):
     custom_name: str = "银河系条件"
+    checked: int = 2
 
     celestial_condition: CelestialCondition = CelestialCondition()
     veins_condition: VeinsCondition = VeinsCondition()
     star_system_conditions: list[StarSystemCondition] = [StarSystemCondition()]
 
-class ConditionConfig(BaseModel):
-    custom_name: str = "条件"
-    galaxy_condition: GalaxyCondition = GalaxyCondition()
 
 class GUIConfig(BaseModel):
     seed_range: tuple[int, int] = (0, 99999999)
@@ -128,7 +134,8 @@ class GUIConfig(BaseModel):
     max_thread: int = 4
     batch_size: int = 1000
     record_seed: bool = True
-    conditions: list[ConditionConfig] = [ConditionConfig()]
+    ui_scale_factor: float = 1.0
+    conditions: GalaxyCondition = GalaxyCondition()
 
 
 if __name__ == "__main__":

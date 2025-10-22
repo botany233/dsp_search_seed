@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
 from .line_edit import LabelWithLineEdit
 
-from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel
+from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
 from config import cfg
 from config.cfg_dict_tying import VeinsCondition, BaseModel, CelestialCondition
 
@@ -30,10 +30,14 @@ class SettingsWindow(QWidget):
 
         self.mainLayout = QVBoxLayout(self)
 
-        self.titleLabel = TitleLabel(context.settingsButton.text())
+        self.titleLabel = TitleLabel(context.settingsButton.objectName())
 
         self.mainLayout.addWidget(self.titleLabel)
-        
+
+        if self.context.description is not None:
+            self.subtitleLabel = CaptionLabel(self.context.description)
+            self.mainLayout.addWidget(self.subtitleLabel)
+
         self.settingsLayout = QGridLayout()
 
         self._addItems(items)
