@@ -41,6 +41,9 @@ def check_star_py(star_data:dict, star_condition:dict) -> bool:
     return True
 
 def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
+    if "planet_type_nums" in galaxy_condition:
+        if not all(galaxy_data["planet_type_nums"][i] >= galaxy_condition["planet_type_nums"][i] for i in range(23)):
+            return False
     if "veins" in galaxy_condition:
         if not all(galaxy_data["veins"][i] >= galaxy_condition["veins"][i] for i in range(14)):
             return False
@@ -70,12 +73,22 @@ def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition
 def change_condition_to_legal(galaxy_condition:dict) -> dict:
     vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
                   "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
+    planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩",
+                "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
+                "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
     liquid_names = ["无", "水", "硫酸"]
+
     if "veins" in galaxy_condition:
         galaxy_veins = [0] * 14
         for key, value in galaxy_condition["veins"].items():
             galaxy_veins[vein_names.index(key)] = value
         galaxy_condition["veins"] = galaxy_veins
+
+    if "planet_type_nums" in galaxy_condition:
+        planet_type_nums = [0] * 23
+        for key, value in galaxy_condition["planet_type_nums"].items():
+            planet_type_nums[planet_types.index(key)] = value
+        galaxy_condition["planet_type_nums"] = planet_type_nums
 
     for star_condition in galaxy_condition.get("stars", []):
         if "satisfy_num" not in star_condition:
@@ -96,7 +109,7 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
                 for key, value in planet_condition["veins"].items():
                     planet_veins[vein_names.index(key)] = value
                 planet_condition["veins"] = planet_veins
-            
+
             if "liquid" in planet_condition:
                 planet_condition["liquid"] = liquid_names.index(planet_condition["liquid"])
     return del_empty_condition(galaxy_condition)

@@ -12,6 +12,12 @@ def get_100k_factory_condition():
     galaxy_condition = {"stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
     return galaxy_condition
 
+def get_extreme_factory_condition():
+    star_condition = {"type": "O型恒星", "satisfy_num": 5}
+    
+    galaxy_condition = {"stars":[star_condition], "planet_type_nums": {"水世界": 3}, "veins": {"单极磁石":24}}
+    return galaxy_condition
+
 def get_easy_condition():
     planet_condition_1 = {"singularity": "潮汐锁定永昼永夜"}
     planet_condition_2 = {"type": "气态巨星"}

@@ -5,9 +5,9 @@ import json
 
 # vein_names = "铁, 铜, 硅, 钛, 石, 煤, 油, 可燃冰, 金伯利, 分型硅, 有机晶体, 光栅石, 刺笋结晶, 单极磁石"
 # liquid = "水, 硫酸"
-# planet_types = ["地中海", "气态巨星", "冰巨星", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩", "冰原冻土",
-#                 "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩", "樱林海",
-#                 "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
+# planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩",
+#                 "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
+#                 "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
 # star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
 #               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
@@ -70,11 +70,10 @@ if __name__ == "__main__":
     from time import perf_counter
     from benchmark_condition import *
 
-    galaxy_condition = get_100k_factory_condition()
+    # galaxy_condition = get_100k_factory_condition()
+    galaxy_condition = get_extreme_factory_condition()
     # galaxy_condition = get_easy_condition()
     # galaxy_condition = get_3_blue_condition()
-
-    galaxy_condition = {"stars":[{"planets":[{"type":"樱林海"}]}]}
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -82,7 +81,7 @@ if __name__ == "__main__":
     galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
     galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
 
-    seeds = (0, 999999)
+    seeds = (0, 9999999)
     star_nums = (64, 64)
     batch_size = 256
     max_thread = 20
