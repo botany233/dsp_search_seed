@@ -9,7 +9,7 @@ def get_100k_factory_condition():
     star_condition_3 = {"planets": [planet_condition_3]}
     star_condition_4 = {"planets": [planet_condition_4], "type": "O型恒星", "satisfy_num": 2}
 
-    galaxy_condition = {"veins": {"单极磁石":4}, "stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
+    galaxy_condition = {"stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
     return galaxy_condition
 
 def get_easy_condition():
@@ -24,6 +24,11 @@ def get_easy_condition():
                         "type": "O型恒星", "distance": 5}
 
     galaxy_condition = {"veins": {"单极磁石":4}, "stars":[star_condition_1]}
+    return galaxy_condition
+
+def get_3_blue_condition():
+    star_condition = {"type": "蓝巨星", "satisfy_num": 3}
+    galaxy_condition = {"stars":[star_condition]}
     return galaxy_condition
 
 def get_impossible_condition():

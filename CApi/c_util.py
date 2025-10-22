@@ -70,6 +70,7 @@ def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition
 def change_condition_to_legal(galaxy_condition:dict) -> dict:
     vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
                   "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
+    liquid_names = ["无", "水", "硫酸"]
     if "veins" in galaxy_condition:
         galaxy_veins = [0] * 14
         for key, value in galaxy_condition["veins"].items():
@@ -95,6 +96,9 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
                 for key, value in planet_condition["veins"].items():
                     planet_veins[vein_names.index(key)] = value
                 planet_condition["veins"] = planet_veins
+            
+            if "liquid" in planet_condition:
+                planet_condition["liquid"] = liquid_names.index(planet_condition["liquid"])
     return del_empty_condition(galaxy_condition)
 
 def get_galaxy_condition_simple(galaxy_condition:dict) -> dict:
