@@ -1,8 +1,8 @@
 from qfluentwidgets import FluentLabelBase, BodyLabel
 from PySide6.QtCore import Signal, QTimer
 
+
 class AlwaysShowLabel(BodyLabel):
-    
     onTextChanged = Signal()
 
     def _init(self):
@@ -13,9 +13,8 @@ class AlwaysShowLabel(BodyLabel):
     def setText(self, arg__1: str) -> None:
         self.onTextChanged.emit()
         return super().setText(arg__1)
-    
-    def _resize(self):
 
+    def _resize(self):
         length = self.fontMetrics().horizontalAdvance(self.text()) + 10
         self.setMinimumWidth(length)
         width = self.fontMetrics().horizontalAdvance(self.text()) + 10

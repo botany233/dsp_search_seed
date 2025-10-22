@@ -4,9 +4,15 @@ from PySide6.QtCore import QTimer
 
 from config import cfg
 
-class ConfigLineEdit(LineEdit):
 
-    def __init__(self, parent=None, config_key: str | None = None, config_obj = None, type_input: str = "int"):
+class ConfigLineEdit(LineEdit):
+    def __init__(
+        self,
+        parent=None,
+        config_key: str | None = None,
+        config_obj=None,
+        type_input: str = "int",
+    ):
         super().__init__(parent)
         self.config_key = config_key
         self.type_input = type_input
@@ -16,22 +22,28 @@ class ConfigLineEdit(LineEdit):
         self.textEdited.connect(self._on_text_edited)
         text = ""
         if self.config_key:
-            if self.config_key.endswith('[0]'):
+            if self.config_key.endswith("[0]"):
                 self.config_key = self.config_key[:-3]
                 self.flag = 0
-                text = getattr(self.config_obj, self.config_key) if self.config_key else ""
+                text = (
+                    getattr(self.config_obj, self.config_key) if self.config_key else ""
+                )
                 text = str(text[0])
-            elif self.config_key.endswith('[1]'):
+            elif self.config_key.endswith("[1]"):
                 self.config_key = self.config_key[:-3]
                 self.flag = 1
-                text = getattr(self.config_obj, self.config_key) if self.config_key else ""
+                text = (
+                    getattr(self.config_obj, self.config_key) if self.config_key else ""
+                )
                 text = str(text[1])
             else:
                 self.config_key = self.config_key
                 self.flag = -1
-                text = getattr(self.config_obj, self.config_key) if self.config_key else ""
+                text = (
+                    getattr(self.config_obj, self.config_key) if self.config_key else ""
+                )
                 text = str(text)
-       
+
         if text == "-1" or text == "-1.0":
             text = ""
         self.setText(text)
@@ -68,14 +80,18 @@ class ConfigLineEdit(LineEdit):
                 self.setPlaceholderText("")
                 cfg.save()
 
-        except Exception as e:
+        except Exception:
             self.setPlaceholderText("请输入有效数字")
             self.setText(self._text)
 
 
-
 class LabelWithLineEdit(ConfigLineEdit):
-    def __init__(self, label: str = "You should give me even a foo as least", parent=None, config_key: str | None = None):
+    def __init__(
+        self,
+        label: str = "You should give me even a foo as least",
+        parent=None,
+        config_key: str | None = None,
+    ):
         super().__init__(parent, config_key=config_key)
         self.label_box = BodyLabel(label)
         self.setToolTip(label)
@@ -88,7 +104,7 @@ class LabelWithLineEdit(ConfigLineEdit):
     def SetEnableVerify(self) -> None:
         self.textEdited.connect(self._on_text_edited_verify)
 
-    def setShadow(self, enable: bool, extra = None) -> None:
+    def setShadow(self, enable: bool, extra=None) -> None:
         if enable:
             self.label_box.setStyleSheet("color: gray;")
         else:
@@ -112,15 +128,11 @@ class LabelWithLineEdit(ConfigLineEdit):
             self._text = text
             return
         try:
-            itext:int = int(text)
+            itext: int = int(text)
             self.setPlaceholderText("")
             self._text = text
-        except Exception as e:
+        except Exception:
             self.setPlaceholderText("请输入有效数字")
             self.setText(self._text)
 
         self._shadow_label()
-    
-
-
-

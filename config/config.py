@@ -3,7 +3,6 @@ import json
 from .cfg_dict_tying import GUIConfig
 
 
-
 class Config:
     def __init__(self, cfg_file_path: str = "./config.json"):
         try:
@@ -18,7 +17,7 @@ class Config:
             self.config = GUIConfig()
             print(f"加载配置文件失败: {e}")
             raise e
-    
+
     def save(self) -> None:
         with open("./config.json", "w", encoding="utf-8") as f:
             f.write(self.config.model_dump_json(ensure_ascii=False, indent=4))

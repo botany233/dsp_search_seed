@@ -7,9 +7,8 @@ from qfluentwidgets import VBoxLayout, PushButton, PopUpAniStackedWidget
 
 from config import cfg
 
+
 class SortTreeWidget(QWidget):
-
-
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -18,8 +17,6 @@ class SortTreeWidget(QWidget):
         self.stackedWidget = PopUpAniStackedWidget()
 
         self.stackedWidget.currentChanged.connect(self._on_stacked_widget_changed)
-
-
 
         self.mainLayout.addWidget(self.stackedWidget)
 
@@ -30,11 +27,9 @@ class SortTreeWidget(QWidget):
         self.tree.setBorderRadius(8)
         self.tree.setBorderVisible(True)
 
-
         self.buttonLayout = QHBoxLayout()
 
         self.mainLayout.addLayout(self.buttonLayout)
-        
 
         SortTreeMessages.CreateSettingsWindow.connect(self._create_settings_window)
 
