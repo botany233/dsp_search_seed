@@ -138,6 +138,10 @@ class MainWindow(FramelessWindow):
                     # PlanetCondition 层级
                     star_system_leaf.addLeaf()
 
+            for planet_condition in galaxy_condition.planet_conditions:
+                # PlanetCondition 层级
+                galaxy_leaf.addPlanetLeaf()
+
     def __build__(self):
         self.__init__layout__()
         self.__init__widgets__()

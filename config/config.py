@@ -1,6 +1,6 @@
 import json
 
-from .cfg_dict_tying import GUIConfig
+from .cfg_dict_tying import GUIConfig, GalaxyCondition, PlanetCondition, StarSystemCondition
 
 
 class Config:
@@ -11,12 +11,22 @@ class Config:
             self.config = GUIConfig(**cfg_dict)
         except FileNotFoundError:
             print("配置文件不存在，使用默认配置")
-            self.config = GUIConfig()
+            self.__init__config()
+            self.save()
+        except json.JSONDecodeError as e:
+            self.__init__config()
+            print(f"配置文件格式错误，使用默认配置: {e}")
             self.save()
         except Exception as e:
-            self.config = GUIConfig()
+            self.__init__config()
             print(f"加载配置文件失败: {e}")
             raise e
+
+    def __init__config(self):
+        self.config = GUIConfig()
+        self.config.conditions.star_system_conditions = [StarSystemCondition()]
+        self.config.conditions.planet_conditions = [PlanetCondition()]
+        self.config.conditions.star_system_conditions[0].planet_conditions = [PlanetCondition()]
 
     def save(self) -> None:
         with open("./config.json", "w", encoding="utf-8") as f:

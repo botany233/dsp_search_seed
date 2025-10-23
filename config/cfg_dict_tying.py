@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 
 class VeinsName(BaseModel):
@@ -58,7 +58,7 @@ class StarSystemCondition(BaseModel):
     distance_hited_star_num: int = -1
 
     veins_condition: VeinsCondition = VeinsCondition()
-    planet_conditions: list[PlanetCondition] = [PlanetCondition()]
+    planet_conditions: list[PlanetCondition] = []
 
 
 class GalaxyCondition(BaseModel):
@@ -66,7 +66,8 @@ class GalaxyCondition(BaseModel):
     checked: int = 2
 
     veins_condition: VeinsCondition = VeinsCondition()
-    star_system_conditions: list[StarSystemCondition] = [StarSystemCondition()]
+    star_system_conditions: list[StarSystemCondition] = []
+    planet_conditions: list[PlanetCondition] = []
 
 
 class GUIConfig(BaseModel):

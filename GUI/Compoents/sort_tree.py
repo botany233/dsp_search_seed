@@ -66,11 +66,23 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.root = root
         self.config_obj = config_obj
         self.flag = True
-        super().__init__(*args, **kwargs)
+        if len(args) > 2:
+            # 确保第一个参数是parent, 第二个参数是文本列表, 第三个为要插入的 Item 
+            Aargs = (args[0], args[2])
+        else:
+            Aargs = args
+        super().__init__(*Aargs, **kwargs)
+        if len(args) > 2:
+            # 手动设置文本
+            self.setText(0, args[1][0])
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._add_widgets_()
         self._update_check_state_from_config()
+
+        setattr(self.config_obj, "custom_name", self.text(0))
+        cfg.save()
+
 
     def _add_widgets_(self):
         self.manageButtons = TreeWidgetLeave()
@@ -117,17 +129,22 @@ class TreeWidgetItem(QTreeWidgetItem):
 
     def resetChildIndex(self, child=None):
         if child is not None:
+            child_index = child.index
+            child_type = type(child)
             self.removeChild(child)
+        else:
+            child_type = None
+            child_index = -1
 
         for i in range(self.childCount()):
             child = self.child(i)
-            child.index = i
+            if isinstance(child, child_type):
+                if child.index >= child_index:
+                    child.index -= 1
 
     def _on_add_button_clicked(self):
         if hasattr(self, "addLeaf"):
             leaf = self.addLeaf()
-            while leaf is not None:
-                leaf = leaf.addLeaf()
 
     def _on_del_button_clicked(self):
         if self.parent() is None:
@@ -153,6 +170,7 @@ class TreeWidgetLeave(ConditionBase):
         self.addButton.setToolTip("点击添加子项")
         self.delButton = ToolButton(FluentIcon.DELETE)
         self.delButton.setToolTip("点击删除该项及其子项")
+        self.addPlanetButton = ToolButton()
 
         self.mainLayout.addWidget(self.addButton)
 
@@ -173,6 +191,9 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
         text = "星系条件"
         self.index = root.topLevelItemCount()
 
+        self.system_count = 0
+        self.planet_count = 0
+
         self.config_key = "conditions"
         try:
             self.config_obj = cfg.config.conditions
@@ -192,29 +213,43 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
         super().__init__(
             root, texts, *args, root=root, config_obj=self.config_obj, **kwargs
         )
-        self.manageButtons.delButton.setToolTip("重置该项及其子项")
-        self.manageButtons.delButton.clicked.connect(self.reset)
+        self.manageButtons.delButton.setHidden(True)
+        self.manageButtons.addButton.setHidden(False)
+        self.manageButtons.addPlanetButton = ToolButton(FluentIcon.ASTERISK)
+        self.manageButtons.addPlanetButton.setToolTip("点击添加星球条件项")
+        self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
+        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
         self.__bind__widgets__()
 
-    def reset(self):
-        for i in range(self.childCount() - 1, -1, -1):
-            child = self.child(i)
-            self.removeChild(child)
-        self.config_obj = GalaxyCondition()
-        cfg.config.conditions = self.config_obj
-        cfg.save()
-        leaf = self.addLeaf()
-        while leaf is not None:
-            leaf = leaf.addLeaf()
+    def _on_add_planet_button_clicked(self):
+        self.addPlanetLeaf()
 
     def __bind__widgets__(self):
         self.leaf = GalaxyTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
 
     def addLeaf(self) -> "SystemTreeWidgetItem":
-        leaf = SystemTreeWidgetItem(self.root, self)
+        if self.planet_count != 0:
+            # 插入到第一个星球条件项前面
+            for i in range(self.childCount()):
+                child = self.child(i)
+                if isinstance(child, PlanetTreeWidgetItem):
+                    break
+                first_system_leaf = child
+            leaf = SystemTreeWidgetItem(self.root, self, first_system_leaf)
+        else:
+            leaf = SystemTreeWidgetItem(self.root, self)
+
         self.addChild(leaf)
         self.setExpanded(True)
+        self.system_count += 1
+        return leaf
+    
+    def addPlanetLeaf(self) -> "PlanetTreeWidgetItem":
+        leaf = PlanetTreeWidgetItem(self.root, self)
+        self.addChild(leaf)
+        self.setExpanded(True)
+        self.planet_count += 1
         return leaf
 
 
@@ -222,8 +257,8 @@ class SystemTreeWidgetItem(TreeWidgetItem):
     """恒星系条件项"""
 
     def __init__(self, root: "SortTree", branch: GalaxyTreeWidgetItem, *args, **kwargs):
-        self.index = branch.childCount()
-        text = f"恒星系条件{branch.childCount() + 1}"
+        self.index = branch.system_count
+        text = f"恒星系条件{self.index + 1}"
 
         self.branch = branch
 
@@ -260,13 +295,19 @@ class SystemTreeWidgetItem(TreeWidgetItem):
         self.setExpanded(True)
         return leaf
 
+    def _on_del_button_clicked(self):
+        if isinstance(self.branch, GalaxyTreeWidgetItem):
+            self.branch.system_count -= 1
+        return super()._on_del_button_clicked()
 
 class PlanetTreeWidgetItem(TreeWidgetItem):
     """星球条件项"""
 
-    def __init__(self, root: "SortTree", branch: SystemTreeWidgetItem, *args, **kwargs):
+    def __init__(self, root: "SortTree", branch: SystemTreeWidgetItem | GalaxyTreeWidgetItem, *args, **kwargs):
         self.index = branch.childCount()
-        text = f"星球条件{branch.childCount() + 1}"
+        if isinstance(branch, GalaxyTreeWidgetItem):
+            self.index = branch.planet_count
+        text = f"星球条件{self.index + 1}"
 
         self.branch = branch
 
@@ -294,6 +335,11 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.adjust_del_button()
 
         self.__bind__widgets__()
+
+    def _on_del_button_clicked(self):
+        if isinstance(self.branch, GalaxyTreeWidgetItem):
+            self.branch.planet_count -= 1
+        return super()._on_del_button_clicked()
 
     def __bind__widgets__(self):
         self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
@@ -462,7 +508,6 @@ class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.leaf = None
-
         self.setHeaderHidden(False)
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
@@ -481,7 +526,7 @@ class SortTree(TreeWidget):
         self.setColumnWidth(2, 100)
 
         self.root = self.invisibleRootItem()
-
+        
         self.root.setExpanded(True)
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -519,13 +564,9 @@ class SortTree(TreeWidget):
     def on_menu_add_action_triggered(self, item: QTreeWidgetItem):
         if item is None:
             leaf = self.addLeaf()
-            while leaf is not None:
-                leaf = leaf.addLeaf()
         else:
             if hasattr(item, "addLeaf"):
                 leaf = item.addLeaf()
-                while leaf is not None:
-                    leaf = leaf.addLeaf()
 
     def addLeaf(self) -> GalaxyTreeWidgetItem:
         if self.leaf is not None:
