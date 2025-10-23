@@ -1,32 +1,24 @@
 import json
+import os
 
-from .cfg_dict_tying import GUIConfig, GalaxyCondition, PlanetCondition, StarSystemCondition
+from .cfg_dict_tying import GUIConfig, GalaxyCondition, PlanetCondition, StarCondition
 
 
 class Config:
     def __init__(self, cfg_file_path: str = "./config.json"):
-        try:
+        if os.path.exists(cfg_file_path):
             with open(cfg_file_path, "r", encoding="utf-8") as f:
                 cfg_dict = json.load(f)
             self.config = GUIConfig(**cfg_dict)
-        except FileNotFoundError:
-            print("配置文件不存在，使用默认配置")
+        else:
             self.__init__config()
             self.save()
-        except json.JSONDecodeError as e:
-            self.__init__config()
-            print(f"配置文件格式错误，使用默认配置: {e}")
-            self.save()
-        except Exception as e:
-            self.__init__config()
-            print(f"加载配置文件失败: {e}")
-            raise e
 
     def __init__config(self):
         self.config = GUIConfig()
-        self.config.conditions.star_system_conditions = [StarSystemCondition()]
-        self.config.conditions.planet_conditions = [PlanetCondition()]
-        self.config.conditions.star_system_conditions[0].planet_conditions = [PlanetCondition()]
+        self.config.galaxy_condition.star_condition = [StarCondition()]
+        self.config.galaxy_condition.planet_condition = [PlanetCondition()]
+        self.config.galaxy_condition.star_condition[0].planet_condition = [PlanetCondition()]
 
     def save(self) -> None:
         with open("./config.json", "w", encoding="utf-8") as f:

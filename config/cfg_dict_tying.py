@@ -1,5 +1,6 @@
-from pydantic import BaseModel
-
+from pydantic import BaseModel, Field
+from uuid import UUID, uuid4
+from multiprocessing import cpu_count
 
 class VeinsName(BaseModel):
     iron: str = "铁"
@@ -16,7 +17,6 @@ class VeinsName(BaseModel):
     grating_stone: str = "光栅石"
     bamboo_shoot_crystal: str = "竹笋晶体"
     monopolar_magnet: str = "单极磁石"
-
 
 class VeinsCondition(BaseModel):
     iron: int = -1
@@ -36,7 +36,7 @@ class VeinsCondition(BaseModel):
 
 class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
-    checked: int = 2
+    checked: bool = True
 
     planet_type: str = "无 / 任意"
     singularity: str = "无 / 任意"
@@ -46,11 +46,11 @@ class PlanetCondition(BaseModel):
     fc_hited_planet_num: int = -1
 
     veins_condition: VeinsCondition = VeinsCondition()
+    uuid: UUID = Field(default_factory=uuid4)
 
-
-class StarSystemCondition(BaseModel):
+class StarCondition(BaseModel):
     custom_name: str = "恒星系条件"
-    checked: int = 2
+    checked: bool = True
 
     star_type: str = "无 / 任意"
     lumino_level: float = -1.0
@@ -58,28 +58,25 @@ class StarSystemCondition(BaseModel):
     distance_hited_star_num: int = -1
 
     veins_condition: VeinsCondition = VeinsCondition()
-    planet_conditions: list[PlanetCondition] = []
-
+    planet_condition: list[PlanetCondition] = []
+    uuid: UUID = Field(default_factory=uuid4)
 
 class GalaxyCondition(BaseModel):
     custom_name: str = "星系条件"
-    checked: int = 2
+    checked: bool = True
 
     veins_condition: VeinsCondition = VeinsCondition()
-    star_system_conditions: list[StarSystemCondition] = []
-    planet_conditions: list[PlanetCondition] = []
-
+    star_condition: list[StarCondition] = []
+    planet_condition: list[PlanetCondition] = []
 
 class GUIConfig(BaseModel):
-    seed_range: tuple[int, int] = (0, 99999999)
-    step_size: int = 1
+    seed_range: tuple[int, int] = (0, 99999)
     star_num_range: tuple[int, int] = (32, 64)
-    max_thread: int = 4
-    batch_size: int = 1000
+    max_thread: int = cpu_count()
+    batch_size: int = 512
     record_seed: bool = True
     ui_scale_factor: float = 1.0
-    conditions: GalaxyCondition = GalaxyCondition()
-
+    galaxy_condition: GalaxyCondition = GalaxyCondition()
 
 if __name__ == "__main__":
     cfg = GUIConfig()

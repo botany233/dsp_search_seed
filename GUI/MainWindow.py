@@ -85,21 +85,13 @@ class MainWindow(FramelessWindow):
 
     def __init__layout__(self):
         self.topLayout = QGridLayout()
-
         self.mainLayout.addLayout(self.topLayout)
-
         self.middleLayout = QHBoxLayout()
-
         self.mainLayout.addLayout(self.middleLayout, stretch=1)
-
         self.buttonLayout = QHBoxLayout()
-
         self.mainLayout.addStretch()
-
         self.mainLayout.addLayout(self.buttonLayout)
-
         self.mainLayout.setContentsMargins(10, 50, 10, 10)
-        pass
 
     def __init__widgets__(self):
         self.label_seed_range = BodyLabel("种子范围:")
@@ -107,7 +99,7 @@ class MainWindow(FramelessWindow):
         # self.input_seed_start.setMinimumWidth(80)
         self.input_seed_end = ConfigLineEdit(config_key="seed_range[1]")
         # self.input_seed_end.setMinimumWidth(80)
-        self.seed_step_range = LabelWithLineEdit("步长", config_key="step_size")
+        # self.seed_step_range = LabelWithLineEdit("步长", config_key="step_size")
         self.label_star_num = BodyLabel("恒星数:")
         self.input_star_num_start = ConfigLineEdit(config_key="star_num_range[0]")
         self.input_star_num_end = ConfigLineEdit(config_key="star_num_range[1]")
@@ -122,24 +114,14 @@ class MainWindow(FramelessWindow):
 
         copy_cfg = cfg.config.model_copy()
 
-        if copy_cfg.conditions:
-            # GalaxyCondition 层级
+        if copy_cfg.galaxy_condition:
             galaxy_leaf = self.tree_view.tree.addLeaf()
-
-            galaxy_condition = copy_cfg.conditions
-
-            # 处理StarSystemConditions
-            for star_system_condition in galaxy_condition.star_system_conditions:
-                # StarSystemCondition 层级
-                star_system_leaf = galaxy_leaf.addLeaf()
-
-                # 处理PlanetConditions
-                for planet_condition in star_system_condition.planet_conditions:
-                    # PlanetCondition 层级
-                    star_system_leaf.addLeaf()
-
-            for planet_condition in galaxy_condition.planet_conditions:
-                # PlanetCondition 层级
+            galaxy_condition = copy_cfg.galaxy_condition
+            for star_condition in galaxy_condition.star_condition:
+                star_leaf = galaxy_leaf.addLeaf()
+                for planet_condition in star_condition.planet_condition:
+                    star_leaf.addLeaf()
+            for planet_condition in galaxy_condition.planet_condition:
                 galaxy_leaf.addPlanetLeaf()
 
     def __build__(self):
@@ -150,22 +132,21 @@ class MainWindow(FramelessWindow):
         self.topLayout.addWidget(self.input_seed_start, 0, 1)
         self.topLayout.addWidget(BodyLabel("至"), 0, 2)
         self.topLayout.addWidget(self.input_seed_end, 0, 3)
-        self.topLayout.addWidget(self.seed_step_range, 0, 4)
-        self.topLayout.addWidget(self.label_star_num, 0, 5)
-        self.topLayout.addWidget(self.input_star_num_start, 0, 6)
-        self.topLayout.addWidget(BodyLabel("至"), 0, 7)
-        self.topLayout.addWidget(self.input_star_num_end, 0, 8)
-        self.topLayout.addWidget(self.label_batch_size, 0, 9)
-        self.topLayout.addWidget(self.input_batch_size, 0, 10)
-        self.topLayout.addWidget(self.label_thread_num, 0, 11)
-        self.topLayout.addWidget(self.input_thread_num, 0, 12)
+        # self.topLayout.addWidget(self.seed_step_range, 0, 4)
+        self.topLayout.addWidget(self.label_star_num, 0, 4)
+        self.topLayout.addWidget(self.input_star_num_start, 0, 5)
+        self.topLayout.addWidget(BodyLabel("至"), 0, 6)
+        self.topLayout.addWidget(self.input_star_num_end, 0, 7)
+        self.topLayout.addWidget(self.label_batch_size, 0, 8)
+        self.topLayout.addWidget(self.input_batch_size, 0, 9)
+        self.topLayout.addWidget(self.label_thread_num, 0, 10)
+        self.topLayout.addWidget(self.input_thread_num, 0, 11)
 
         self.middleLayout.addWidget(self.tree_view)
 
         self.buttonLayout.addWidget(self.button_start)
         self.buttonLayout.addWidget(self.button_stop)
 
-        pass
 
     def __adjust__(self):
         pass
