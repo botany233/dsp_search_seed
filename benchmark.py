@@ -77,8 +77,8 @@ if __name__ == "__main__":
     # galaxy_condition = get_3_blue_condition()
 
     # galaxy_condition = {"stars": [{"type": "O型恒星", "satisfy_num": 5}]}
-    # galaxy_condition = {"planet_type_nums": {"水世界": 9}}
-    galaxy_condition = {"planets": [{"type": "水世界", "satisfy_num": 9}]}
+    galaxy_condition = {"planet_type_nums": {"水世界": 9}}
+    # galaxy_condition = {"planets": [{"type": "水世界", "satisfy_num": 9}]}
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -92,16 +92,16 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 99999)
+    seeds = (0, 999999)
     star_nums = (64, 64)
     batch_size = 256
     max_thread = 20
 
     record_seed = 1
 
-    flag = perf_counter()
-    check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    # flag = perf_counter()
+    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
+    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)

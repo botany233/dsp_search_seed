@@ -7,12 +7,13 @@ def check_planet_py(planet_data:dict, planet_condition:dict) -> bool:
         return False
     if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"]:
         return False
-    if "type" in planet_condition and planet_condition["type"] != planet_data["type"]:
+    if "type" in planet_condition and planet_condition["type"] != planet_data["type"] and\
+        not (planet_condition["type"] == "气态巨星" and planet_data["type"] == "高产气巨"):
         return False
     if "liquid" in planet_condition and planet_condition["liquid"] != planet_data["liquid"]:
         return False
     if "veins" in planet_condition:
-        if planet_data["type"] in ["气态巨星", "冰巨星"]:
+        if planet_data["is_gas"]:
             return False
         if not all(planet_data["veins"][i] >= planet_condition["veins"][i] for i in range(14)):
             return False
@@ -42,7 +43,9 @@ def check_star_py(star_data:dict, star_condition:dict) -> bool:
 
 def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
     if "planet_type_nums" in galaxy_condition:
-        if not all(galaxy_data["planet_type_nums"][i] >= galaxy_condition["planet_type_nums"][i] for i in range(23)):
+        if not all(galaxy_data["planet_type_nums"][i] >= galaxy_condition["planet_type_nums"][i] for i in range(22)):
+            return False
+        if galaxy_condition["planet_type_nums"][22] > galaxy_condition["planet_type_nums"][21] + galaxy_condition["planet_type_nums"][22]:
             return False
     if "star_type_nums" in galaxy_condition:
         if not all(galaxy_data["star_type_nums"][i] >= galaxy_condition["star_type_nums"][i] for i in range(14)):
@@ -89,9 +92,9 @@ def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition
 def change_condition_to_legal(galaxy_condition:dict) -> dict:
     vein_names = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利",
                   "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
-    planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩",
-                "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
-                "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
+    planet_types = ["地中海", "冰巨星", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩", "冰原冻土", "贫瘠荒漠",
+                    "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩", "樱林海", "飓风石林",
+                    "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽", "高产气巨", "气态巨星"]
     star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
                   "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
     liquid_names = ["无", "水", "硫酸"]
