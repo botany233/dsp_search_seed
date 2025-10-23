@@ -54,15 +54,13 @@ planet_types = ["无 / 任意"] + planet_types
 liquid = ["无 / 任意"] + liquid
 singularity = ["无 / 任意"] + singularity
 
-
-class LeaveBase(QWidget):
+class ConditionBase(QWidget):
     def __init__(self, parent=None, config_obj=None):
         self.config_obj = config_obj
         super().__init__(parent)
 
     def load_config(self):
         pass
-
 
 class TreeWidgetItem(QTreeWidgetItem):
     def __init__(self, *args, root: "SortTree", config_obj: Any, **kwargs):
@@ -74,7 +72,6 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._add_widgets_()
         self._update_check_state_from_config()
-        self.updateParentState()
 
     def _add_widgets_(self):
         self.manageButtons = TreeWidgetLeave()
@@ -83,106 +80,21 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
     def _update_check_state_from_config(self):
-        self.flag = False
-        try:
-            checked = getattr(self.config_obj, "checked", -1)
-            match checked:
-                case 0:
-                    self.setCheckState(0, Qt.CheckState.Unchecked)
-                case 1:
-                    self.setCheckState(0, Qt.CheckState.PartiallyChecked)
-                case 2:
-                    self.setCheckState(0, Qt.CheckState.Checked)
-                case -1:
-                    print(
-                        f"配置项 {getattr(self.config_obj, 'custom_name', '未知')} 未找到 checked 属性"
-                    )
-        except Exception as e:
-            print(f"更新节点勾选状态失败: {e}")
-        finally:
-            self.flag = True
-
-    def updateParentState(self):
-        """根据子节点的状态更新父节点的状态"""
-        parent = self.parent()
-        if parent is None:
-            return
-
-        # 统计子节点的勾选状态
-        checked_count = 0
-        unchecked_count = 0
-        total_children = parent.childCount()
-
-        for i in range(total_children):
-            child = parent.child(i)
-            state = child.checkState(0)
-            if state == Qt.CheckState.Checked:
-                checked_count += 1
-            elif state == Qt.CheckState.Unchecked:
-                unchecked_count += 1
-
-        # 设置父节点的状态
-        if checked_count == total_children:
-            # 所有子节点都选中，父节点设为选中
-            parent.flag = False  # 防止递归调用
-            parent.setCheckState(0, Qt.CheckState.Checked)
-            parent.flag = True
-        elif unchecked_count == total_children:
-            # 所有子节点都未选中，父节点设为未选中
-            parent.flag = False
-            parent.setCheckState(0, Qt.CheckState.Unchecked)
-            parent.flag = True
-        else:
-            # 部分子节点选中，父节点设为部分选中
-            parent.flag = False
-            parent.setCheckState(0, Qt.CheckState.PartiallyChecked)
-            parent.flag = True
-
-        # 递归更新更上层的父节点
-        parent.updateParentState()
-
-    def updateChildState(self):
-        """根据自身节点的状态更新子节点的状态"""
-        if self.childCount() == 0:
-            return
-        state = self.checkState(0)
-
-        for i in range(self.childCount()):
-            child = self.child(i)
-            child.flag = False
-
-            match state:
-                case Qt.CheckState.Unchecked:
-                    child.setCheckState(0, Qt.CheckState.Unchecked)
-                case Qt.CheckState.PartiallyChecked:
-                    child.setCheckState(0, Qt.CheckState.PartiallyChecked)
-                case Qt.CheckState.Checked:
-                    child.setCheckState(0, Qt.CheckState.Checked)
-
-            child.flag = True
-
-            child.updateChildState()
+        checked = getattr(self.config_obj, "checked", -1)
+        match checked:
+            case 0:
+                self.setCheckState(0, Qt.CheckState.Unchecked)
+            case 1:
+                self.setCheckState(0, Qt.CheckState.Checked)
+            case _:
+                setattr(self.config_obj, "checked", 1)
+                self.setCheckState(0, Qt.CheckState.Checked)
 
     def setData(self, column: int, role: int, value: Any) -> None:
         if column == 0 and role == Qt.CheckStateRole:
-            if self.flag is False:
-                setattr(self.config_obj, "checked", value)
-                cfg.save()
-                return super().setData(column, role, value)
-
-            # 设置当前节点的状态
-            self.flag = False  # 防止递归调用
             setattr(self.config_obj, "checked", value)
-            super().setData(column, role, value)
-
-            # 向下传递：设置所有子节点的状态
-            self.updateChildState()
-
-            # 向上传递：更新父节点的状态
-            self.updateParentState()
-
-            self.flag = True
             cfg.save()
+            super().setData(column, role, value)
             return
 
         if column == 0 and role == Qt.EditRole:
@@ -232,7 +144,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.parent().resetChildIndex(self)
 
 
-class TreeWidgetLeave(LeaveBase):
+class TreeWidgetLeave(ConditionBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj)
         self.mainLayout = QHBoxLayout(self)
@@ -432,7 +344,7 @@ class SettingsTreeLeave(QWidget):
         SortTreeMessages.CreateSettingsWindow.emit(self)
 
 
-class GalaxyTreeLeave(LeaveBase):
+class GalaxyTreeLeave(ConditionBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 
@@ -464,7 +376,7 @@ class GalaxyTreeLeave(LeaveBase):
         self.mainLayout.addWidget(self.veinsConditionButton)
 
 
-class SystemTreeLeave(LeaveBase):
+class SystemTreeLeave(ConditionBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
@@ -530,7 +442,7 @@ class SystemTreeLeave(LeaveBase):
         self.starTypeComboBox.load_config()
 
 
-class PlanetTreeLeave(LeaveBase):
+class PlanetTreeLeave(ConditionBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 
