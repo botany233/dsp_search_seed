@@ -1,7 +1,7 @@
 __all__ = ["SortTree"]
 
 from typing import Any
-from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize
+from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize, Signal
 from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QWidget,
@@ -39,7 +39,13 @@ from .Widgets.button import ConfigSwitchButton
 
 
 from config import cfg
-from config.cfg_dict_tying import GalaxyCondition, PlanetCondition, StarSystemCondition, VeinsName, ConditionConfig, CelestialCondition
+from config.cfg_dict_tying import (
+    GalaxyCondition,
+    PlanetCondition,
+    StarSystemCondition,
+    VeinsName,
+    CelestialCondition,
+)
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid
 
@@ -48,8 +54,9 @@ planet_types = ["无 / 任意"] + planet_types
 liquid = ["无 / 任意"] + liquid
 singularity = ["无 / 任意"] + singularity
 
+
 class LeaveBase(QWidget):
-    def __init__(self, parent = None, config_obj = None):
+    def __init__(self, parent=None, config_obj=None):
         self.config_obj = config_obj
         super().__init__(parent)
 
@@ -58,19 +65,16 @@ class LeaveBase(QWidget):
 
 
 class TreeWidgetItem(QTreeWidgetItem):
-
-    def __init__(self, *args, root: 'SortTree', **kwargs):
+    def __init__(self, *args, root: "SortTree", config_obj: Any, **kwargs):
         self.root = root
+        self.config_obj = config_obj
+        self.flag = True
         super().__init__(*args, **kwargs)
-        self.setCheckState(0, Qt.CheckState.Checked)
-        self.checkState(0)
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._add_widgets_()
-
-
-    # def parent(self) -> 'TreeWidgetItem':
-    #     return super().parent() # type: ignore
+        self._update_check_state_from_config()
+        self.updateParentState()
 
     def _add_widgets_(self):
         self.manageButtons = TreeWidgetLeave()
@@ -78,7 +82,109 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
+    def _update_check_state_from_config(self):
+        self.flag = False
+        try:
+            checked = getattr(self.config_obj, "checked", -1)
+            match checked:
+                case 0:
+                    self.setCheckState(0, Qt.CheckState.Unchecked)
+                case 1:
+                    self.setCheckState(0, Qt.CheckState.PartiallyChecked)
+                case 2:
+                    self.setCheckState(0, Qt.CheckState.Checked)
+                case -1:
+                    print(
+                        f"配置项 {getattr(self.config_obj, 'custom_name', '未知')} 未找到 checked 属性"
+                    )
+        except Exception as e:
+            print(f"更新节点勾选状态失败: {e}")
+        finally:
+            self.flag = True
+
+    def updateParentState(self):
+        """根据子节点的状态更新父节点的状态"""
+        parent = self.parent()
+        if parent is None:
+            return
+
+        # 统计子节点的勾选状态
+        checked_count = 0
+        unchecked_count = 0
+        total_children = parent.childCount()
+
+        for i in range(total_children):
+            child = parent.child(i)
+            state = child.checkState(0)
+            if state == Qt.CheckState.Checked:
+                checked_count += 1
+            elif state == Qt.CheckState.Unchecked:
+                unchecked_count += 1
+
+        # 设置父节点的状态
+        if checked_count == total_children:
+            # 所有子节点都选中，父节点设为选中
+            parent.flag = False  # 防止递归调用
+            parent.setCheckState(0, Qt.CheckState.Checked)
+            parent.flag = True
+        elif unchecked_count == total_children:
+            # 所有子节点都未选中，父节点设为未选中
+            parent.flag = False
+            parent.setCheckState(0, Qt.CheckState.Unchecked)
+            parent.flag = True
+        else:
+            # 部分子节点选中，父节点设为部分选中
+            parent.flag = False
+            parent.setCheckState(0, Qt.CheckState.PartiallyChecked)
+            parent.flag = True
+
+        # 递归更新更上层的父节点
+        parent.updateParentState()
+
+    def updateChildState(self):
+        """根据自身节点的状态更新子节点的状态"""
+        if self.childCount() == 0:
+            return
+        state = self.checkState(0)
+
+        for i in range(self.childCount()):
+            child = self.child(i)
+            child.flag = False
+
+            match state:
+                case Qt.CheckState.Unchecked:
+                    child.setCheckState(0, Qt.CheckState.Unchecked)
+                case Qt.CheckState.PartiallyChecked:
+                    child.setCheckState(0, Qt.CheckState.PartiallyChecked)
+                case Qt.CheckState.Checked:
+                    child.setCheckState(0, Qt.CheckState.Checked)
+
+            child.flag = True
+
+            child.updateChildState()
+
     def setData(self, column: int, role: int, value: Any) -> None:
+        if column == 0 and role == Qt.CheckStateRole:
+            if self.flag is False:
+                setattr(self.config_obj, "checked", value)
+                cfg.save()
+                return super().setData(column, role, value)
+
+            # 设置当前节点的状态
+            self.flag = False  # 防止递归调用
+            setattr(self.config_obj, "checked", value)
+            super().setData(column, role, value)
+
+            # 向下传递：设置所有子节点的状态
+            self.updateChildState()
+
+            # 向上传递：更新父节点的状态
+            self.updateParentState()
+
+            self.flag = True
+            cfg.save()
+            return
+
         if column == 0 and role == Qt.EditRole:
             # 修改名称
             if self.parent() is None:
@@ -97,8 +203,8 @@ class TreeWidgetItem(QTreeWidgetItem):
         if self.parent() is None:
             return self.root.indexOfTopLevelItem(self)
         return self.parent().indexOfChild(self)
-    
-    def resetChildIndex(self, child = None):
+
+    def resetChildIndex(self, child=None):
         if child is not None:
             self.removeChild(child)
 
@@ -106,28 +212,20 @@ class TreeWidgetItem(QTreeWidgetItem):
             child = self.child(i)
             child.index = i
 
-
     def _on_add_button_clicked(self):
-        if hasattr(self, 'addLeaf'):
+        if hasattr(self, "addLeaf"):
             leaf = self.addLeaf()
             while leaf is not None:
                 leaf = leaf.addLeaf()
 
     def _on_del_button_clicked(self):
         if self.parent() is None:
-            cfg.config.conditions.pop(self.root.indexOfTopLevelItem(self))
-            self.root.takeTopLevelItem(self.root.indexOfTopLevelItem(self))
-            cfg.save()
             return
         try:
             a = getattr(self.branch.config_obj, self.config_key)
             a.pop(self.index)
             cfg.save()
 
-        except AttributeError:
-            cfg.config.conditions[self.parent().index].galaxy_condition = {}
-            cfg.save()
-            
         except Exception as e:
             print(f"删除配置项失败: {e}")
 
@@ -135,7 +233,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 
 
 class TreeWidgetLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj = None):
+    def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
@@ -155,58 +253,21 @@ class TreeWidgetLeave(LeaveBase):
         self.adjustButton = TransparentToolButton()
         self.mainLayout.insertWidget(0, self.adjustButton)
         pass
-        
-class RootTreeWidgetItem(TreeWidgetItem):
-    """条件项"""
-    def __init__(self, root: 'SortTree', *args, **kwargs):
-        self.index = root.topLevelItemCount()
-        text = f"条件{root.topLevelItemCount() + 1}"
 
-
-        self.config_key = f"conditions[{self.index}]"
-
-        try:
-            self.config_obj = cfg.config.conditions[self.index]
-
-        except IndexError:
-            self.config_obj = ConditionConfig()
-            cfg.config.conditions.append(self.config_obj)
-            setattr(self.config_obj, "custom_name", text)
-            cfg.save()
-        else:
-            text = getattr(self.config_obj, "custom_name")
-
-        texts = [text]
-        super().__init__(root, texts, *args, root=root, **kwargs)
-
-        self.__bind__widgets__()
-
-    def __bind__widgets__(self):
-       return
-       # self.root.setItemWidget(self, 1, RootTreeLeave())
-    
-
-    def addLeaf(self) -> 'GalaxyTreeWidgetItem':
-        if self.childCount() > 0:
-            return  # type: ignore
-        leaf = GalaxyTreeWidgetItem(self.root, self)
-        self.addChild(leaf)
-        self.setExpanded(True)
-        return leaf
 
 class GalaxyTreeWidgetItem(TreeWidgetItem):
     """银河系条件项"""
-    def __init__(self, root: 'SortTree', branch: RootTreeWidgetItem, *args, **kwargs):
-        text = "银河系条件"
-        self.index = branch.childCount()
-        self.branch = branch
 
-        self.config_key = "galaxy_condition"
+    def __init__(self, root: "SortTree", *args, **kwargs):
+        text = "银河系条件"
+        self.index = root.topLevelItemCount()
+
+        self.config_key = "conditions"
         try:
-            self.config_obj = getattr(self.branch.config_obj, self.config_key)
+            self.config_obj = cfg.config.conditions
         except AttributeError:
             self.config_obj = GalaxyCondition()
-            setattr(self.branch.config_obj, self.config_key, self.config_obj)
+            setattr(self.config_obj, "custom_name", text)
             cfg.save()
         else:
             try:
@@ -214,25 +275,42 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
             except AttributeError:
                 text = "银河系条件"
                 self.config_obj = GalaxyCondition()
-                setattr(self.branch.config_obj, self.config_key, self.config_obj)
+                setattr(self.config_obj, self.config_key, self.config_obj)
                 cfg.save()
         texts = [text]
-        super().__init__(branch, texts, *args, root=root, **kwargs)
+        super().__init__(
+            root, texts, *args, root=root, config_obj=self.config_obj, **kwargs
+        )
+        self.manageButtons.delButton.setToolTip("重置该项及其子项")
+        self.manageButtons.delButton.clicked.connect(self.reset)
         self.__bind__widgets__()
-    
+
+    def reset(self):
+        for i in range(self.childCount() - 1, -1, -1):
+            child = self.child(i)
+            self.removeChild(child)
+        self.config_obj = GalaxyCondition()
+        cfg.config.conditions = self.config_obj
+        cfg.save()
+        leaf = self.addLeaf()
+        while leaf is not None:
+            leaf = leaf.addLeaf()
+
     def __bind__widgets__(self):
         self.leaf = GalaxyTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
 
-    def addLeaf(self) -> 'SystemTreeWidgetItem':
+    def addLeaf(self) -> "SystemTreeWidgetItem":
         leaf = SystemTreeWidgetItem(self.root, self)
         self.addChild(leaf)
         self.setExpanded(True)
         return leaf
 
+
 class SystemTreeWidgetItem(TreeWidgetItem):
     """恒星系条件项"""
-    def __init__(self, root: 'SortTree', branch: GalaxyTreeWidgetItem, *args, **kwargs):
+
+    def __init__(self, root: "SortTree", branch: GalaxyTreeWidgetItem, *args, **kwargs):
         self.index = branch.childCount()
         text = f"恒星系条件{branch.childCount() + 1}"
 
@@ -240,26 +318,32 @@ class SystemTreeWidgetItem(TreeWidgetItem):
 
         self.config_key = "star_system_conditions"
         try:
-            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[
+                self.index
+            ]
         except IndexError:
-            a:list = getattr(self.branch.config_obj, self.config_key)
+            a: list = getattr(self.branch.config_obj, self.config_key)
             a.append(StarSystemCondition())
             cfg.save()
-            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[
+                self.index
+            ]
         else:
             text = getattr(self.config_obj, "custom_name")
 
         texts = [text]
-        super().__init__(branch, texts, *args, root=root, **kwargs)
+        super().__init__(
+            branch, texts, *args, root=root, config_obj=self.config_obj, **kwargs
+        )
         self.__bind__widgets__()
-    
+
     def __bind__widgets__(self):
         self.leaf = SystemTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
         self.leaf.load_config()
         pass
 
-    def addLeaf(self) -> 'PlanetTreeWidgetItem':
+    def addLeaf(self) -> "PlanetTreeWidgetItem":
         leaf = PlanetTreeWidgetItem(self.root, self)
         self.addChild(leaf)
         self.setExpanded(True)
@@ -268,32 +352,38 @@ class SystemTreeWidgetItem(TreeWidgetItem):
 
 class PlanetTreeWidgetItem(TreeWidgetItem):
     """行星条件项"""
-    def __init__(self, root: 'SortTree', branch: SystemTreeWidgetItem, *args, **kwargs):
+
+    def __init__(self, root: "SortTree", branch: SystemTreeWidgetItem, *args, **kwargs):
         self.index = branch.childCount()
         text = f"行星条件{branch.childCount() + 1}"
-
 
         self.branch = branch
 
         self.config_key = "planet_conditions"
 
         try:
-            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[
+                self.index
+            ]
 
         except IndexError:
-            a:list = getattr(self.branch.config_obj, self.config_key)
+            a: list = getattr(self.branch.config_obj, self.config_key)
             a.append(PlanetCondition())
             cfg.save()
-            self.config_obj = getattr(self.branch.config_obj, self.config_key)[self.index]
+            self.config_obj = getattr(self.branch.config_obj, self.config_key)[
+                self.index
+            ]
         else:
             text = getattr(self.config_obj, "custom_name")
         texts = [text]
-        super().__init__(branch, texts, *args, root=root, **kwargs)
+        super().__init__(
+            branch, texts, *args, root=root, config_obj=self.config_obj, **kwargs
+        )
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.adjust_del_button()
 
         self.__bind__widgets__()
-    
+
     def __bind__widgets__(self):
         self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
@@ -304,8 +394,16 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
 
 
 class SettingsTreeLeave(QWidget):
-
-    def __init__(self, parent=None, buttonText: str = "矿物筛选", items: dict[str, str] | None = None, config_obj = None, config_key: str | None = None):
+    def __init__(
+        self,
+        parent=None,
+        buttonText: str = "矿物筛选",
+        items: dict[str, str] | None = None,
+        config_obj=None,
+        config_key: str | None = None,
+        obj_name: str = "",
+        description: str | None = None,
+    ):
         """
         Args:
             items (dict[str, str]):
@@ -321,6 +419,11 @@ class SettingsTreeLeave(QWidget):
         self.settingsButton.clicked.connect(self._createSettingsWindow)
         self.mainLayout.addWidget(self.settingsButton)
         self.items = items
+        self.description = description
+        if obj_name != "":
+            self.settingsButton.setObjectName(obj_name)
+        else:
+            self.settingsButton.setObjectName(buttonText)
         # self.setFocusPolicy(Qt.NoFocus)
         self.config_obj = config_obj
         self.config_key = config_key
@@ -328,18 +431,26 @@ class SettingsTreeLeave(QWidget):
     def _createSettingsWindow(self):
         SortTreeMessages.CreateSettingsWindow.emit(self)
 
+
 class GalaxyTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        celestial_condition = dict(zip(CelestialCondition.get_field_mapping().values(), CelestialCondition.get_field_mapping().keys()))
+        celestial_condition = dict(
+            zip(
+                CelestialCondition.get_field_mapping().values(),
+                CelestialCondition.get_field_mapping().keys(),
+            )
+        )
         self.celestialConditionButton = SettingsTreeLeave(
-            buttonText="天体筛选",
+            buttonText="天体筛选 (银河系)",
             config_obj=config_obj,
             config_key="celestial_condition",
             items=celestial_condition,
+            obj_name="银河系天体筛选",
+            description="设置银河系筛选条件, 内容为银河系内最少有多少对应天体, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.celestialConditionButton)
         self.veinsConditionButton = SettingsTreeLeave(
@@ -347,12 +458,14 @@ class GalaxyTreeLeave(LeaveBase):
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
+            obj_name="银河系矿物筛选",
+            description="设置银河系筛选条件, 内容为银河系内最少有多少对应矿物, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
 
 
 class SystemTreeLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj = None):
+    def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
@@ -363,17 +476,23 @@ class SystemTreeLeave(LeaveBase):
         self.mainLayout.addWidget(self.starTypeComboBox)
         self.luminosityLabel = BodyLabel("光度级别")
         self.mainLayout.addWidget(self.luminosityLabel)
-        self.luminosityLineEdit = ConfigLineEdit(config_key="lumino_level", config_obj=self.config_obj, type_input="float")
+        self.luminosityLineEdit = ConfigLineEdit(
+            config_key="lumino_level", config_obj=self.config_obj, type_input="float"
+        )
         self.mainLayout.addWidget(self.luminosityLineEdit)
 
         self.distanceLabel = BodyLabel("最远距离")
         self.mainLayout.addWidget(self.distanceLabel)
-        self.distanceLineEdit = ConfigLineEdit(config_key="distance_level", config_obj=self.config_obj, type_input="float")
+        self.distanceLineEdit = ConfigLineEdit(
+            config_key="distance_level", config_obj=self.config_obj, type_input="float"
+        )
         self.mainLayout.addWidget(self.distanceLineEdit)
 
         self.hitStarNumLabel = BodyLabel("符合的恒星数")
         self.mainLayout.addWidget(self.hitStarNumLabel)
-        self.hitStarNumLineEdit = ConfigLineEdit(config_key="distance_hited_star_num", config_obj=self.config_obj)
+        self.hitStarNumLineEdit = ConfigLineEdit(
+            config_key="distance_hited_star_num", config_obj=self.config_obj
+        )
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
         self.distanceLineEdit.setMaximumHeight(28)
         self.distanceLineEdit.setFixedHeight(28)
@@ -381,20 +500,38 @@ class SystemTreeLeave(LeaveBase):
         self.hitStarNumLineEdit.setFixedHeight(28)
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
+        celestial_condition = dict(
+            zip(
+                CelestialCondition.get_field_mapping().values(),
+                CelestialCondition.get_field_mapping().keys(),
+            )
+        )
+        self.celestialConditionButton = SettingsTreeLeave(
+            buttonText="天体筛选",
+            config_obj=config_obj,
+            config_key="celestial_condition",
+            items=celestial_condition,
+            obj_name="恒星系天体筛选",
+            description="设置天体筛选条件, 内容为某个恒星系内最少有多少对应天体, 不填写则不限制",
+        )
         self.settingsButton = SettingsTreeLeave(
-            buttonText="矿物筛选 (恒星系)",
+            buttonText="矿物筛选",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
+            obj_name="恒星系矿物筛选",
+            description="设置恒星系筛选条件, 内容为某个恒星系内最少有多少对应矿物, 不填写则不限制",
         )
+        self.mainLayout.addWidget(self.celestialConditionButton)
         self.mainLayout.addWidget(self.settingsButton)
         self.settingsButton.setToolTip("设置恒星系筛选条件")
 
     def load_config(self):
         self.starTypeComboBox.load_config()
 
+
 class PlanetTreeLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj = None):
+    def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 
         self.mainLayout = QHBoxLayout(self)
@@ -415,19 +552,24 @@ class PlanetTreeLeave(LeaveBase):
         self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type")
         self.liquidComboBox.addItems(liquid)
         self.mainLayout.addWidget(self.liquidComboBox)
-        self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>为全包星", indicatorPos=1)
+        self.fullCoverdPlanetSwitch = ConfigSwitchButton(
+            "是<u><i>否</i></u>为全包星", indicatorPos=1
+        )
         self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否为全包星")
         self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
-        self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="full_coverd_dsp")
+        self.fullCoverdPlanetSwitch.set_config(
+            config_obj=config_obj, config_key="full_coverd_dsp"
+        )
 
         self.settingsButton = SettingsTreeLeave(
             buttonText="矿物筛选",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
+            obj_name="行星矿物筛选",
+            description="设置星体筛选条件, 内容为某个行星内最少有多少对应矿物, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.settingsButton)
-
 
     def load_config(self):
         self.planetTypeComboBox.load_config()
@@ -435,12 +577,10 @@ class PlanetTreeLeave(LeaveBase):
         self.liquidComboBox.load_config()
 
 
-
-
 class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
-
+        self.leaf = None
 
         self.setHeaderHidden(False)
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
@@ -466,28 +606,34 @@ class SortTree(TreeWidget):
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
 
-
     def on_custom_context_menu_requested(self, pos: QPoint):
         item = self.itemAt(pos)
         menu = RoundMenu("test", self)
         if item is not None:
-            del_action = Action("删除项")
-            del_action.triggered.connect(lambda: self.on_menu_del_action_triggered(item))
+            if item is self.leaf:
+                del_action = Action("重置项")
+            else:
+                del_action = Action("删除项")
+            del_action.triggered.connect(
+                lambda: self.on_menu_del_action_triggered(item)
+            )
             menu.addAction(del_action)
-
-        add_action = Action("添加子项")
-        add_action.triggered.connect(lambda: self.on_menu_add_action_triggered(item))
-        menu.addAction(add_action)
+        if not isinstance(item, PlanetTreeWidgetItem):
+            add_action = Action("添加子项")
+            add_action.triggered.connect(
+                lambda: self.on_menu_add_action_triggered(item)
+            )
+            menu.addAction(add_action)
         pos = QPoint(pos.x() + 10, pos.y() + 30)
         menu.exec(self.mapToGlobal(pos))
 
-
     def on_menu_del_action_triggered(self, item: QTreeWidgetItem):
+        if item is self.leaf:
+            return
         if item.parent() is None:
             self.takeTopLevelItem(self.indexOfTopLevelItem(item))
             return
         item.parent().removeChild(item)
-
 
     def on_menu_add_action_triggered(self, item: QTreeWidgetItem):
         if item is None:
@@ -495,15 +641,17 @@ class SortTree(TreeWidget):
             while leaf is not None:
                 leaf = leaf.addLeaf()
         else:
-            if hasattr(item, 'addLeaf'):
+            if hasattr(item, "addLeaf"):
                 leaf = item.addLeaf()
                 while leaf is not None:
                     leaf = leaf.addLeaf()
-        
-    def addLeaf(self) -> RootTreeWidgetItem:
 
-        leaf = RootTreeWidgetItem(self)
-        return leaf
+    def addLeaf(self) -> GalaxyTreeWidgetItem:
+        if self.leaf is not None:
+            return  # type: ignore
+
+        self.leaf = GalaxyTreeWidgetItem(self)
+        return self.leaf
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
         # 获取点击位置的项目
@@ -512,7 +660,7 @@ class SortTree(TreeWidget):
             text = item.text(0)
 
             label_length = self.fontMetrics().horizontalAdvance(text)
-            
+
             item_rect = self.visualItemRect(item)
             text_x_start = item_rect.x() + 40
             text_x_end = text_x_start + label_length + 10
@@ -522,6 +670,6 @@ class SortTree(TreeWidget):
                 super().mouseDoubleClickEvent(event)
                 self.setEditTriggers(TreeWidget.NoEditTriggers)  # 编辑后禁用自动编辑
                 return
-            
+
         # 如果不是点击文本区域，执行默认行为
         super().mouseDoubleClickEvent(event)

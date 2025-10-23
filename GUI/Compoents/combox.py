@@ -5,6 +5,7 @@ from PySide6.QtGui import QPainter
 
 from config import cfg
 
+
 class AutoFixedComboBox(ComboBox):
     def __init__(self, parent=None, config_key: str | None = None):
         super().__init__(parent)
@@ -20,7 +21,7 @@ class AutoFixedComboBox(ComboBox):
         max_width = max(font_metrics.horizontalAdvance(text) for text in texts)
         # 添加边距
         max_width += 45
-        
+
         self.setMinimumWidth(int(max_width))
 
     def _on_currentIndexChanged(self, index: int):
@@ -49,7 +50,9 @@ class AutoFixedComboBox(ComboBox):
 
 
 class LabelWithComboBox(QFrame):
-    def __init__(self, label: str = "You should give me even a foo as least", parent=None):
+    def __init__(
+        self, label: str = "You should give me even a foo as least", parent=None
+    ):
         super().__init__(parent)
         self.label_box = BodyLabel(label)
         # self.label_box.setMinimumWidth(100)
@@ -66,5 +69,5 @@ class LabelWithComboBox(QFrame):
         max_width = max(font_metrics.horizontalAdvance(text) for text in items)
         # 添加边距
         max_width += 55
-        
+
         self.comboBox.setMinimumWidth(int(max_width))

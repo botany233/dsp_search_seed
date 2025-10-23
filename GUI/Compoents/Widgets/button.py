@@ -1,11 +1,12 @@
 from qfluentwidgets import SwitchButton
 from config import cfg
 
+
 class ConfigSwitchButton(SwitchButton):
-    def set_config(self, config_key: str, config_obj = None) -> None:
+    def set_config(self, config_key: str, config_obj=None) -> None:
         self.config_key = config_key
         self.config_obj = config_obj
-        
+
         value = getattr(self.config_obj, self.config_key)
         self.setChecked(bool(value))
         self.checkedChanged.connect(self._on_checked_changed)
