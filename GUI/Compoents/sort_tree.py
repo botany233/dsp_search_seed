@@ -44,7 +44,6 @@ from config.cfg_dict_tying import (
     PlanetCondition,
     StarSystemCondition,
     VeinsName,
-    CelestialCondition,
 )
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid
@@ -350,21 +349,6 @@ class GalaxyTreeLeave(ConditionBase):
 
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        celestial_condition = dict(
-            zip(
-                CelestialCondition.get_field_mapping().values(),
-                CelestialCondition.get_field_mapping().keys(),
-            )
-        )
-        self.celestialConditionButton = SettingsTreeLeave(
-            buttonText="天体筛选 (银河系)",
-            config_obj=config_obj,
-            config_key="celestial_condition",
-            items=celestial_condition,
-            obj_name="银河系天体筛选",
-            description="设置银河系筛选条件, 内容为银河系内最少有多少对应天体, 不填写则不限制",
-        )
-        self.mainLayout.addWidget(self.celestialConditionButton)
         self.veinsConditionButton = SettingsTreeLeave(
             buttonText="矿物筛选 (银河系)",
             config_obj=config_obj,
@@ -412,20 +396,6 @@ class SystemTreeLeave(ConditionBase):
         self.hitStarNumLineEdit.setFixedHeight(28)
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
-        celestial_condition = dict(
-            zip(
-                CelestialCondition.get_field_mapping().values(),
-                CelestialCondition.get_field_mapping().keys(),
-            )
-        )
-        self.celestialConditionButton = SettingsTreeLeave(
-            buttonText="天体筛选",
-            config_obj=config_obj,
-            config_key="celestial_condition",
-            items=celestial_condition,
-            obj_name="恒星系天体筛选",
-            description="设置天体筛选条件, 内容为某个恒星系内最少有多少对应天体, 不填写则不限制",
-        )
         self.settingsButton = SettingsTreeLeave(
             buttonText="矿物筛选",
             config_obj=config_obj,
@@ -434,7 +404,6 @@ class SystemTreeLeave(ConditionBase):
             obj_name="恒星系矿物筛选",
             description="设置恒星系筛选条件, 内容为某个恒星系内最少有多少对应矿物, 不填写则不限制",
         )
-        self.mainLayout.addWidget(self.celestialConditionButton)
         self.mainLayout.addWidget(self.settingsButton)
         self.settingsButton.setToolTip("设置恒星系筛选条件")
 

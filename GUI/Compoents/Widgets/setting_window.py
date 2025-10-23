@@ -3,7 +3,7 @@ from .line_edit import LabelWithLineEdit
 
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
 from config import cfg
-from config.cfg_dict_tying import VeinsCondition, BaseModel, CelestialCondition
+from config.cfg_dict_tying import VeinsCondition, BaseModel
 
 
 class SettingsWindow(QWidget):
