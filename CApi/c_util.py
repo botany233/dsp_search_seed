@@ -44,6 +44,9 @@ def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
     if "planet_type_nums" in galaxy_condition:
         if not all(galaxy_data["planet_type_nums"][i] >= galaxy_condition["planet_type_nums"][i] for i in range(23)):
             return False
+    if "star_type_nums" in galaxy_condition:
+        if not all(galaxy_data["star_type_nums"][i] >= galaxy_condition["star_type_nums"][i] for i in range(14)):
+            return False
     if "veins" in galaxy_condition:
         if not all(galaxy_data["veins"][i] >= galaxy_condition["veins"][i] for i in range(14)):
             return False
@@ -55,6 +58,19 @@ def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
                     left_satisfy_num -= 1
                     if not left_satisfy_num:
                         break
+            if left_satisfy_num:
+                return False
+    if "planets" in galaxy_condition:
+        for planet_condition in galaxy_condition["planets"]:
+            left_satisfy_num = planet_condition["satisfy_num"]
+            for star_data in galaxy_data["stars"]:
+                if not left_satisfy_num:
+                    break
+                for planet_data in star_data["planets"]:
+                    if check_planet_py(planet_data, planet_condition):
+                        left_satisfy_num -= 1
+                        if not left_satisfy_num:
+                            break
             if left_satisfy_num:
                 return False
     return True
@@ -76,6 +92,8 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
     planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩",
                 "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
                 "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
+    star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
+                  "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
     liquid_names = ["无", "水", "硫酸"]
 
     if "veins" in galaxy_condition:
@@ -89,6 +107,12 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
         for key, value in galaxy_condition["planet_type_nums"].items():
             planet_type_nums[planet_types.index(key)] = value
         galaxy_condition["planet_type_nums"] = planet_type_nums
+    
+    if "star_type_nums" in galaxy_condition:
+        star_type_nums = [0] * 14
+        for key, value in galaxy_condition["star_type_nums"].items():
+            star_type_nums[star_types.index(key)] = value
+        galaxy_condition["star_type_nums"] = star_type_nums
 
     for star_condition in galaxy_condition.get("stars", []):
         if "satisfy_num" not in star_condition:
@@ -112,15 +136,30 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
 
             if "liquid" in planet_condition:
                 planet_condition["liquid"] = liquid_names.index(planet_condition["liquid"])
+        
+    for planet_condition in galaxy_condition.get("planets", []):
+        if "satisfy_num" not in planet_condition:
+            planet_condition["satisfy_num"] = 1
+
+        if "veins" in planet_condition:
+            planet_veins = [0] * 14
+            for key, value in planet_condition["veins"].items():
+                planet_veins[vein_names.index(key)] = value
+            planet_condition["veins"] = planet_veins
+
+        if "liquid" in planet_condition:
+            planet_condition["liquid"] = liquid_names.index(planet_condition["liquid"])
     return del_empty_condition(galaxy_condition)
 
 def get_galaxy_condition_simple(galaxy_condition:dict) -> dict:
     galaxy_condition_simple = copy.deepcopy(galaxy_condition)
     galaxy_condition_simple.pop("veins", 0)
-    for new_star_condition in galaxy_condition_simple.get("stars", []):
-        new_star_condition.pop("veins", 0)
-        for new_planet_condition in new_star_condition.get("planets", []):
-            new_planet_condition.pop("veins", 0)
+    for star_condition in galaxy_condition_simple.get("stars", []):
+        star_condition.pop("veins", 0)
+        for planet_condition in star_condition.get("planets", []):
+            planet_condition.pop("veins", 0)
+    for planet_condition in galaxy_condition_simple.get("planets", []):
+        planet_condition.pop("veins", 0)
     return del_empty_condition(galaxy_condition_simple)
 
 def del_empty_condition(galaxy_condition:dict) -> dict:
@@ -135,4 +174,10 @@ def del_empty_condition(galaxy_condition:dict) -> dict:
                     star_condition.pop("planets")
             if not star_condition:
                 galaxy_condition["stars"].pop(i)
+    if "planets" in galaxy_condition:
+        for j in range(len(galaxy_condition["planets"])-1, -1, -1):
+            if not galaxy_condition["planets"][j]:
+                galaxy_condition["planets"].pop(j)
+        if not galaxy_condition["planets"]:
+            galaxy_condition.pop("planets")
     return galaxy_condition
