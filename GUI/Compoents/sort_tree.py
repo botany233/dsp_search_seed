@@ -167,10 +167,10 @@ class TreeWidgetLeave(ConditionBase):
 
 
 class GalaxyTreeWidgetItem(TreeWidgetItem):
-    """银河系条件项"""
+    """星系条件项"""
 
     def __init__(self, root: "SortTree", *args, **kwargs):
-        text = "银河系条件"
+        text = "星系条件"
         self.index = root.topLevelItemCount()
 
         self.config_key = "conditions"
@@ -184,7 +184,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
             try:
                 text = getattr(self.config_obj, "custom_name")
             except AttributeError:
-                text = "银河系条件"
+                text = "星系条件"
                 self.config_obj = GalaxyCondition()
                 setattr(self.config_obj, self.config_key, self.config_obj)
                 cfg.save()
@@ -262,11 +262,11 @@ class SystemTreeWidgetItem(TreeWidgetItem):
 
 
 class PlanetTreeWidgetItem(TreeWidgetItem):
-    """行星条件项"""
+    """星球条件项"""
 
     def __init__(self, root: "SortTree", branch: SystemTreeWidgetItem, *args, **kwargs):
         self.index = branch.childCount()
-        text = f"行星条件{branch.childCount() + 1}"
+        text = f"星球条件{branch.childCount() + 1}"
 
         self.branch = branch
 
@@ -350,12 +350,12 @@ class GalaxyTreeLeave(ConditionBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿物筛选 (银河系)",
+            buttonText="矿物筛选 (星系)",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
-            obj_name="银河系矿物筛选",
-            description="设置银河系筛选条件, 内容为银河系内最少有多少对应矿物, 不填写则不限制",
+            obj_name="星系矿物筛选",
+            description="设置星系筛选条件, 内容为星系内最少有多少对应矿物, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
 
@@ -418,7 +418,7 @@ class PlanetTreeLeave(ConditionBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignLeft)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.planetTypeLabel = BodyLabel("行星类型")
+        self.planetTypeLabel = BodyLabel("星球类型")
         self.mainLayout.addWidget(self.planetTypeLabel)
         self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
         self.planetTypeComboBox.addItems(planet_types)
@@ -447,8 +447,8 @@ class PlanetTreeLeave(ConditionBase):
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
-            obj_name="行星矿物筛选",
-            description="设置星体筛选条件, 内容为某个行星内最少有多少对应矿物, 不填写则不限制",
+            obj_name="星球矿物筛选",
+            description="设置星体筛选条件, 内容为某个星球内最少有多少对应矿物, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.settingsButton)
 

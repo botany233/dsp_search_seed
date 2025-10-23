@@ -35,7 +35,7 @@ class VeinsCondition(BaseModel):
     monopolar_magnet: int = -1
 
 class PlanetCondition(BaseModel):
-    custom_name: str = "行星条件"
+    custom_name: str = "星球条件"
     checked: int = 2
 
     planet_type: str = "无 / 任意"
@@ -62,7 +62,7 @@ class StarSystemCondition(BaseModel):
 
 
 class GalaxyCondition(BaseModel):
-    custom_name: str = "银河系条件"
+    custom_name: str = "星系条件"
     checked: int = 2
 
     veins_condition: VeinsCondition = VeinsCondition()
