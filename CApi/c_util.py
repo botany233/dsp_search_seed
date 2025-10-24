@@ -82,11 +82,12 @@ def check_seed_py(seed:int, star_num:int, galaxy_condition:dict) -> bool:
     galaxy_data = json.loads(search_seed.get_galaxy_data_c(seed, star_num))
     return check_galaxy_py(galaxy_data, galaxy_condition)
 
-def check_batch_py(start_seed:int, end_seed:int, star_num: int, galaxy_condition:dict)->list[str]:
+def check_batch_py(start_seed:int, end_seed:int, start_star_num: int, end_star_num: int, galaxy_condition:dict)->list[str]:
     result = []
     for seed in range(start_seed, end_seed):
-        if check_seed_py(seed, star_num, galaxy_condition):
-            result.append(f"{star_num} {seed}")
+        for star_num in range(start_star_num, end_star_num):
+            if check_seed_py(seed, star_num, galaxy_condition):
+                result.append(f"{seed} {star_num}")
     return result
 
 def change_condition_to_legal(galaxy_condition:dict) -> dict:

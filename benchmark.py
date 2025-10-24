@@ -12,29 +12,6 @@ import json
 #               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
 
-def batch_generator(galaxy_condition:dict|str,
-                    seeds: tuple[int, int],
-                    star_nums: tuple[int, int],
-                    batch_size:int):
-    for star_num in range(star_nums[0], star_nums[1]+1):
-        for seed in range(seeds[0], seeds[1]+1, batch_size):
-            yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_condition
-
-def batch_generator_c(galaxy_str:str,
-                      galaxy_str_simple:str,
-                      seeds: tuple[int, int],
-                      star_nums: tuple[int, int],
-                      batch_size:int):
-    for star_num in range(star_nums[0], star_nums[1]+1):
-        for seed in range(seeds[0], seeds[1]+1, batch_size):
-            yield seed, min(seed+batch_size, seeds[1]+1), star_num, galaxy_str, galaxy_str_simple
-
-def check_batch_wrapper(args):
-    return check_batch_c(*args)
-
-def check_batch_wrapper_py(args):
-    return check_batch_py(*args)
-
 def check_seeds_py(seeds: tuple[int, int],
                            star_nums: tuple[int, int],
                            galaxy_condition: dict,
@@ -42,7 +19,7 @@ def check_seeds_py(seeds: tuple[int, int],
                            max_thread: int,
                            record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator(galaxy_condition, seeds, star_nums, batch_size)
+        generator = batch_generator_py(galaxy_condition, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_py, generator)
         for result in results:
