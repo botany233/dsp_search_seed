@@ -51,6 +51,7 @@ class SearchThread(QThread):
             self.mutex.unlock()
             self.end_flag = False
             self.running = False
+            SearchMessages.searchEnd.emit()
 
     def search(self,
                galaxy_condition: dict,
@@ -80,7 +81,7 @@ class SearchThread(QThread):
                     executor.shutdown(wait=True, cancel_futures=True)
                     break
             else:
-                SearchMessages.searchEnd.emit()
+                SearchMessages.searchEndNormal.emit()
 
     def get_galaxy_condition(self, galaxy_cfg: GalaxyCondition) -> dict:
         galaxy_condition = {"stars": [], "planets": []}
