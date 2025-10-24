@@ -33,7 +33,7 @@ from GUI import liquid, planet_types, singularity, star_types, vein_names
 from .search_seed import SearchThread
 
 
-from .Compoents import LabelWithComboBox
+from .Compoents import LabelWithComboBox, UserLayout
 from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit
 from .Widgets import SortTreeWidget
 
@@ -101,6 +101,8 @@ class MainWindow(FramelessWindow):
         self.mainLayout.addLayout(self.topLayout)
         self.middleLayout = QHBoxLayout()
         self.mainLayout.addLayout(self.middleLayout, stretch=1)
+        self.userLayout = UserLayout()
+        self.mainLayout.addLayout(self.userLayout)
         self.buttonLayout = QHBoxLayout()
         self.mainLayout.addStretch()
         self.mainLayout.addLayout(self.buttonLayout)
