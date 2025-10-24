@@ -81,8 +81,11 @@ class MainWindow(FramelessWindow):
         self.setLayout(self.mainLayout)
         self.__build__()
 
-        
-
+        screen = QApplication.primaryScreen()
+        screen_geometry = screen.geometry()
+        x = (screen_geometry.width() - width) // 2
+        y = (screen_geometry.height() - height) // 2
+        self.move(x, y)
 
         signal.signal(signal.SIGINT, self.__handle_exit__)
         self.search_thread = SearchThread(self)
