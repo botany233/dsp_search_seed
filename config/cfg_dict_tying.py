@@ -43,7 +43,7 @@ class PlanetCondition(BaseModel):
     liquid_type: str = "无限制"
 
     full_coverd_dsp: bool = False
-    fc_hited_planet_num: int = -1
+    satisfy_num: int = 1
 
     veins_condition: VeinsCondition = VeinsCondition()
     uuid: UUID = Field(default_factory=uuid4)
@@ -55,7 +55,7 @@ class StarCondition(BaseModel):
     star_type: str = "无限制"
     lumino_level: float = -1.0
     distance_level: float = -1.0
-    distance_hited_star_num: int = -1
+    satisfy_num: int = 1
 
     veins_condition: VeinsCondition = VeinsCondition()
     planet_condition: list[PlanetCondition] = []

@@ -244,7 +244,7 @@ class SettingsTreeLeave(QWidget):
     def __init__(
         self,
         parent=None,
-        buttonText: str = "矿物筛选",
+        buttonText: str = "矿物",
         items: dict[str, str] | None = None,
         config_obj=None,
         config_key: str | None = None,
@@ -286,7 +286,7 @@ class GalaxyTreeLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿物筛选 (星系)",
+            buttonText="矿物",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
@@ -320,10 +320,10 @@ class StarTreeLeave(LeaveBase):
         )
         self.mainLayout.addWidget(self.distanceLineEdit)
 
-        self.hitStarNumLabel = BodyLabel("符合的恒星数")
+        self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = ConfigLineEdit(
-            config_key="distance_hited_star_num", config_obj=self.config_obj
+            config_key="satisfy_num", config_obj=self.config_obj
         )
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
         self.distanceLineEdit.setMaximumHeight(28)
@@ -333,7 +333,7 @@ class StarTreeLeave(LeaveBase):
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
         self.settingsButton = SettingsTreeLeave(
-            buttonText="矿物筛选",
+            buttonText="矿物",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
@@ -364,22 +364,22 @@ class PlanetTreeLeave(LeaveBase):
         self.singularityComboBox = AutoFixedComboBox(config_key="singularity")
         self.singularityComboBox.addItems(singularity)
         self.mainLayout.addWidget(self.singularityComboBox)
-        self.liquidLabel = BodyLabel("液体类型")
+        self.liquidLabel = BodyLabel("液体")
         self.mainLayout.addWidget(self.liquidLabel)
         self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type")
         self.liquidComboBox.addItems(liquid)
         self.mainLayout.addWidget(self.liquidComboBox)
-        self.fullCoverdPlanetSwitch = ConfigSwitchButton(
-            "是<u><i>否</i></u>为全包星", indicatorPos=1
-        )
-        self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否为全包星")
+        self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全包", indicatorPos=1)
+        self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否全包")
         self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
-        self.fullCoverdPlanetSwitch.set_config(
-            config_obj=config_obj, config_key="full_coverd_dsp"
-        )
+        self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="full_coverd_dsp")
+        self.hitStarNumLabel = BodyLabel("符合数量")
+        self.mainLayout.addWidget(self.hitStarNumLabel)
+        self.hitStarNumLineEdit = ConfigLineEdit(config_key="satisfy_num", config_obj=self.config_obj)
+        self.mainLayout.addWidget(self.hitStarNumLineEdit)
 
         self.settingsButton = SettingsTreeLeave(
-            buttonText="矿物筛选",
+            buttonText="矿物",
             config_obj=config_obj,
             config_key="veins_condition",
             items=VeinsName().model_dump(),
@@ -411,8 +411,8 @@ class SortTree(TreeWidget):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.Fixed)
 
-        self.setColumnWidth(0, 233)
-        self.setColumnWidth(1, 422)
+        self.setColumnWidth(0, 183)
+        self.setColumnWidth(1, 472)
         self.setColumnWidth(2, 100)
 
         self.root = self.invisibleRootItem()
