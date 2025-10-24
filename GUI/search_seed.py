@@ -85,7 +85,7 @@ class SearchThread(QThread):
     def get_galaxy_condition(self, galaxy_cfg: GalaxyCondition) -> dict:
         galaxy_condition = {"stars": [], "planets": []}
 
-        if galaxy_cfg.checked and (galaxy_veins := self.get_galaxy_condition(galaxy_cfg)):
+        if galaxy_cfg.checked and (galaxy_veins := self.get_veins_dict(galaxy_cfg.veins_condition)):
             galaxy_condition["veins"] = galaxy_veins
         for star_cfg in galaxy_cfg.star_condition:
             star_condition = {"planets": []}
