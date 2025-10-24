@@ -28,13 +28,14 @@ from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qframelesswindow import StandardTitleBar
 
 from config import cfg
+from logger import log
 from GUI import liquid, planet_types, singularity, star_types, vein_names
+from .search_seed import SearchThread
+
 
 from .Compoents import LabelWithComboBox
 from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit
 from .Widgets import SortTreeWidget
-
-import time
 
 class MainWindow(FramelessWindow):
     def __init__(self):
@@ -73,16 +74,24 @@ class MainWindow(FramelessWindow):
         height: int = width // 16 * 10
         self.resize(width, height)
         setTheme(Theme.AUTO)
-        # 启用云母效果（如果系统支持）
         self.titleBar.raise_()
-        self.windowEffect.setMicaEffect(self.winId(), False, True)  # 启用云母效果
 
         self.mainLayout = VBoxLayout(self)
 
         self.setLayout(self.mainLayout)
         self.__build__()
-        # self.show()
+
+        
+
+
         signal.signal(signal.SIGINT, self.__handle_exit__)
+        self.search_thread = SearchThread(self)
+
+    def closeEvent(self, e):
+        if self.search_thread.isRunning():
+            self.search_thread.terminate()
+            self.search_thread.deleteLater()
+        return super().closeEvent(e)
 
     def __init__layout__(self):
         self.topLayout = QGridLayout()
@@ -111,6 +120,7 @@ class MainWindow(FramelessWindow):
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
         self.button_stop = PushButton("停止搜索")
+        self.button_stop.clicked.connect(self.__on_button_stop_clicked)
 
         self.tree_view = SortTreeWidget()
 
@@ -149,9 +159,6 @@ class MainWindow(FramelessWindow):
         for planet_condition in galaxy_condition.planet_condition:
             galaxy_leaf.addPlanetLeaf(planet_condition)
 
-    def __adjust__(self):
-        pass
-
     def __handle_exit__(self, signum, frame):
         import sys
 
@@ -159,9 +166,18 @@ class MainWindow(FramelessWindow):
         sys.exit(0)
 
     def __on_button_start_clicked(self):
-        print("开始搜索")
-        time.sleep(10)
-        print("搜索结束")
+        if self.search_thread.isRunning():
+            log.info("搜索线程已在运行中，请勿重复点击开始按钮")
+            return
+
+        log.info("开始搜索")
+        self.search_thread.start()
+        log.info("搜索结束")
+
+    def __on_button_stop_clicked(self):
+        if self.search_thread.isRunning():
+            self.search_thread.terminate()
+            log.info("搜索已停止")
 
 if __name__ == "__main__":
     import sys
