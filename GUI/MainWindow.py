@@ -112,18 +112,6 @@ class MainWindow(FramelessWindow):
 
         self.tree_view = SortTreeWidget()
 
-        copy_cfg = cfg.config.model_copy()
-
-        if copy_cfg.galaxy_condition:
-            galaxy_leaf = self.tree_view.tree.addLeaf()
-            galaxy_condition = copy_cfg.galaxy_condition
-            for star_condition in galaxy_condition.star_condition:
-                star_leaf = galaxy_leaf.addLeaf()
-                for planet_condition in star_condition.planet_condition:
-                    star_leaf.addLeaf()
-            for planet_condition in galaxy_condition.planet_condition:
-                galaxy_leaf.addPlanetLeaf()
-
     def __build__(self):
         self.__init__layout__()
         self.__init__widgets__()
@@ -147,6 +135,17 @@ class MainWindow(FramelessWindow):
         self.buttonLayout.addWidget(self.button_start)
         self.buttonLayout.addWidget(self.button_stop)
 
+        self.__recover_condition()
+
+    def __recover_condition(self):
+        galaxy_condition = cfg.config.galaxy_condition
+        galaxy_leaf = self.tree_view.tree.addLeaf(galaxy_condition)
+        for star_condition in galaxy_condition.star_condition:
+            star_leaf = galaxy_leaf.addStarLeaf(star_condition)
+            for planet_condition in star_condition.planet_condition:
+                star_leaf.addPlanetLeaf(planet_condition)
+        for planet_condition in galaxy_condition.planet_condition:
+            galaxy_leaf.addPlanetLeaf(planet_condition)
 
     def __adjust__(self):
         pass

@@ -4,7 +4,6 @@ import sys
 import os
 from config import cfg
 
-
 def main():
     scale_factor = cfg.config.ui_scale_factor
     if scale_factor != 1.0:
@@ -15,7 +14,6 @@ def main():
     window = MainWindow()
     window.show()
     sys.exit(app.exec())
-
 
 if __name__ == "__main__":
     os.chdir(
