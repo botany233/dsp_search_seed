@@ -3,6 +3,7 @@ from PySide6.QtWidgets import QApplication
 import sys
 import os
 from config import cfg
+from multiprocessing import Queue
 
 def main():
     scale_factor = cfg.config.ui_scale_factor

@@ -53,7 +53,8 @@ planet_types = ["无 / 任意"] + planet_types
 liquid = ["无 / 任意"] + liquid
 singularity = ["无 / 任意"] + singularity
 
-class ConditionBase(QWidget):
+
+class LeaveBase(QWidget):
     def __init__(self, parent=None, config_obj=None):
         self.config_obj = config_obj
         super().__init__(parent)
@@ -118,7 +119,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         cfg.save()
         self.parent().removeChild(self)
 
-class TreeWidgetLeave(ConditionBase):
+class TreeWidgetLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj)
         self.mainLayout = QHBoxLayout(self)
@@ -194,7 +195,7 @@ class StarTreeWidgetItem(TreeWidgetItem):
         super().__init__(root, config_obj, "star_condition")
 
     def add_widgets(self):
-        self.leaf = SystemTreeLeave(config_obj=self.config_obj)
+        self.leaf = StarTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
         self.leaf.load_config()
 
@@ -278,7 +279,7 @@ class SettingsTreeLeave(QWidget):
         SortTreeMessages.CreateSettingsWindow.emit(self)
 
 
-class GalaxyTreeLeave(ConditionBase):
+class GalaxyTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 
@@ -295,7 +296,7 @@ class GalaxyTreeLeave(ConditionBase):
         self.mainLayout.addWidget(self.veinsConditionButton)
 
 
-class SystemTreeLeave(ConditionBase):
+class StarTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
@@ -346,7 +347,7 @@ class SystemTreeLeave(ConditionBase):
         self.starTypeComboBox.load_config()
 
 
-class PlanetTreeLeave(ConditionBase):
+class PlanetTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
 

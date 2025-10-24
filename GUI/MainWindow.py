@@ -34,6 +34,7 @@ from .Compoents import LabelWithComboBox
 from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit
 from .Widgets import SortTreeWidget
 
+import time
 
 class MainWindow(FramelessWindow):
     def __init__(self):
@@ -108,6 +109,7 @@ class MainWindow(FramelessWindow):
         self.label_thread_num = BodyLabel("线程数:")
         self.input_thread_num = ConfigLineEdit(config_key="max_thread")
         self.button_start = PushButton("开始搜索")
+        self.button_start.clicked.connect(self.__on_button_start_clicked)
         self.button_stop = PushButton("停止搜索")
 
         self.tree_view = SortTreeWidget()
@@ -156,6 +158,10 @@ class MainWindow(FramelessWindow):
         self.close()
         sys.exit(0)
 
+    def __on_button_start_clicked(self):
+        print("开始搜索")
+        time.sleep(10)
+        print("搜索结束")
 
 if __name__ == "__main__":
     import sys

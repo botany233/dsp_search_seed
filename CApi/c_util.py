@@ -110,7 +110,7 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
         for key, value in galaxy_condition["planet_type_nums"].items():
             planet_type_nums[planet_types.index(key)] = value
         galaxy_condition["planet_type_nums"] = planet_type_nums
-    
+
     if "star_type_nums" in galaxy_condition:
         star_type_nums = [0] * 14
         for key, value in galaxy_condition["star_type_nums"].items():
@@ -139,7 +139,7 @@ def change_condition_to_legal(galaxy_condition:dict) -> dict:
 
             if "liquid" in planet_condition:
                 planet_condition["liquid"] = liquid_names.index(planet_condition["liquid"])
-        
+
     for planet_condition in galaxy_condition.get("planets", []):
         if "satisfy_num" not in planet_condition:
             planet_condition["satisfy_num"] = 1
