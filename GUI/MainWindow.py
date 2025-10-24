@@ -23,6 +23,7 @@ from qfluentwidgets import (
     qconfig,
     setTheme,
     setThemeColor,
+    MessageBox,
 )
 from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
 from qframelesswindow import StandardTitleBar
@@ -92,6 +93,14 @@ class MainWindow(FramelessWindow):
 
     def closeEvent(self, e):
         if self.search_thread.isRunning():
+            message_box = MessageBox(
+                "有搜索任务正在进行中，是否强制退出？",
+                "强制退出可能会导致部分结果未保存，建议先停止搜索任务。",
+                self.window(),
+            )
+            if message_box.exec() != 1:
+                e.ignore()
+                return # 取消关闭事件
             self.search_thread.terminate()
             self.search_thread.deleteLater()
         return super().closeEvent(e)
