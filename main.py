@@ -1,5 +1,6 @@
 from GUI.MainWindow import MainWindow
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 import sys
 import os
 from config import cfg
@@ -11,6 +12,7 @@ def main():
         os.environ["QT_SCALE_FACTOR"] = str(scale_factor)
         # os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
     app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_DontCreateNativeWidgetSiblings)
 
     window = MainWindow()
     window.show()
