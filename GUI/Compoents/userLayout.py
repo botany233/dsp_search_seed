@@ -11,10 +11,6 @@ from GUI.Messenger import SearchMessages
 class UserLayout(QVBoxLayout):
     def __init__(self):
         super().__init__()
-        self.timestamp = 114514
-        self.seeds = (1, 1)
-        self.batch_size = 1
-
         self.userButtonsLayout = QHBoxLayout()
 
         self.addLayout(self.userButtonsLayout)
@@ -23,7 +19,7 @@ class UserLayout(QVBoxLayout):
         self.outputFileLabel = BodyLabel("输出文件名称 ")
         self.userButtonsLayout.addWidget(self.outputFileLabel)
         self.outputFileLine = LineEdit()
-        self.outputFileLine.setPlaceholderText("output")
+        self.outputFileLine.setPlaceholderText(cfg.config.save_name)
         self.outputFileLine.textEdited.connect(self._update_output_filename)
         self.userButtonsLayout.addWidget(self.outputFileLine)
 
@@ -51,9 +47,7 @@ class UserLayout(QVBoxLayout):
         SearchMessages.searchEndNormal.connect(self._on_search_finish)
 
     def _update_output_filename(self, filename: str):
-        if filename == "":
-            filename = "output.csv"
-        cfg.output_file_name = filename + ".csv"
+        cfg.config.save_name = "seed" if filename == "" else filename
 
     def _on_search_finish(self):
         self.barLabel.setText("搜索完成！")
@@ -69,8 +63,18 @@ class UserLayout(QVBoxLayout):
 
     def get_remain_time_str(self, batch_id: int, total_batch: int, start_time: float, current_time: float) -> str:
         cost_time_str = self.get_format_time_str(current_time - start_time)
-        leave_time_str = self.get_format_time_str((current_time-start_time)/batch_id*(total_batch-batch_id))
-        return f"{cost_time_str}/{leave_time_str}"
+        if batch_id <= 0:
+            leave_time_str = "?"
+            speed_str = "?batch/s"
+        else:
+            leave_time_str = self.get_format_time_str((current_time-start_time)/batch_id*(total_batch-batch_id))
+            speed = batch_id / (current_time - start_time)
+            if speed >= 1:
+                speed_str = f"{speed:.2f}batch/s"
+            else:
+                speed_str = f"{1/speed:.2f}s/batch"
+
+        return f"[{cost_time_str}<{leave_time_str}, {speed_str}]"
 
     def get_format_time_str(self, time_second:float):
         time_second = int(time_second)
@@ -78,6 +82,6 @@ class UserLayout(QVBoxLayout):
         minutes = (time_second % 3600) // 60
         seconds = time_second % 60
         if hours > 0:
-            return f"{hours}:{minutes}:{seconds}"
+            return f"{hours}:{minutes:02d}:{seconds:02d}"
         else:
-            return f"{minutes}:{seconds}"
+            return f"{minutes:02d}:{seconds:02d}"

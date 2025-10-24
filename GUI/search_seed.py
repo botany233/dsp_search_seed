@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 from time import perf_counter
 from math import ceil
+from datetime import datetime
 
 from config import cfg
 from config.cfg_dict_tying import (
@@ -70,6 +71,9 @@ class SearchThread(QThread):
 
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
         start_time = perf_counter()
+        with open(save_name, "a", encoding="utf-8") as f:
+            f.write(f"\n#搜索时间 {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}\n")
+        SearchMessages.search_progress_info.emit(0, total_batch, total_seed_num, last_seed, start_time, perf_counter())
         with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
             generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
             results = executor.map(check_batch_wrapper, generator)
@@ -83,7 +87,7 @@ class SearchThread(QThread):
                 SearchMessages.search_progress_info.emit(i + 1, total_batch, total_seed_num, last_seed, start_time, perf_counter())
 
                 if self.end_flag:
-                    executor.shutdown(wait=True, cancel_futures=True)
+                    executor.shutdown(wait=False, cancel_futures=True)
                     break
             else:
                 SearchMessages.searchEndNormal.emit()
