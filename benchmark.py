@@ -13,11 +13,11 @@ import json
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
 
 def check_seeds_py(seeds: tuple[int, int],
-                           star_nums: tuple[int, int],
-                           galaxy_condition: dict,
-                           batch_size: int,
-                           max_thread: int,
-                           record_seed: bool):
+                   star_nums: tuple[int, int],
+                   galaxy_condition: dict,
+                   batch_size: int,
+                   max_thread: int,
+                   record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
         generator = batch_generator_py(galaxy_condition, seeds, star_nums, batch_size)
 
@@ -28,12 +28,12 @@ def check_seeds_py(seeds: tuple[int, int],
                     f.writelines(map(lambda x: f"{x}\n", result))
 
 def check_seeds_c(seeds: tuple[int, int],
-                           star_nums: tuple[int, int],
-                           galaxy_str: str,
-                           galaxy_str_simple: str,
-                           batch_size: int,
-                           max_thread: int,
-                           record_seed: bool):
+                  star_nums: tuple[int, int],
+                  galaxy_str: str,
+                  galaxy_str_simple: str,
+                  batch_size: int,
+                  max_thread: int,
+                  record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
         generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
 
@@ -53,10 +53,6 @@ if __name__ == "__main__":
     galaxy_condition = get_easy_condition()
     # galaxy_condition = get_3_blue_condition()
 
-    # galaxy_condition = {"stars": [{"type": "O型恒星", "satisfy_num": 5}]}
-    galaxy_condition = {"planet_type_nums": {"水世界": 9}}
-    # galaxy_condition = {"planets": [{"type": "水世界", "satisfy_num": 9}]}
-
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
 
@@ -69,16 +65,16 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 999999)
-    star_nums = (64, 64)
-    batch_size = 256
-    max_thread = 20
+    seeds = (0, 127)
+    star_nums = (32, 64)
+    batch_size = 32
+    max_thread = 1
 
-    record_seed = 1
+    record_seed = 0
 
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    flag = perf_counter()
+    check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
+    print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)

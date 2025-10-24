@@ -48,10 +48,10 @@ from config.cfg_dict_tying import (
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid
 
-star_types = ["无 / 任意"] + star_types
-planet_types = ["无 / 任意"] + planet_types
-liquid = ["无 / 任意"] + liquid
-singularity = ["无 / 任意"] + singularity
+star_types = ["无限制"] + star_types
+planet_types = ["无限制"] + planet_types
+liquid = ["无限制"] + liquid
+singularity = ["无限制"] + singularity
 
 
 class LeaveBase(QWidget):

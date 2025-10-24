@@ -5,8 +5,7 @@ class SortTreeSignal(QObject):
 
 
 class SearchSignal(QObject):
-    searchFinish = Signal(int)
+    search_progress = Signal(int)
+    search_last_seed = Signal(str)
     searchFinishOnce = Signal()
     searchEnd = Signal()
-
-

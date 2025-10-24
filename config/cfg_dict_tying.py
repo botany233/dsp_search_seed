@@ -38,9 +38,9 @@ class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
     checked: bool = True
 
-    planet_type: str = "无 / 任意"
-    singularity: str = "无 / 任意"
-    liquid_type: str = "无 / 任意"
+    planet_type: str = "无限制"
+    singularity: str = "无限制"
+    liquid_type: str = "无限制"
 
     full_coverd_dsp: bool = False
     fc_hited_planet_num: int = -1
@@ -52,7 +52,7 @@ class StarCondition(BaseModel):
     custom_name: str = "恒星系条件"
     checked: bool = True
 
-    star_type: str = "无 / 任意"
+    star_type: str = "无限制"
     lumino_level: float = -1.0
     distance_level: float = -1.0
     distance_hited_star_num: int = -1
@@ -73,12 +73,17 @@ class GUIConfig(BaseModel):
     seed_range: tuple[int, int] = (0, 99999)
     star_num_range: tuple[int, int] = (32, 64)
     max_thread: int = cpu_count()
-    batch_size: int = 512
-    record_seed: bool = True
+    batch_size: int = 32
     ui_scale_factor: float = 1.0
     galaxy_condition: GalaxyCondition = GalaxyCondition()
+    save_name: str = "seed"
 
 if __name__ == "__main__":
-    cfg = GUIConfig()
+    # cfg = GUIConfig()
+    # print(cfg)
 
-    print(cfg)
+    aaa = VeinsCondition().model_dump()
+    print(aaa)
+
+    bbb = VeinsName().model_dump()
+    print(bbb)

@@ -42,14 +42,6 @@ def check_star_py(star_data:dict, star_condition:dict) -> bool:
     return True
 
 def check_galaxy_py(galaxy_data:dict, galaxy_condition:dict) -> bool:
-    if "planet_type_nums" in galaxy_condition:
-        if not all(galaxy_data["planet_type_nums"][i] >= galaxy_condition["planet_type_nums"][i] for i in range(22)):
-            return False
-        if galaxy_condition["planet_type_nums"][22] > galaxy_condition["planet_type_nums"][21] + galaxy_condition["planet_type_nums"][22]:
-            return False
-    if "star_type_nums" in galaxy_condition:
-        if not all(galaxy_data["star_type_nums"][i] >= galaxy_condition["star_type_nums"][i] for i in range(14)):
-            return False
     if "veins" in galaxy_condition:
         if not all(galaxy_data["veins"][i] >= galaxy_condition["veins"][i] for i in range(14)):
             return False
