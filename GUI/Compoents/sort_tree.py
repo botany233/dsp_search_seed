@@ -62,32 +62,22 @@ class ConditionBase(QWidget):
         pass
 
 class TreeWidgetItem(QTreeWidgetItem):
-    def __init__(self, *args, root: "SortTree", config_obj: Any, **kwargs):
+    def __init__(self, root: "SortTree", config_obj: Any, config_key: str, parent: Any = None):
+        if parent is not None:
+            super().__init__(parent)
+        else:
+            super().__init__()
+
         self.root = root
         self.config_obj = config_obj
-        self.flag = True
-        if len(args) > 2:
-            # 确保第一个参数是parent, 第二个参数是文本列表, 第三个为要插入的 Item 
-            Aargs = (args[0], args[2])
-        else:
-            Aargs = args
-        super().__init__(*Aargs, **kwargs)
-        if len(args) > 2:
-            # 手动设置文本
-            self.setText(0, args[1][0])
+        self.config_key = config_key
+
+        self.setText(0, getattr(self.config_obj, "custom_name"))
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
-        self._add_widgets_()
         self._update_check_state_from_config()
-
-        setattr(self.config_obj, "custom_name", self.text(0))
-        cfg.save()
-
-    def _add_widgets_(self):
-        self.manageButtons = TreeWidgetLeave()
-        self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
-        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+    
+    def add_widgets(self): ...
 
     def _update_check_state_from_config(self):
         if getattr(self.config_obj, "checked"):
@@ -103,17 +93,8 @@ class TreeWidgetItem(QTreeWidgetItem):
             return
 
         if column == 0 and role == Qt.EditRole:
-            # 修改名称
-            if self.parent() is None:
-                setattr(self.config_obj, "custom_name", value)
-                cfg.save()
-            else:
-                try:
-                    setattr(self.config_obj, "custom_name", value)
-                    cfg.save()
-                except Exception as e:
-                    print(f"设置配置项名称失败: {e}")
-
+            setattr(self.config_obj, "custom_name", value)
+            cfg.save()
         return super().setData(column, role, value)
 
     def GetIndex(self) -> int:
@@ -127,7 +108,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         if self.parent() is None:
             return
 
-        belong_list = getattr(self.branch.config_obj, self.config_key)
+        belong_list = getattr(self.parent().config_obj, self.config_key)
         for i in range(len(belong_list)):
             if self.config_obj.uuid == belong_list[i].uuid:
                 belong_list.pop(i)
@@ -135,7 +116,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         else:
             raise Exception("uuid not found!")
         cfg.save()
-        self.branch.removeChild(self)
+        self.parent().removeChild(self)
 
 class TreeWidgetLeave(ConditionBase):
     def __init__(self, parent=None, config_obj=None):
@@ -155,27 +136,9 @@ class TreeWidgetLeave(ConditionBase):
 
         self.mainLayout.addWidget(self.delButton)
 
-    def adjust_del_button(self):
-        self.adjustButton = TransparentToolButton()
-        self.mainLayout.insertWidget(0, self.adjustButton)
-        pass
-
-
 class GalaxyTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", config_obj, *args, **kwargs):
-        self.config_key = "galaxy_condition"
-        self.config_obj = config_obj
-        text = getattr(self.config_obj, "custom_name")
-
-        texts = [text]
-        super().__init__(root, texts, *args, root=root, config_obj=self.config_obj, **kwargs)
-        self.manageButtons.delButton.setHidden(True)
-        self.manageButtons.addButton.setHidden(False)
-        self.manageButtons.addPlanetButton = ToolButton(FluentIcon.ASTERISK)
-        self.manageButtons.addPlanetButton.setToolTip("点击添加星球条件项")
-        self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
-        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
-        self.__bind__widgets__()
+    def __init__(self, root: "SortTree", config_obj):
+        super().__init__(root, config_obj, "galaxy_condition", root)
 
     def _on_add_planet_button_clicked(self):
         self.addPlanetLeaf()
@@ -183,9 +146,21 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
     def _on_add_button_clicked(self):
         self.addStarLeaf()
 
-    def __bind__widgets__(self):
+    def add_widgets(self):
         self.leaf = GalaxyTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
+
+        self.manageButtons = TreeWidgetLeave()
+        self.root.setItemWidget(self, 2, self.manageButtons)
+        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
+        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+
+        self.manageButtons.delButton.setHidden(True)
+        self.manageButtons.addButton.setHidden(False)
+        self.manageButtons.addPlanetButton = ToolButton(FluentIcon.ASTERISK)
+        self.manageButtons.addPlanetButton.setToolTip("点击添加星球条件项")
+        self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
+        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
 
     def addStarLeaf(self, new_star_condition: StarCondition|None = None) -> "StarTreeWidgetItem":
         if new_star_condition is None:
@@ -196,9 +171,9 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
         index = 0
         while isinstance(self.child(index), StarTreeWidgetItem) and index < self.childCount():
             index += 1
-        new_leaf = StarTreeWidgetItem(self.root, self, new_star_condition)
-        print(f"插入到 {index} 位置")
+        new_leaf = StarTreeWidgetItem(self.root, new_star_condition)
         self.insertChild(index, new_leaf)
+        new_leaf.add_widgets()
         self.setExpanded(True)
         return new_leaf
 
@@ -208,29 +183,26 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
             getattr(self.config_obj, "planet_condition").append(new_planet_condition)
             cfg.save()
 
-        new_leaf = PlanetTreeWidgetItem(self.root, self, new_planet_condition)
+        new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
         self.addChild(new_leaf)
+        new_leaf.add_widgets()
         self.setExpanded(True)
         return new_leaf
 
 class StarTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", branch: GalaxyTreeWidgetItem, config_obj: StarCondition, *args, **kwargs):
-        self.root = root
-        self.branch = branch
-        self.config_key = "star_condition"
-        self.config_obj = config_obj
+    def __init__(self, root: "SortTree", config_obj: StarCondition):
+        super().__init__(root, config_obj, "star_condition")
 
-        text = getattr(self.config_obj, "custom_name")
-
-        texts = [text]
-        super().__init__(branch, texts, *args, root=root, config_obj=self.config_obj, **kwargs)
-        self.__bind__widgets__()
-
-    def __bind__widgets__(self):
+    def add_widgets(self):
         self.leaf = SystemTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
         self.leaf.load_config()
-    
+
+        self.manageButtons = TreeWidgetLeave()
+        self.root.setItemWidget(self, 2, self.manageButtons)
+        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
+        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+
     def _on_add_button_clicked(self):
         self.addPlanetLeaf()
 
@@ -240,29 +212,29 @@ class StarTreeWidgetItem(TreeWidgetItem):
             getattr(self.config_obj, "planet_condition").append(new_planet_condition)
             cfg.save()
 
-        new_leaf = PlanetTreeWidgetItem(self.root, self, new_planet_condition)
+        new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
         self.addChild(new_leaf)
+        new_leaf.add_widgets()
         self.setExpanded(True)
         return new_leaf
 
 class PlanetTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", branch: StarTreeWidgetItem | GalaxyTreeWidgetItem, config_obj: PlanetCondition, *args, **kwargs):
-        self.root = root
-        self.branch = branch
-        self.config_obj = config_obj
-        self.config_key = "planet_condition"
-        text = getattr(self.config_obj, "custom_name")
+    def __init__(self, root: "SortTree", config_obj: PlanetCondition):
+        super().__init__(root, config_obj, "planet_condition")
 
-        texts = [text]
-        super().__init__(branch, texts, *args, root=root, config_obj=self.config_obj, **kwargs)
-        self.manageButtons.addButton.setHidden(True)
-        self.manageButtons.adjust_del_button()
-        self.__bind__widgets__()
-
-    def __bind__widgets__(self):
+    def add_widgets(self):
         self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
         self.leaf.load_config()
+
+        self.manageButtons = TreeWidgetLeave()
+        self.root.setItemWidget(self, 2, self.manageButtons)
+        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
+        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+
+        self.manageButtons.addButton.setHidden(True)
+        self.manageButtons.adjustButton = TransparentToolButton()
+        self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
 
     def _on_add_button_clicked(self):
         return
@@ -487,6 +459,7 @@ class SortTree(TreeWidget):
 
     def addLeaf(self, new_galaxy_condition: GalaxyCondition) -> GalaxyTreeWidgetItem:
         self.leaf = GalaxyTreeWidgetItem(self, new_galaxy_condition)
+        self.leaf.add_widgets()
         return self.leaf
 
     def mouseDoubleClickEvent(self, event: QMouseEvent):
