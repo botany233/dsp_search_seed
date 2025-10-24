@@ -2,7 +2,7 @@ __all__ = ["SortTree"]
 
 from typing import Any
 from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QMouseEvent, QIcon
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
@@ -125,11 +125,12 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.addButton = ToolButton(FluentIcon.ADD)
+        self.addButton = ToolButton(QIcon(r"assets\planet.png"))
         self.addButton.setToolTip("点击添加子项")
         self.delButton = ToolButton(FluentIcon.DELETE)
         self.delButton.setToolTip("点击删除该项及其子项")
-        self.addPlanetButton = ToolButton()
+        self.addPlanetButton = ToolButton(QIcon(r"assets\planet.png"))
+        self.addPlanetButton.setToolTip("点击添加星球条件项")
 
         self.mainLayout.addWidget(self.addButton)
 
@@ -158,8 +159,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons.delButton.setHidden(True)
         self.manageButtons.addButton.setHidden(False)
-        self.manageButtons.addPlanetButton = ToolButton(FluentIcon.ASTERISK)
-        self.manageButtons.addPlanetButton.setToolTip("点击添加星球条件项")
+        self.manageButtons.addButton.setIcon(QIcon(r"assets\star.png"))
         self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
 
@@ -377,6 +377,9 @@ class PlanetTreeLeave(LeaveBase):
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = ConfigLineEdit(config_key="satisfy_num", config_obj=self.config_obj)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
+
+        self.hitStarNumLineEdit.setMaximumHeight(28)
+        self.hitStarNumLineEdit.setFixedHeight(28)
 
         self.settingsButton = SettingsTreeLeave(
             buttonText="矿物",

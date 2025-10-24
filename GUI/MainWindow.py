@@ -1,6 +1,6 @@
 import signal
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QColor, QCursor, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import (
     QApplication,
@@ -31,8 +31,9 @@ from qframelesswindow import StandardTitleBar
 from config import cfg
 from logger import log
 from GUI import liquid, planet_types, singularity, star_types, vein_names
-from .search_seed import SearchThread
 
+from .search_seed import SearchThread
+from .Messenger import SearchMessages
 
 from .Compoents import LabelWithComboBox, UserLayout
 from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit
@@ -78,6 +79,7 @@ class MainWindow(FramelessWindow):
         self.titleBar.raise_()
 
         self.mainLayout = VBoxLayout(self)
+        
 
         self.setLayout(self.mainLayout)
         self.__build__()
@@ -90,8 +92,9 @@ class MainWindow(FramelessWindow):
 
         signal.signal(signal.SIGINT, self.__handle_exit__)
         self.search_thread = SearchThread(self)
+        SearchMessages.searchEnd.connect(self._on_search_finish)
 
-    def closeEvent(self, e):
+    def closeEvent(self, e: QEvent):
         if self.search_thread.isRunning():
             message_box = MessageBox(
                 "有搜索任务正在进行中，是否强制退出？",
@@ -102,8 +105,14 @@ class MainWindow(FramelessWindow):
                 e.ignore()
                 return # 取消关闭事件
             self.search_thread.terminate()
+            while self.search_thread.isRunning():
+                QApplication.processEvents()
             self.search_thread.deleteLater()
         return super().closeEvent(e)
+
+    def _on_search_finish(self):
+        self.button_start.setEnabled(True)
+        self.button_stop.setEnabled(False)
 
     def __init__layout__(self):
         self.topLayout = QGridLayout()
@@ -133,8 +142,10 @@ class MainWindow(FramelessWindow):
         self.input_thread_num = ConfigLineEdit(config_key="max_thread")
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
+
         self.button_stop = PushButton("停止搜索")
         self.button_stop.clicked.connect(self.__on_button_stop_clicked)
+        self.button_stop.setEnabled(False)
 
         self.tree_view = SortTreeWidget()
 
@@ -183,10 +194,21 @@ class MainWindow(FramelessWindow):
         if self.search_thread.isRunning():
             log.info("搜索线程已在运行中，请勿重复点击开始按钮")
             return
+        
+        import math
+        seeds = cfg.config.seed_range
+        batch_size = cfg.config.batch_size
+        self.userLayout.seeds = seeds
+        self.userLayout.batch_size = batch_size
+
 
         log.info("开始搜索")
+        self.button_start.setEnabled(False)
+        self.userLayout.progressBar.setMaximum(math.ceil((seeds[1]-seeds[0]+1)/batch_size))
+        self.userLayout.seedInfoLabel.setText("")
+        log.debug(self.userLayout.progressBar.maximum())
         self.search_thread.start()
-        log.info("搜索结束")
+        self.button_stop.setEnabled(True)
 
     def __on_button_stop_clicked(self):
         if self.search_thread.isRunning():
