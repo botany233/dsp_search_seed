@@ -1,6 +1,7 @@
 from PySide6.QtCore import QThread, QMutex
 from .Messenger import SearchMessages
 
+from config import cfg
 from logger import log
 
 class SearchThread(QThread):
@@ -22,8 +23,9 @@ class SearchThread(QThread):
     def run(self):
         self.mutex.lock()
         self.running = True
+        # 或者 config = cfg.config.model_copy()
         try:
-            self.search()
+            self.search(cfg.config.model_dump())
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -32,7 +34,7 @@ class SearchThread(QThread):
             self.running = False
 
 
-    def search(self):
+    def search(self, config: dict):
             # 模拟搜索过程
             for i in range(200):
                 self.msleep(100)  # 模拟耗时操作
