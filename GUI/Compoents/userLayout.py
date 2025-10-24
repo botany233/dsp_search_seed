@@ -47,8 +47,7 @@ class UserLayout(QVBoxLayout):
 
         self.setContentsMargins(7, 0, 7, 7)
 
-        SearchMessages.search_last_seed.connect(self._update_seed_info)
-        SearchMessages.search_progress.connect(self._update_progress)
+        SearchMessages.search_progress_info.connect(self._update_progress)
         SearchMessages.searchEndNormal.connect(self._on_search_finish)
 
     def _update_output_filename(self, filename: str):
@@ -56,29 +55,29 @@ class UserLayout(QVBoxLayout):
             filename = "output.csv"
         cfg.output_file_name = filename + ".csv"
 
-    def _update_seed_info(self, seed: int, star_num: int = 0, founded_seeds: int = 0):
-        msg = f"符合条件的种子数量: {founded_seeds}  上次命中的种子: {seed}  恒星数: {star_num}"
-        self.seedInfoLabel.setText(msg)
-
     def _on_search_finish(self):
         self.barLabel.setText("搜索完成！")
         self.progressBar.setValue(self.progressBar.maximum())
 
-    def _update_progress(self, value: int):
-        self.progressBar.setValue(value)
-        self.barLabel.setText(
-            f"搜索进度: {value * 100 // self.progressBar.maximum()}%  "
-            + self.time_format(
-                int(
-                    self.timestamp
-                    * (self.progressBar.maximum() - value)
-                    / self.progressBar.maximum()
-                )
-            )
-        )
+    def _update_progress(self, batch_id: int, total_batch: int, total_seed_num: int, last_seed: str, start_time: float, current_time: float):
+        self.seedInfoLabel.setText(f"累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed}")
+        self.progressBar.setValue(batch_id)
 
-    def time_format(self, timestamp: int) -> str:
-        hours = timestamp // 3600
-        minutes = (timestamp % 3600) // 60
-        seconds = timestamp % 60
-        return f"还有{hours:02}小时{minutes:02}分{seconds:02}秒"
+        progress_str = f"搜索进度: {batch_id}/{total_batch}({batch_id * 100 // self.progressBar.maximum()}%)"
+        remain_time_str = self.get_remain_time_str(batch_id, total_batch, start_time, current_time)
+        self.barLabel.setText(progress_str + "  " + remain_time_str)
+
+    def get_remain_time_str(self, batch_id: int, total_batch: int, start_time: float, current_time: float) -> str:
+        cost_time_str = self.get_format_time_str(current_time - start_time)
+        leave_time_str = self.get_format_time_str((current_time-start_time)/batch_id*(total_batch-batch_id))
+        return f"{cost_time_str}/{leave_time_str}"
+
+    def get_format_time_str(self, time_second:float):
+        time_second = int(time_second)
+        hours = time_second // 3600
+        minutes = (time_second % 3600) // 60
+        seconds = time_second % 60
+        if hours > 0:
+            return f"{hours}:{minutes}:{seconds}"
+        else:
+            return f"{minutes}:{seconds}"

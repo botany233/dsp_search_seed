@@ -3,6 +3,8 @@ from .Messenger import SearchMessages
 from CApi import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
+from time import perf_counter
+from math import ceil
 
 from config import cfg
 from config.cfg_dict_tying import (
@@ -66,6 +68,8 @@ class SearchThread(QThread):
         galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
         galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
 
+        last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
+        start_time = perf_counter()
         with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
             generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
             results = executor.map(check_batch_wrapper, generator)
@@ -73,9 +77,10 @@ class SearchThread(QThread):
                 with open(save_name, "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
-                SearchMessages.search_progress.emit(i+1)
                 if result:
-                    SearchMessages.search_last_seed.emit(result[-1])
+                    last_seed = result[-1]
+                    total_seed_num += len(result)
+                SearchMessages.search_progress_info.emit(i + 1, total_batch, total_seed_num, last_seed, start_time, perf_counter())
 
                 if self.end_flag:
                     executor.shutdown(wait=True, cancel_futures=True)
