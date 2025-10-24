@@ -10,7 +10,7 @@ def main():
     if scale_factor != 1.0:
         os.environ["QT_SCALE_FACTOR"] = str(scale_factor)
         # os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
-    app = QApplication()
+    app = QApplication(sys.argv)
 
     window = MainWindow()
     window.show()
