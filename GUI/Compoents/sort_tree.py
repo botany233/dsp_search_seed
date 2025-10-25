@@ -125,11 +125,11 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.addButton = ToolButton(QIcon(r"assets\planet.png"))
+        self.addButton = ToolButton(QIcon("./assets/planet.png"))
         self.addButton.setToolTip("点击添加子项")
         self.delButton = ToolButton(FluentIcon.DELETE)
         self.delButton.setToolTip("点击删除该项及其子项")
-        self.addPlanetButton = ToolButton(QIcon(r"assets\planet.png"))
+        self.addPlanetButton = ToolButton(QIcon("./assets/planet.png"))
         self.addPlanetButton.setToolTip("点击添加星球条件项")
 
         self.mainLayout.addWidget(self.addButton)
@@ -159,7 +159,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons.delButton.setHidden(True)
         self.manageButtons.addButton.setHidden(False)
-        self.manageButtons.addButton.setIcon(QIcon(r"assets\star.png"))
+        self.manageButtons.addButton.setIcon(QIcon("./assets/star.png"))
         self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
 

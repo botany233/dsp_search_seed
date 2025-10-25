@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 import sys
 import os
 from config import cfg
-from multiprocessing import Queue
+import multiprocessing
 
 def main():
     scale_factor = cfg.config.ui_scale_factor
@@ -19,6 +19,7 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
+    multiprocessing.freeze_support()
     os.chdir(
         os.path.dirname(sys.executable)
         if getattr(sys, "frozen", False)
