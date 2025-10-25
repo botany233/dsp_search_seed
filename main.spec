@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[("CApi/search_seed.pyd", "CApi")],
-    datas=[("assets", "assets")],
+    datas=[],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
