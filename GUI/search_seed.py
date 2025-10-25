@@ -104,9 +104,9 @@ class SearchThread(QThread):
                     star_condition["veins"] = star_veins
                 if star_cfg.star_type != "无限制":
                     star_condition["type"] = star_cfg.star_type
-                if star_cfg.distance_level > 0:
+                if star_cfg.distance_level >= 0:
                     star_condition["distance"] = star_cfg.distance_level
-                if star_cfg.lumino_level > 0:
+                if star_cfg.lumino_level >= 0:
                     star_condition["lumino"] = star_cfg.lumino_level
                 if star_cfg.satisfy_num > 1:
                     star_condition["satisfy_num"] = star_cfg.satisfy_num

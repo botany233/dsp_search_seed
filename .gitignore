@@ -7,4 +7,5 @@ test.py
 logs/
 build/
 dist/
+dsp/
 __pycache__/
