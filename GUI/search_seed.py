@@ -40,8 +40,8 @@ class SearchThread(QThread):
 
             gui_cfg = cfg.copy()
             galaxy_condition = self.get_galaxy_condition(gui_cfg.galaxy_condition)
-            seeds = gui_cfg.seed_range
-            star_nums = gui_cfg.star_num_range
+            seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
+            star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
             batch_size = gui_cfg.batch_size
             max_thread = gui_cfg.max_thread
             save_name = gui_cfg.save_name + ".txt"
@@ -106,7 +106,7 @@ class SearchThread(QThread):
                     star_condition["type"] = star_cfg.star_type
                 if star_cfg.distance_level >= 0:
                     star_condition["distance"] = star_cfg.distance_level
-                if star_cfg.lumino_level >= 0:
+                if star_cfg.lumino_level > 0:
                     star_condition["lumino"] = star_cfg.lumino_level
                 if star_cfg.satisfy_num > 1:
                     star_condition["satisfy_num"] = star_cfg.satisfy_num

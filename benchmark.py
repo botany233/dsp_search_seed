@@ -65,12 +65,12 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 99999)
-    star_nums = (32, 64)
-    batch_size = 128
-    max_thread = 20
+    seeds = (0, 4096)
+    star_nums = (32, 32)
+    batch_size = 99999
+    max_thread = 1
 
-    record_seed = 1
+    record_seed = 0
 
     # flag = perf_counter()
     # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)

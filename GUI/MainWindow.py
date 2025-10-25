@@ -36,7 +36,7 @@ from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
 from .Compoents import LabelWithComboBox, UserLayout
-from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit
+from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit, LimitLineEdit
 from .Widgets import SortTreeWidget
 
 class MainWindow(FramelessWindow):
@@ -128,18 +128,17 @@ class MainWindow(FramelessWindow):
 
     def __init__widgets__(self):
         self.label_seed_range = BodyLabel("种子范围:")
-        self.input_seed_start = ConfigLineEdit(config_key="seed_range[0]")
+        self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999)
         # self.input_seed_start.setMinimumWidth(80)
-        self.input_seed_end = ConfigLineEdit(config_key="seed_range[1]")
+        self.input_seed_end = LimitLineEdit("end_seed", min_value=0, max_value=99999999)
         # self.input_seed_end.setMinimumWidth(80)
-        # self.seed_step_range = LabelWithLineEdit("步长", config_key="step_size")
         self.label_star_num = BodyLabel("恒星数:")
-        self.input_star_num_start = ConfigLineEdit(config_key="star_num_range[0]")
-        self.input_star_num_end = ConfigLineEdit(config_key="star_num_range[1]")
+        self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64)
+        self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64)
         self.label_batch_size = BodyLabel("批处理大小:")
-        self.input_batch_size = ConfigLineEdit(config_key="batch_size")
+        self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096)
         self.label_thread_num = BodyLabel("线程数:")
-        self.input_thread_num = ConfigLineEdit(config_key="max_thread")
+        self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128)
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
 
@@ -196,7 +195,7 @@ class MainWindow(FramelessWindow):
             return
         
         import math
-        seeds = cfg.config.seed_range
+        seeds = (cfg.config.start_seed, cfg.config.end_seed)
         batch_size = cfg.config.batch_size
         self.userLayout.seeds = seeds
         self.userLayout.batch_size = batch_size

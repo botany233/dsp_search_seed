@@ -53,7 +53,7 @@ class StarCondition(BaseModel):
     checked: bool = True
 
     star_type: str = "无限制"
-    lumino_level: float = -1.0
+    lumino_level: float = 0.0
     distance_level: float = -1.0
     satisfy_num: int = 1
 
@@ -70,8 +70,10 @@ class GalaxyCondition(BaseModel):
     planet_condition: list[PlanetCondition] = []
 
 class GUIConfig(BaseModel):
-    seed_range: tuple[int, int] = (0, 99999)
-    star_num_range: tuple[int, int] = (32, 64)
+    start_seed: int = 0
+    end_seed: int = 99999
+    start_star_num: int = 32
+    end_star_num: int = 64
     max_thread: int = cpu_count()
     batch_size: int = 32
     ui_scale_factor: float = 1.0

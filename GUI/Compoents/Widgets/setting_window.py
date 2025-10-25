@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
-from .line_edit import LabelWithLineEdit
+from .line_edit import LabelWithLineEdit, LimitLineEdit
 
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
 from config import cfg

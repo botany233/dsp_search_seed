@@ -34,7 +34,7 @@ from qfluentwidgets import (
 )
 
 from .combox import AutoFixedComboBox
-from .Widgets.line_edit import ConfigLineEdit
+from .Widgets.line_edit import ConfigLineEdit, LimitLineEdit
 from .Widgets.button import ConfigSwitchButton
 
 
@@ -308,23 +308,17 @@ class StarTreeLeave(LeaveBase):
         self.mainLayout.addWidget(self.starTypeComboBox)
         self.luminosityLabel = BodyLabel("光度级别")
         self.mainLayout.addWidget(self.luminosityLabel)
-        self.luminosityLineEdit = ConfigLineEdit(
-            config_key="lumino_level", config_obj=self.config_obj, type_input="float"
-        )
+        self.luminosityLineEdit = LimitLineEdit("lumino_level", self.config_obj, "float", 0, invisible_value="0.0")
         self.mainLayout.addWidget(self.luminosityLineEdit)
 
         self.distanceLabel = BodyLabel("最远距离")
         self.mainLayout.addWidget(self.distanceLabel)
-        self.distanceLineEdit = ConfigLineEdit(
-            config_key="distance_level", config_obj=self.config_obj, type_input="float"
-        )
+        self.distanceLineEdit = LimitLineEdit("distance_level", self.config_obj, "float", -1, invisible_value="-1.0")
         self.mainLayout.addWidget(self.distanceLineEdit)
 
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
-        self.hitStarNumLineEdit = ConfigLineEdit(
-            config_key="satisfy_num", config_obj=self.config_obj
-        )
+        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value = 1)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
         self.distanceLineEdit.setMaximumHeight(28)
         self.distanceLineEdit.setFixedHeight(28)
@@ -375,7 +369,7 @@ class PlanetTreeLeave(LeaveBase):
         self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="full_coverd_dsp")
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
-        self.hitStarNumLineEdit = ConfigLineEdit(config_key="satisfy_num", config_obj=self.config_obj)
+        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value = 1)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
 
         self.hitStarNumLineEdit.setMaximumHeight(28)
