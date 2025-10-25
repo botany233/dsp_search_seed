@@ -34,7 +34,7 @@ from qfluentwidgets import (
 )
 
 from .combox import AutoFixedComboBox
-from .Widgets.line_edit import ConfigLineEdit, LimitLineEdit
+from .Widgets.line_edit import LimitLineEdit
 from .Widgets.button import ConfigSwitchButton
 
 

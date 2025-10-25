@@ -35,8 +35,8 @@ from GUI import liquid, planet_types, singularity, star_types, vein_names
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
-from .Compoents import LabelWithComboBox, UserLayout
-from .Compoents.Widgets.line_edit import ConfigLineEdit, LabelWithLineEdit, LimitLineEdit
+from .Compoents import UserLayout
+from .Compoents.Widgets.line_edit import LabelWithLimitLineEdit, LimitLineEdit
 from .Widgets import SortTreeWidget
 
 class MainWindow(FramelessWindow):

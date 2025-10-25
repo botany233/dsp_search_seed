@@ -14,8 +14,6 @@ class Config:
             self.__init__config()
             self.save()
 
-        self.output_file_name = "output.csv"
-
     def __init__config(self):
         self.config = GUIConfig()
         self.config.galaxy_condition.star_condition = [StarCondition()]
