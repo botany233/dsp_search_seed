@@ -48,10 +48,10 @@ if __name__ == "__main__":
     from benchmark_condition import *
     from sys import exit
 
-    galaxy_condition = get_100k_factory_condition()
+    # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
     # galaxy_condition = get_easy_condition()
-    # galaxy_condition = get_3_blue_condition()
+    galaxy_condition = get_3_blue_condition()
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -65,12 +65,12 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 4096)
-    star_nums = (32, 32)
-    batch_size = 99999
+    seeds = (0, 9999)
+    star_nums = (32, 64)
+    batch_size = 128
     max_thread = 1
 
-    record_seed = 0
+    record_seed = 1
 
     # flag = perf_counter()
     # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
