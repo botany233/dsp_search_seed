@@ -1,4 +1,4 @@
-name: 构建
+name: Build
 
 on:
   workflow_dispatch:
@@ -30,6 +30,6 @@ jobs:
       - name: 上传程序
         uses: actions/upload-artifact@main
         with:
-          name: 戴森球计划种子搜索器
+          name: dsp_search_seed
           path: |
             dist/*
