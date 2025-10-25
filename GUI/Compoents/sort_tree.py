@@ -126,11 +126,11 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.addButton = ToolButton(QIcon("./assets/planet.png"))
-        self.addButton.setToolTip("点击添加子项")
+        self.addButton.setToolTip("添加恒星条件")
         self.delButton = ToolButton(FluentIcon.DELETE)
         self.delButton.setToolTip("点击删除该项及其子项")
         self.addPlanetButton = ToolButton(QIcon("./assets/planet.png"))
-        self.addPlanetButton.setToolTip("点击添加星球条件项")
+        self.addPlanetButton.setToolTip("添加星球条件")
 
         self.mainLayout.addWidget(self.addButton)
 
@@ -203,6 +203,7 @@ class StarTreeWidgetItem(TreeWidgetItem):
         self.root.setItemWidget(self, 2, self.manageButtons)
         self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+        self.manageButtons.addButton.setToolTip("添加星球条件")
 
     def _on_add_button_clicked(self):
         self.addPlanetLeaf()
