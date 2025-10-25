@@ -1,3 +1,5 @@
+// Original 2022 Copyright https://github.com/crazyyao0.
+// Modified by https://github.com/botany233 on 2025.10
 #include "defines.hpp"
 #include "util.hpp"
 
