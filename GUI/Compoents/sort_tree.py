@@ -73,7 +73,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.config_obj = config_obj
         self.config_key = config_key
 
-        self.setText(0, getattr(self.config_obj, "custom_name"))
+        self.setText(0, self.config_obj.custom_name)
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
@@ -81,20 +81,20 @@ class TreeWidgetItem(QTreeWidgetItem):
     def add_widgets(self): ...
 
     def _update_check_state_from_config(self):
-        if getattr(self.config_obj, "checked"):
+        if self.config_obj.checked:
             self.setCheckState(0, Qt.CheckState.Checked)
         else:
             self.setCheckState(0, Qt.CheckState.Unchecked)
 
     def setData(self, column: int, role: int, value: Any) -> None:
         if column == 0 and role == Qt.CheckStateRole:
-            setattr(self.config_obj, "checked", bool(value))
+            self.config_obj.checked = bool(value)
             cfg.save()
             super().setData(column, role, value)
             return
 
         if column == 0 and role == Qt.EditRole:
-            setattr(self.config_obj, "custom_name", value)
+            self.config_obj.custom_name = value
             cfg.save()
         return super().setData(column, role, value)
 
@@ -166,7 +166,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
     def addStarLeaf(self, new_star_condition: StarCondition|None = None) -> "StarTreeWidgetItem":
         if new_star_condition is None:
             new_star_condition = StarCondition()
-            getattr(self.config_obj, "star_condition").append(new_star_condition)
+            self.config_obj.star_condition.append(new_star_condition)
             cfg.save()
 
         index = 0
@@ -181,7 +181,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
     def addPlanetLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "PlanetTreeWidgetItem":
         if new_planet_condition is None:
             new_planet_condition = PlanetCondition()
-            getattr(self.config_obj, "planet_condition").append(new_planet_condition)
+            self.config_obj.planet_condition.append(new_planet_condition)
             cfg.save()
 
         new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
@@ -210,7 +210,7 @@ class StarTreeWidgetItem(TreeWidgetItem):
     def addPlanetLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "PlanetTreeWidgetItem":
         if new_planet_condition is None:
             new_planet_condition = PlanetCondition()
-            getattr(self.config_obj, "planet_condition").append(new_planet_condition)
+            self.config_obj.planet_condition.append(new_planet_condition)
             cfg.save()
 
         new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
