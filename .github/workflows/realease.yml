@@ -30,13 +30,18 @@ jobs:
           path: release/
           merge-multiple: true
 
+      - name: Create ZIP archive
+        run: |
+          Compress-Archive -Path release/* -DestinationPath dsp_search_seed_${{ github.event.inputs.version || github.ref_name }}.zip
+        shell: pwsh
+
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.event.inputs.version || github.ref_name }}
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           files: |
-            release/**/*
+            dsp_search_seed_${{ github.event.inputs.version || github.ref_name }}.zip
           target_commitish: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: false
