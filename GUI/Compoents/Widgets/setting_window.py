@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
-from .line_edit import LabelWithLineEdit, LimitLineEdit
+from .line_edit import LabelWithLimitLineEdit, LimitLineEdit
 
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
 from config import cfg
-from config.cfg_dict_tying import VeinsCondition, BaseModel
+from config.cfg_dict_tying import VeinsCondition, BaseModel, VeinsName
 
 
 class SettingsWindow(QWidget):
@@ -71,21 +71,21 @@ class SettingsWindow(QWidget):
             if i % itemsEachLine == 0 and i != 0:
                 j += 1
             i = i % itemsEachLine
-            line_edit = LabelWithLineEdit(item)
-            line_edit.SetEnableVerify()
-            if self.item_dict is not None:
-                reversed_dict = dict(
-                    zip(self.item_dict.values(), self.item_dict.keys())
-                )
-                line_edit.setObjectName(reversed_dict.get(item, item))
 
-            if self.config_obj and self.config_key:
-                condition: BaseModel = getattr(self.config_obj, self.config_key)
+            name = VeinsName().model_dump()
 
-                config_value = str(condition.model_dump()[line_edit.objectName()])
-                if config_value == "-1":
-                    config_value = ""
-                line_edit.setText(config_value)
+            veinsKeyDict = dict(zip(name.values(), name.keys()))
+            condition = self.config_obj.veins_condition
+
+
+            line_edit = LabelWithLimitLineEdit(
+                veinsKeyDict.get(item, item),
+                condition,
+                label=item,
+                type_input="int",
+                min_value=0,
+                invisible_value="-1",
+            )
 
             self.settingsLayout.addWidget(line_edit, j, i)
 
@@ -94,8 +94,8 @@ class SettingsWindow(QWidget):
         error_flag = False
         for i in range(self.settingsLayout.count()):
             widget = self.settingsLayout.itemAt(i).widget()
-            if isinstance(widget, LabelWithLineEdit):
-                key = widget.objectName()
+            if isinstance(widget, LabelWithLimitLineEdit):
+                key = widget.config_key
                 value = widget.text().strip()
                 try:
                     itext: int = int(value) if len(value) > 0 else -1
