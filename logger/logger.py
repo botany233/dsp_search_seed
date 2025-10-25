@@ -9,7 +9,7 @@ class CustomFormatter(colorlog.ColoredFormatter):
     root = Path(sys._MEIPASS) if hasattr(sys, "_MEIPASS") else Path.cwd()
 
     def format(self, record: logging.LogRecord) -> str:
-        record.pathname = os.path.relpath(record.pathname, self.root).replace(r" ..\\..\\", "")
+        record.pathname = os.path.relpath(record.pathname, self.root).replace("..\\..\\", "")
         msg = super().format(record)
         msg = msg.replace(",", ".", 1)
 

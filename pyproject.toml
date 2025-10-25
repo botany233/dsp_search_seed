@@ -10,3 +10,8 @@ dependencies = [
     "pyside6>=6.10.0",
     "pyside6-fluent-widgets>=1.9.1",
 ]
+
+[dependency-groups]
+dev = [
+    "pyinstaller>=6.16.0",
+]
