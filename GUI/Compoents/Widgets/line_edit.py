@@ -83,6 +83,7 @@ class LabelWithLimitLineEdit(LimitLineEdit):
         self.label_box.setToolTip(label)
         self.hBoxLayout.insertWidget(0, self.label_box)
 
+        self.editingFinished.connect(self._on_text_edited)
         self.textChanged.connect(self._shadow_label)
         QTimer.singleShot(0, self._shadow_label)
 
@@ -103,3 +104,24 @@ class LabelWithLimitLineEdit(LimitLineEdit):
             self.setShadow(False)
         pass
 
+    def _on_text_edited(self) -> None:
+        text = self.text().strip()
+        if text == "":
+            self.setText("")
+            self.setPlaceholderText("")
+            return
+
+        value = self._type_convert(text)
+        if value is None:
+            self.setPlaceholderText("请输入有效数字")
+            self.setText("")
+        else:
+            if self.min_value is not None and value < self.min_value:
+                self.setPlaceholderText(f"最小值为{self.min_value}")
+                self.setText("")
+            elif self.max_value is not None and value > self.max_value:
+                self.setPlaceholderText(f"最大值为{self.max_value}")
+                self.setText("")
+            else:
+                self.setText(str(value))
+                self.setPlaceholderText("")

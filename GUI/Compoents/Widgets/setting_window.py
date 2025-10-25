@@ -6,12 +6,16 @@ from config import cfg
 from config.cfg_dict_tying import VeinsCondition, BaseModel, VeinsName
 
 
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from GUI.Compoents.sort_tree import SettingsTreeLeave
+
 class SettingsWindow(QWidget):
     def __init__(
         self,
         parent=None,
         items: list[str] = ["wa", "al", "aw", "la", "lw", "la"],
-        context=None,
+        context: SettingsTreeLeave | None = None,
     ):
         super().__init__(parent)
 
