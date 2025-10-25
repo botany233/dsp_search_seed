@@ -39,6 +39,8 @@ from .Compoents import UserLayout
 from .Compoents.Widgets.line_edit import LabelWithLimitLineEdit, LimitLineEdit
 from .Widgets import SortTreeWidget
 
+import math
+
 class MainWindow(FramelessWindow):
     def __init__(self):
         super().__init__()
@@ -137,7 +139,7 @@ class MainWindow(FramelessWindow):
         self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64)
         self.label_batch_size = BodyLabel("批处理大小:")
         self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096)
-        self.label_thread_num = BodyLabel("线程数:")
+        self.label_thread_num = BodyLabel("进程数:")
         self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128)
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
@@ -193,13 +195,11 @@ class MainWindow(FramelessWindow):
         if self.search_thread.isRunning():
             log.info("搜索线程已在运行中，请勿重复点击开始按钮")
             return
-        
-        import math
+
         seeds = (cfg.config.start_seed, cfg.config.end_seed)
         batch_size = cfg.config.batch_size
         self.userLayout.seeds = seeds
         self.userLayout.batch_size = batch_size
-
 
         log.info("开始搜索")
         self.button_start.setEnabled(False)

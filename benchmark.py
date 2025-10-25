@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
-    # galaxy_condition = get_easy_condition()
-    galaxy_condition = get_3_blue_condition()
+    galaxy_condition = get_easy_condition()
+    # galaxy_condition = get_3_blue_condition()
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -65,10 +65,10 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 9999)
+    seeds = (0, 99999)
     star_nums = (32, 64)
     batch_size = 128
-    max_thread = 1
+    max_thread = 20
 
     record_seed = 1
 
