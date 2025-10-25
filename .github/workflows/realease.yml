@@ -2,14 +2,23 @@ name: Release
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
   push:
     tags:
       - V*.*
       - v*.*
 
+permissions:
+  contents: write
+
 jobs:
   build:
     uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ github.event.inputs.version || github.ref_name }}
 
   release:
     runs-on: windows-latest

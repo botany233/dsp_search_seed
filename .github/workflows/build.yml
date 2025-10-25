@@ -2,7 +2,17 @@ name: Build
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+
   workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
 
 jobs:
   build:
@@ -30,6 +40,6 @@ jobs:
       - name: 上传程序
         uses: actions/upload-artifact@main
         with:
-          name: dsp_search_seed
+          name: dsp_search_seed_${{ inputs.version }}
           path: |
             dist/*
