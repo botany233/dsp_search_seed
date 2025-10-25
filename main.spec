@@ -32,7 +32,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon="C:\\Users\\18201\\Desktop\\search_seed\\64.ico"
+    icon="./assets/256.ico"
 )
 coll = COLLECT(
     exe,
