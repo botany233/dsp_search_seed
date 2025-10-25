@@ -21,14 +21,6 @@ jobs:
           path: release/
           merge-multiple: true
 
-      - name: 调试文件结构
-        run: |
-          echo "工作目录: $PWD"
-          echo "release目录内容:"
-          ls -la
-          ls -la release/ || echo "release目录不存在"
-          find . -name "*" -type f | head -20
-
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
