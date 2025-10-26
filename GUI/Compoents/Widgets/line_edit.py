@@ -113,29 +113,3 @@ class LabelWithLimitLineEdit(LimitLineEdit):
             self.setShadow(True)
         else:
             self.setShadow(False)
-        pass
-
-    # def _on_text_edited(self) -> None:
-    #     text = self.text().strip()
-    #     if text == "":
-    #         if self.empty_invisible:
-    #             self.setPlaceholderText("")
-    #             self.setText("")
-    #         else:
-    #             self.setPlaceholderText("")
-    #             self.setText(str(self.default_value))
-    #         return
-
-    #     value = self._type_convert(text)
-    #     if value is None:
-    #         self.setPlaceholderText("请输入有效数字")
-    #         self.setText("")
-    #     elif self.min_value is not None and value < self.min_value:
-    #         self.setPlaceholderText(f"最小值为{self.min_value}")
-    #         self.setText("")
-    #     elif self.max_value is not None and value > self.max_value:
-    #         self.setPlaceholderText(f"最大值为{self.max_value}")
-    #         self.setText("")
-    #     else:
-    #         self.setPlaceholderText("")
-    #         self.setText(str(value))

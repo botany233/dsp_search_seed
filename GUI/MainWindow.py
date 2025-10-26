@@ -30,7 +30,6 @@ from qframelesswindow import StandardTitleBar
 
 from config import cfg
 from logger import log
-from GUI import liquid, planet_types, singularity, star_types, vein_names
 
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
@@ -77,7 +76,7 @@ class MainWindow(FramelessWindow):
         width: int = 1210
         height: int = width // 16 * 10
         self.resize(width, height)
-        setTheme(Theme.AUTO)
+        setTheme(Theme.LIGHT)
         self.titleBar.raise_()
 
         self.mainLayout = VBoxLayout(self)
