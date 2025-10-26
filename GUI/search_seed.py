@@ -44,7 +44,7 @@ class SearchThread(QThread):
             star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
             batch_size = gui_cfg.batch_size
             max_thread = gui_cfg.max_thread
-            save_name = gui_cfg.save_name + ".txt"
+            save_name = gui_cfg.save_name + ".csv"
 
             if not self.end_flag:
                 self.search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
@@ -90,7 +90,7 @@ class SearchThread(QThread):
                     executor.shutdown(wait=False, cancel_futures=True)
                     break
             else:
-                SearchMessages.searchEndNormal.emit()
+                SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
 
     def get_galaxy_condition(self, galaxy_cfg: GalaxyCondition) -> dict:
         galaxy_condition = {"stars": [], "planets": []}

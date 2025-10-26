@@ -24,7 +24,7 @@ def check_seeds_py(seeds: tuple[int, int],
         results = executor.map(check_batch_wrapper_py, generator)
         for result in results:
             if record_seed:
-                with open("result_py.txt", "a") as f:
+                with open("result_py.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
 def check_seeds_c(seeds: tuple[int, int],
@@ -40,7 +40,7 @@ def check_seeds_c(seeds: tuple[int, int],
         results = executor.map(check_batch_wrapper, generator)
         for result in results:
             if record_seed:
-                with open("result_c.txt", "a") as f:
+                with open("result_c.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
 if __name__ == "__main__":
@@ -50,8 +50,8 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
-    galaxy_condition = get_easy_condition()
-    # galaxy_condition = get_3_blue_condition()
+    # galaxy_condition = get_easy_condition()
+    galaxy_condition = get_3_blue_condition()
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -66,15 +66,15 @@ if __name__ == "__main__":
         exit()
 
     seeds = (0, 99999)
-    star_nums = (32, 64)
+    star_nums = (64, 64)
     batch_size = 128
     max_thread = 20
 
     record_seed = 1
 
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    flag = perf_counter()
+    check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
+    print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)

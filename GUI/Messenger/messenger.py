@@ -15,5 +15,5 @@ class SearchSignal(QObject):
         start_time: float - 搜索开始时间戳
         current_time: float - 当前时间戳
     """
-    searchEndNormal = Signal()
+    searchEndNormal = Signal(float)#use_time
     searchEnd = Signal()

@@ -6,9 +6,9 @@ from config import cfg
 from config.cfg_dict_tying import VeinsCondition, BaseModel, VeinsName
 
 
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from GUI.Compoents.sort_tree import SettingsTreeLeave
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
+from GUI.Compoents.sort_tree import SettingsTreeLeave
 
 class SettingsWindow(QWidget):
     def __init__(
@@ -56,14 +56,24 @@ class SettingsWindow(QWidget):
         self.mainLayout.addStretch()
 
         self.buttonLayout = QHBoxLayout()
-
-        self.saveButton = PushButton("保存")
-        self.cancelButton = PushButton("取消")
-        self.saveButton.clicked.connect(self._save_button_clicked__)
-        self.cancelButton.clicked.connect(self._cancel_button_clicked__)
-        self.buttonLayout.addWidget(self.saveButton)
-        self.buttonLayout.addWidget(self.cancelButton)
+        self.returnButton = PushButton("返回")
+        self.returnButton.clicked.connect(self._return_button_clicked)
+        self.buttonLayout.addWidget(self.returnButton)
         self.mainLayout.addLayout(self.buttonLayout)
+
+        # self.saveButton = PushButton("保存")
+        # self.cancelButton = PushButton("取消")
+        # self.saveButton.clicked.connect(self._save_button_clicked__)
+        # self.cancelButton.clicked.connect(self._cancel_button_clicked__)
+        # self.buttonLayout.addWidget(self.saveButton)
+        # self.buttonLayout.addWidget(self.cancelButton)
+        # self.mainLayout.addLayout(self.buttonLayout)
+
+    def _return_button_clicked(self):
+        parent: PopUpAniStackedWidget = self.parent()  # type: ignore
+        parent.setCurrentIndex(0)
+        parent.removeWidget(self)
+        self.deleteLater()
 
     def _addItems(self, items: list[str]):
         from math import sqrt
@@ -88,44 +98,44 @@ class SettingsWindow(QWidget):
                 label=item,
                 type_input="int",
                 min_value=0,
-                invisible_value="-1",
+                default_value=0
             )
 
             self.settingsLayout.addWidget(line_edit, j, i)
 
-    def _save_button_clicked__(self):
-        parent: PopUpAniStackedWidget = self.parent()  # type: ignore
-        error_flag = False
-        for i in range(self.settingsLayout.count()):
-            widget = self.settingsLayout.itemAt(i).widget()
-            if isinstance(widget, LabelWithLimitLineEdit):
-                key = widget.config_key
-                value = widget.text().strip()
-                try:
-                    itext: int = int(value) if len(value) > 0 else -1
-                    if self.config_obj and self.config_key:
-                        veins_condition: VeinsCondition = getattr(
-                            self.config_obj, self.config_key
-                        )
-                        setattr(veins_condition, key, itext)
-                except Exception as e:
-                    error_flag = True
-                    print(f"设置配置项 {key} 失败: {e}")
+    # def _save_button_clicked__(self):
+    #     parent: PopUpAniStackedWidget = self.parent()  # type: ignore
+    #     error_flag = False
+    #     for i in range(self.settingsLayout.count()):
+    #         widget = self.settingsLayout.itemAt(i).widget()
+    #         if isinstance(widget, LabelWithLimitLineEdit):
+    #             key = widget.config_key
+    #             value = widget.text().strip()
+    #             try:
+    #                 itext: int = int(value) if len(value) > 0 else 0
+    #                 if self.config_obj and self.config_key:
+    #                     veins_condition: VeinsCondition = getattr(
+    #                         self.config_obj, self.config_key
+    #                     )
+    #                     setattr(veins_condition, key, itext)
+    #             except Exception as e:
+    #                 error_flag = True
+    #                 print(f"设置配置项 {key} 失败: {e}")
 
-        if error_flag is False:
-            if self.config_obj:
-                cfg.save()
+    #     if error_flag is False:
+    #         if self.config_obj:
+    #             cfg.save()
 
-        parent.setCurrentIndex(0)
-        parent.removeWidget(self)
-        self.deleteLater()
+    #     parent.setCurrentIndex(0)
+    #     parent.removeWidget(self)
+    #     self.deleteLater()
 
-    def _cancel_button_clicked__(self):
-        parent: PopUpAniStackedWidget = self.parent()  # type: ignore
+    # def _cancel_button_clicked__(self):
+    #     parent: PopUpAniStackedWidget = self.parent()  # type: ignore
 
-        parent.setCurrentIndex(0)
-        parent.removeWidget(self)
-        self.deleteLater()
+    #     parent.setCurrentIndex(0)
+    #     parent.removeWidget(self)
+    #     self.deleteLater()
 
 
 if __name__ == "__main__":

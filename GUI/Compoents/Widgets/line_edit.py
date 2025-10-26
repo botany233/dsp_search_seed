@@ -11,7 +11,8 @@ class LimitLineEdit(LineEdit):
         type_input: Literal["int", "float", "str"] = "int",
         min_value: int|float|None = None,
         max_value: int|float|None = None,
-        invisible_value: str|None = None
+        default_value: int|float|str = "",
+        empty_invisible: bool = True,
     ):
         super().__init__()
         assert type_input != "str" or min_value is None and max_value is None
@@ -24,15 +25,14 @@ class LimitLineEdit(LineEdit):
         self.editingFinished.connect(self._on_text_edited)
         self.min_value = min_value
         self.max_value = max_value
-        self.invisible_value = invisible_value
-        self.show_cfg_text()
+        self.default_value = default_value
+        self.empty_invisible = empty_invisible
 
-    def setText(self, text: str) -> None:
-        show_text = "" if text == self.invisible_value else text
-        return super().setText(show_text)
-
-    def show_cfg_text(self) -> None:
-        self.setText(str(getattr(self.config_obj, self.config_key)))
+        config_value = getattr(self.config_obj, self.config_key)
+        if config_value == self.default_value and empty_invisible:
+            self.setText("")
+        else:
+            self.setText(str(config_value))
 
     def _type_convert(self, text: str):
         try:
@@ -47,22 +47,35 @@ class LimitLineEdit(LineEdit):
 
     def _on_text_edited(self) -> None:
         text = self.text().strip()
+        if text == "":
+            if self.empty_invisible:
+                self.setPlaceholderText("")
+                self.setText("")
+            else:
+                self.setPlaceholderText("")
+                self.setText(str(self.default_value))
+            setattr(self.config_obj, self.config_key, self.default_value)
+            cfg.save()
+            return
+
         value = self._type_convert(text)
         if value is None:
             self.setPlaceholderText("请输入有效数字")
             self.setText("")
+        elif self.min_value is not None and value < self.min_value:
+            self.setPlaceholderText(f"最小值为{self.min_value}")
+            self.setText("")
+        elif self.max_value is not None and value > self.max_value:
+            self.setPlaceholderText(f"最大值为{self.max_value}")
+            self.setText("")
         else:
-            if self.min_value is not None and value < self.min_value:
-                self.setPlaceholderText(f"最小值为{self.min_value}")
-                self.setText("")
-            elif self.max_value is not None and value > self.max_value:
-                self.setPlaceholderText(f"最大值为{self.max_value}")
+            self.setPlaceholderText("")
+            if value == self.default_value and self.empty_invisible:
                 self.setText("")
             else:
-                setattr(self.config_obj, self.config_key, value)
-                cfg.save()
-                self.setPlaceholderText("")
-                self.show_cfg_text()
+                self.setText(str(value))
+            setattr(self.config_obj, self.config_key, value)
+            cfg.save()
 
 class LabelWithLimitLineEdit(LimitLineEdit):
     def __init__(
@@ -73,17 +86,15 @@ class LabelWithLimitLineEdit(LimitLineEdit):
         type_input: Literal["int"] | Literal["float"] | Literal["str"] = "int",
         min_value: int | float | None = None,
         max_value: int | float | None = None,
-        invisible_value: str | None = None,
+        default_value: int|float|str = "",
+        empty_invisible: bool = True,
     ):
-        super().__init__(
-            config_key, config_obj, type_input, min_value, max_value, invisible_value
-        )
+        super().__init__(config_key, config_obj, type_input, min_value, max_value, default_value, empty_invisible)
         self.label_box = BodyLabel(label)
         self.setToolTip(label)
         self.label_box.setToolTip(label)
         self.hBoxLayout.insertWidget(0, self.label_box)
 
-        self.editingFinished.connect(self._on_text_edited)
         self.textChanged.connect(self._shadow_label)
         QTimer.singleShot(0, self._shadow_label)
 
@@ -104,24 +115,27 @@ class LabelWithLimitLineEdit(LimitLineEdit):
             self.setShadow(False)
         pass
 
-    def _on_text_edited(self) -> None:
-        text = self.text().strip()
-        if text == "":
-            self.setText("")
-            self.setPlaceholderText("")
-            return
+    # def _on_text_edited(self) -> None:
+    #     text = self.text().strip()
+    #     if text == "":
+    #         if self.empty_invisible:
+    #             self.setPlaceholderText("")
+    #             self.setText("")
+    #         else:
+    #             self.setPlaceholderText("")
+    #             self.setText(str(self.default_value))
+    #         return
 
-        value = self._type_convert(text)
-        if value is None:
-            self.setPlaceholderText("请输入有效数字")
-            self.setText("")
-        else:
-            if self.min_value is not None and value < self.min_value:
-                self.setPlaceholderText(f"最小值为{self.min_value}")
-                self.setText("")
-            elif self.max_value is not None and value > self.max_value:
-                self.setPlaceholderText(f"最大值为{self.max_value}")
-                self.setText("")
-            else:
-                self.setText(str(value))
-                self.setPlaceholderText("")
+    #     value = self._type_convert(text)
+    #     if value is None:
+    #         self.setPlaceholderText("请输入有效数字")
+    #         self.setText("")
+    #     elif self.min_value is not None and value < self.min_value:
+    #         self.setPlaceholderText(f"最小值为{self.min_value}")
+    #         self.setText("")
+    #     elif self.max_value is not None and value > self.max_value:
+    #         self.setPlaceholderText(f"最大值为{self.max_value}")
+    #         self.setText("")
+    #     else:
+    #         self.setPlaceholderText("")
+    #         self.setText(str(value))

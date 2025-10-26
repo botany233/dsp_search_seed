@@ -19,20 +19,20 @@ class VeinsName(BaseModel):
     monopolar_magnet: str = "单极磁石"
 
 class VeinsCondition(BaseModel):
-    iron: int = -1
-    copper: int = -1
-    silicon: int = -1
-    titanium: int = -1
-    stone: int = -1
-    coal: int = -1
-    oil: int = -1
-    ice: int = -1
-    kimberley: int = -1
-    fractal_silicon: int = -1
-    organic_crystal: int = -1
-    grating_stone: int = -1
-    bamboo_shoot_crystal: int = -1
-    monopolar_magnet: int = -1
+    iron: int = 0
+    copper: int = 0
+    silicon: int = 0
+    titanium: int = 0
+    stone: int = 0
+    coal: int = 0
+    oil: int = 0
+    ice: int = 0
+    kimberley: int = 0
+    fractal_silicon: int = 0
+    organic_crystal: int = 0
+    grating_stone: int = 0
+    bamboo_shoot_crystal: int = 0
+    monopolar_magnet: int = 0
 
 class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
@@ -75,7 +75,7 @@ class GUIConfig(BaseModel):
     start_star_num: int = 32
     end_star_num: int = 64
     max_thread: int = cpu_count()
-    batch_size: int = 32
+    batch_size: int = 64
     ui_scale_factor: float = 1.0
     galaxy_condition: GalaxyCondition = GalaxyCondition()
     save_name: str = "seed"

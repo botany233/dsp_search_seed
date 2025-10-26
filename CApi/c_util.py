@@ -79,7 +79,7 @@ def check_batch_py(start_seed:int, end_seed:int, start_star_num: int, end_star_n
     for seed in range(start_seed, end_seed):
         for star_num in range(start_star_num, end_star_num):
             if check_seed_py(seed, star_num, galaxy_condition):
-                result.append(f"{seed} {star_num}")
+                result.append(f"{seed}, {star_num}")
     return result
 
 def change_condition_to_legal(galaxy_condition:dict) -> dict:

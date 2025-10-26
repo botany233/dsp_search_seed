@@ -1,5 +1,5 @@
 import signal
-
+from multiprocessing import cpu_count
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QColor, QCursor, QFont, QFontDatabase, QIcon
 from PySide6.QtWidgets import (
@@ -36,7 +36,7 @@ from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
 from .Compoents import UserLayout
-from .Compoents.Widgets.line_edit import LabelWithLimitLineEdit, LimitLineEdit
+from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget
 
 import math
@@ -130,17 +130,17 @@ class MainWindow(FramelessWindow):
 
     def __init__widgets__(self):
         self.label_seed_range = BodyLabel("种子范围:")
-        self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999)
+        self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
         # self.input_seed_start.setMinimumWidth(80)
-        self.input_seed_end = LimitLineEdit("end_seed", min_value=0, max_value=99999999)
+        self.input_seed_end = LimitLineEdit("end_seed", min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
         # self.input_seed_end.setMinimumWidth(80)
         self.label_star_num = BodyLabel("恒星数:")
-        self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64)
-        self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64)
+        self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64, default_value=32, empty_invisible=False)
+        self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
         self.label_batch_size = BodyLabel("批处理大小:")
-        self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096)
+        self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         self.label_thread_num = BodyLabel("进程数:")
-        self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128)
+        self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
 

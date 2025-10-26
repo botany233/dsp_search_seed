@@ -13,7 +13,7 @@ vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int en
 		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
 		{
 			if(check_seed(seed,star_num,galaxy_condition,galaxy_condition_simple,check_no_veins))
-				result.push_back(to_string(seed) + " " + to_string(star_num));
+				result.push_back(to_string(seed) + ", " + to_string(star_num));
 		}
 	}
 	return result;

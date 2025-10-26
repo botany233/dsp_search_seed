@@ -49,8 +49,8 @@ class UserLayout(QVBoxLayout):
     def _update_output_filename(self, filename: str):
         cfg.config.save_name = "seed" if filename == "" else filename
 
-    def _on_search_finish(self):
-        self.barLabel.setText("搜索完成！")
+    def _on_search_finish(self, use_time: float):
+        self.barLabel.setText(f"搜索完成！用时{self.get_format_time_str(use_time)}")
         self.progressBar.setValue(self.progressBar.maximum())
 
     def _update_progress(self, batch_id: int, total_batch: int, total_seed_num: int, last_seed: str, start_time: float, current_time: float):

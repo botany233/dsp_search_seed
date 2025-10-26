@@ -1,5 +1,6 @@
 *.txt
 *.pyc
+*.csv
 test.py
 /*.json
 
