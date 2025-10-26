@@ -69,7 +69,6 @@ class SearchThread(QThread):
 
         galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
         galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
-        print(galaxy_str)
 
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
         start_time = perf_counter()

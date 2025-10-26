@@ -51,9 +51,8 @@ if __name__ == "__main__":
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
     # galaxy_condition = get_easy_condition()
-    # galaxy_condition = get_3_blue_condition()
-
-    galaxy_condition = {"planets": [{"singularity": "潮汐锁定永昼永夜"}], "stars":[{"type": "蓝巨星", "satisfy_num": 2}]}
+    galaxy_condition = get_3_blue_condition()
+    galaxy_condition["veins"] = {"单极磁石": 24}
 
     galaxy_condition = change_condition_to_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
@@ -67,9 +66,9 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 99999)
+    seeds = (0, 1999999)
     star_nums = (64, 64)
-    batch_size = 128
+    batch_size = 256
     max_thread = 20
 
     record_seed = 1
