@@ -24,6 +24,11 @@ jobs:
     runs-on: windows-latest
     needs: build
     steps:
+      - name: Checkout code
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+
       - name: Download Artifact
         uses: actions/download-artifact@v6
         with:
@@ -42,6 +47,7 @@ jobs:
           tag_name: ${{ github.event.inputs.version || github.ref_name }}
           files: |
             dsp_search_seed_${{ github.event.inputs.version || github.ref_name }}.zip
+          body_path: release_notes.md
           target_commitish: ${{ github.sha }}
           token: ${{ secrets.GITHUB_TOKEN }}
           fail_on_unmatched_files: false
