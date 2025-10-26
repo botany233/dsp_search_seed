@@ -6,6 +6,7 @@ from multiprocessing import cpu_count
 from time import perf_counter
 from math import ceil
 from datetime import datetime
+from collections import deque
 
 from config import cfg
 from config.cfg_dict_tying import (
@@ -68,27 +69,38 @@ class SearchThread(QThread):
 
         galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
         galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
+        print(galaxy_str)
 
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
         start_time = perf_counter()
         with open(save_name, "a", encoding="utf-8") as f:
             f.write(f"#search seed time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         SearchMessages.search_progress_info.emit(0, total_batch, total_seed_num, last_seed, start_time, perf_counter())
-        with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-            generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
-            results = executor.map(check_batch_wrapper, generator)
-            for i, result in enumerate(results):
+        real_thread = min(max_thread, cpu_count())
+        with ProcessPoolExecutor(max_workers = real_thread) as executor:
+            futures = deque()
+            for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
+                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, galaxy_str_simple))
+            index = 0
+            while (len(futures) > 0):
+                result = futures.popleft().result()
+                index += 1
+
                 with open(save_name, "a", encoding="utf-8") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
                 if result:
                     last_seed = result[-1]
                     total_seed_num += len(result)
-                SearchMessages.search_progress_info.emit(i + 1, total_batch, total_seed_num, last_seed, start_time, perf_counter())
+                SearchMessages.search_progress_info.emit(index, total_batch, total_seed_num, last_seed, start_time, perf_counter())
 
                 if self.end_flag:
                     executor.shutdown(wait=False, cancel_futures=True)
                     break
+
+                seed += batch_size
+                if seed <= seeds[1]:
+                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, galaxy_str_simple))
             else:
                 SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
 
@@ -118,11 +130,16 @@ class SearchThread(QThread):
                     if planet_cfg.planet_type != "无限制":
                         planet_condition["type"] = planet_cfg.planet_type
                     if planet_cfg.singularity != "无限制":
-                        planet_condition["singularity"] = planet_cfg.singularity
+                        if planet_cfg.singularity == "永昼永夜":
+                            planet_condition["singularity"] = "潮汐锁定永昼永夜"
+                        else:
+                            planet_condition["singularity"] = planet_cfg.singularity
                     if planet_cfg.liquid_type != "无限制":
                         planet_condition["liquid"] = planet_cfg.liquid_type
-                    if planet_cfg.full_coverd_dsp:
+                    if planet_cfg.is_in_dsp:
                         planet_condition["is_in_dsp"] = True
+                    if planet_cfg.is_on_dsp:
+                        planet_condition["is_on_dsp"] = True
                     if planet_cfg.satisfy_num > 1:
                         planet_condition["satisfy_num"] = planet_cfg.satisfy_num
                 star_condition["planets"].append(planet_condition)
@@ -136,11 +153,16 @@ class SearchThread(QThread):
                 if planet_cfg.planet_type != "无限制":
                     planet_condition["type"] = planet_cfg.planet_type
                 if planet_cfg.singularity != "无限制":
-                    planet_condition["singularity"] = planet_cfg.singularity
+                    if planet_cfg.singularity == "永昼永夜":
+                        planet_condition["singularity"] = "潮汐锁定永昼永夜"
+                    else:
+                        planet_condition["singularity"] = planet_cfg.singularity
                 if planet_cfg.liquid_type != "无限制":
                     planet_condition["liquid"] = planet_cfg.liquid_type
-                if planet_cfg.full_coverd_dsp:
+                if planet_cfg.is_in_dsp:
                     planet_condition["is_in_dsp"] = True
+                if planet_cfg.is_on_dsp:
+                    planet_condition["is_on_dsp"] = True
                 if planet_cfg.satisfy_num > 1:
                     planet_condition["satisfy_num"] = planet_cfg.satisfy_num
             galaxy_condition["planets"].append(planet_condition)

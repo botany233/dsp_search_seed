@@ -367,7 +367,11 @@ class PlanetTreeLeave(LeaveBase):
         self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全包", indicatorPos=1)
         self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否全包")
         self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
-        self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="full_coverd_dsp")
+        self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="is_in_dsp")
+        self.fullReceivePlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全接收", indicatorPos=1)
+        self.fullReceivePlanetSwitch.setOnText("<u><i>是</i></u>否全接收")
+        self.mainLayout.addWidget(self.fullReceivePlanetSwitch)
+        self.fullReceivePlanetSwitch.set_config(config_obj=config_obj, config_key="is_on_dsp")
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value = 1, default_value=1, empty_invisible=False)
@@ -409,8 +413,8 @@ class SortTree(TreeWidget):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.Fixed)
 
-        self.setColumnWidth(0, 183)
-        self.setColumnWidth(1, 472)
+        self.setColumnWidth(0, 170)
+        self.setColumnWidth(1, 550)
         self.setColumnWidth(2, 100)
 
         self.root = self.invisibleRootItem()

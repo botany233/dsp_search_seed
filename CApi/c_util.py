@@ -5,6 +5,8 @@ import copy
 def check_planet_py(planet_data:dict, planet_condition:dict) -> bool:
     if "is_in_dsp" in planet_condition and not planet_data["is_in_dsp"]:
         return False
+    if "is_on_dsp" in planet_condition and not planet_data["is_on_dsp"]:
+        return False
     if "singularity" in planet_condition and planet_condition["singularity"] not in planet_data["singularity"]:
         return False
     if "type" in planet_condition and planet_condition["type"] != planet_data["type"] and\

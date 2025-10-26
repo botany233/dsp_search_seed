@@ -42,7 +42,8 @@ class PlanetCondition(BaseModel):
     singularity: str = "无限制"
     liquid_type: str = "无限制"
 
-    full_coverd_dsp: bool = False
+    is_in_dsp: bool = False
+    is_on_dsp: bool = False
     satisfy_num: int = 1
 
     veins_condition: VeinsCondition = VeinsCondition()
