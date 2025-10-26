@@ -34,7 +34,7 @@ class SearchThread(QThread):
         return self.running
 
     def run(self):
-        try:
+        # try:
             self.mutex.lock()
             self.running = True
 
@@ -48,9 +48,9 @@ class SearchThread(QThread):
 
             if not self.end_flag:
                 self.search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
-        except Exception as e:
-            log.error(f"Search failed: {e}")
-        finally:
+        # except Exception as e:
+        #     log.error(f"Search failed: {e}")
+        # finally:
             self.mutex.unlock()
             self.end_flag = False
             self.running = False
@@ -129,6 +129,7 @@ class SearchThread(QThread):
             galaxy_condition["stars"].append(star_condition)
 
         for planet_cfg in galaxy_cfg.planet_condition:
+            planet_condition = {}
             if planet_cfg.checked:
                 if (planet_veins := self.get_veins_dict(planet_cfg.veins_condition)):
                     planet_condition["veins"] = planet_veins

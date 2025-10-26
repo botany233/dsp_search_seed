@@ -4,12 +4,10 @@ def get_100k_factory_condition():
     planet_condition_3 = {"veins": {"光栅石":1}, "singularity": "卫星", "type": "橙晶荒漠"} #卡晶
     planet_condition_4 = {"is_in_dsp": True}
 
-    star_condition_1 = {"planets": [planet_condition_1]}
-    star_condition_2 = {"planets": [planet_condition_2]}
-    star_condition_3 = {"planets": [planet_condition_3]}
     star_condition_4 = {"planets": [planet_condition_4], "type": "O型恒星", "satisfy_num": 2}
 
-    galaxy_condition = {"stars":[star_condition_1, star_condition_2, star_condition_3, star_condition_4]}
+    galaxy_condition = {"stars":[star_condition_4],
+                        "planets":[planet_condition_1, planet_condition_2, planet_condition_3]}
     return galaxy_condition
 
 def get_extreme_factory_condition():
