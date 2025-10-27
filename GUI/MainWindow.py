@@ -26,6 +26,8 @@ from qfluentwidgets import (
     setTheme,
     setThemeColor,
     MessageBox,
+    FluentIcon,
+    NavigationDisplayMode,
 )
 
 from config import cfg
@@ -37,6 +39,8 @@ from .Messenger import SearchMessages
 from .Compoents import UserLayout
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget
+
+from .seed_viewer.sort_seed.MainInterface import ViewerInterface
 
 import math
 
@@ -78,11 +82,18 @@ class MainWindow(FluentWindow):
         self.setMicaEffectEnabled(True)
         self.titleBar.raise_()
 
+        self.navigationInterface.setExpandWidth(233)
+        self.navigationInterface.displayModeChanged.connect(self._on_display_mode_changed)
+
         
         self.searchInterface = QFrame(self)
         self.searchInterface.setObjectName("searchLayout")
         self.searchLayout = VBoxLayout(self.searchInterface)
-        self.addSubInterface(self.searchInterface, icon=QIcon(r".\assets\icon.png"), text="戴森球计划种子搜索器")
+        self.viewerInterface = ViewerInterface(self)
+        self.viewerInterface.setObjectName("viewerLayout")
+
+        self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
+        self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
         
         self.__build__()
 
@@ -111,10 +122,6 @@ class MainWindow(FluentWindow):
                 QApplication.processEvents()
             self.search_thread.deleteLater()
         return super().closeEvent(e)
-
-    def _on_search_finish(self):
-        self.button_start.setEnabled(True)
-        self.button_stop.setEnabled(False)
 
     def __init__layout__(self):
         self.topLayout = QGridLayout()
@@ -190,6 +197,16 @@ class MainWindow(FluentWindow):
 
         self.close()
         sys.exit(0)
+
+    def _on_display_mode_changed(self, mode):
+        if mode == NavigationDisplayMode.MENU:
+            self.titleBar.titleLabel.setHidden(True)
+        else:
+            self.titleBar.titleLabel.setHidden(False)
+
+    def _on_search_finish(self):
+        self.button_start.setEnabled(True)
+        self.button_stop.setEnabled(False)
 
     def __on_button_start_clicked(self):
         if self.search_thread.isRunning():

@@ -1,4 +1,4 @@
-from qfluentwidgets import ComboBox, BodyLabel
+from qfluentwidgets import ComboBox, BodyLabel, setFont
 from PySide6.QtWidgets import QHBoxLayout, QFrame, QGridLayout, QWidget
 from PySide6.QtCore import QEvent, QRectF
 from PySide6.QtGui import QPainter
@@ -11,6 +11,7 @@ class AutoFixedComboBox(ComboBox):
         super().__init__(parent)
         self.currentIndexChanged.connect(self._on_currentIndexChanged)
         self.config_key = config_key
+        setFont(self, 12)
 
     def addItems(self, texts):
         for text in texts:

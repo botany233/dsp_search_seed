@@ -1,4 +1,4 @@
-from qfluentwidgets import SwitchButton
+from qfluentwidgets import SwitchButton, setFont
 from config import cfg
 
 
@@ -6,6 +6,9 @@ class ConfigSwitchButton(SwitchButton):
     def set_config(self, config_key: str, config_obj=None) -> None:
         self.config_key = config_key
         self.config_obj = config_obj
+        qss = """
+        QLabel{font-size:12px;}"""
+        self.label.setStyleSheet(qss)
 
         value = getattr(self.config_obj, self.config_key)
         self.setChecked(bool(value))

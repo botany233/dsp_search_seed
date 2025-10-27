@@ -31,6 +31,7 @@ from qfluentwidgets import (
     ToolButton,
     TransparentToolButton,
     SwitchButton,
+    setFont,
 )
 
 from .combox import AutoFixedComboBox
@@ -58,6 +59,10 @@ class LeaveBase(QWidget):
     def __init__(self, parent=None, config_obj=None):
         self.config_obj = config_obj
         super().__init__(parent)
+        qss = """QLabel{font-size:12px;}"""
+        self.setStyleSheet(qss)
+        setFont(self, 12)
+
 
     def load_config(self):
         pass
