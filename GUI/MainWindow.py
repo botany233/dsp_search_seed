@@ -9,8 +9,10 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QToolTip,
     QTreeWidgetItem,
+    QFrame,
 )
 from qfluentwidgets import (
+    FluentWindow,
     BodyLabel,
     ComboBox,
     FlowLayout,
@@ -25,8 +27,6 @@ from qfluentwidgets import (
     setThemeColor,
     MessageBox,
 )
-from qfluentwidgets.components.widgets.frameless_window import FramelessWindow
-from qframelesswindow import StandardTitleBar
 
 from config import cfg
 from logger import log
@@ -40,7 +40,7 @@ from .Widgets import SortTreeWidget
 
 import math
 
-class MainWindow(FramelessWindow):
+class MainWindow(FluentWindow):
     def __init__(self):
         super().__init__()
         self.setObjectName("MainWindow")
@@ -61,8 +61,7 @@ class MainWindow(FramelessWindow):
 
         qconfig.fontFamilies.value = font_families
 
-        title_bar = StandardTitleBar(self)
-        title_bar.titleLabel.setStyleSheet("""
+        self.titleBar.titleLabel.setStyleSheet("""
             QLabel{
                 background: transparent;
                 font-family: "Microsoft YaHei", "微软雅黑", "PingFang SC", "Hiragino Sans GB", "Segoe UI", sans-serif;
@@ -70,19 +69,21 @@ class MainWindow(FramelessWindow):
                 padding: 0 4px
             }
         """)
-        self.setTitleBar(title_bar)
         self.setWindowTitle("戴森球计划种子搜索器 made by 前前&哒哒")
         self.setWindowIcon(QIcon(r".\assets\icon.png"))
         width: int = 1260
         height: int = width // 16 * 8
         self.resize(width, height)
         setTheme(Theme.LIGHT)
+        self.setMicaEffectEnabled(True)
         self.titleBar.raise_()
 
-        self.mainLayout = VBoxLayout(self)
         
-
-        self.setLayout(self.mainLayout)
+        self.searchInterface = QFrame(self)
+        self.searchInterface.setObjectName("searchLayout")
+        self.searchLayout = VBoxLayout(self.searchInterface)
+        self.addSubInterface(self.searchInterface, icon=QIcon(r".\assets\icon.png"), text="戴森球计划种子搜索器")
+        
         self.__build__()
 
         screen = QApplication.primaryScreen()
@@ -117,15 +118,15 @@ class MainWindow(FramelessWindow):
 
     def __init__layout__(self):
         self.topLayout = QGridLayout()
-        self.mainLayout.addLayout(self.topLayout)
+        self.searchLayout.addLayout(self.topLayout)
         self.middleLayout = QHBoxLayout()
-        self.mainLayout.addLayout(self.middleLayout, stretch=1)
+        self.searchLayout.addLayout(self.middleLayout, stretch=1)
         self.userLayout = UserLayout()
-        self.mainLayout.addLayout(self.userLayout)
+        self.searchLayout.addLayout(self.userLayout)
         self.buttonLayout = QHBoxLayout()
-        self.mainLayout.addStretch()
-        self.mainLayout.addLayout(self.buttonLayout)
-        self.mainLayout.setContentsMargins(10, 50, 10, 10)
+        self.searchLayout.addStretch()
+        self.searchLayout.addLayout(self.buttonLayout)
+        self.searchLayout.setContentsMargins(10, 10, 10, 10)
 
     def __init__widgets__(self):
         self.label_seed_range = BodyLabel("种子范围:")
