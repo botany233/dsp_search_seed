@@ -22,7 +22,7 @@ def get_seed_value(seed_id, star_num, value_func):
     value = value_func(galaxy_data)
     return value
 
-def get_seed_sort(seed_list:list[tuple[int, int]], maintype:str, subtype:str, is_descending: bool) -> list[int]:
+def get_seeds_value(seed_list:list[tuple[int, int]], maintype:str, subtype:str) -> list[int]:
     value_func = get_value_function(maintype, subtype)
     futures = []
     values = []
@@ -32,8 +32,7 @@ def get_seed_sort(seed_list:list[tuple[int, int]], maintype:str, subtype:str, is
 
         index = 0
         for future in futures:
-            values.append((index, future.result()))
+            values.append(future.result())
             index += 1
 
-    values.sort(key=lambda x: x[1], reverse=is_descending)
-    return [value[0] for value in values]
+    return values

@@ -48,10 +48,10 @@ if __name__ == "__main__":
     from benchmark_condition import *
     from sys import exit
 
-    galaxy_condition = get_100k_factory_condition()
+    # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
     # galaxy_condition = get_easy_condition()
-    # galaxy_condition = get_3_blue_condition()
+    galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
@@ -66,12 +66,12 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 999999)
-    star_nums = (32, 64)
+    seeds = (0, 99999)
+    star_nums = (64, 64)
     batch_size = 256
     max_thread = 20
 
-    record_seed = 0
+    record_seed = 1
 
     # flag = perf_counter()
     # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)

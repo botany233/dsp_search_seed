@@ -1,1 +1,1 @@
-from .sort_seed import get_seed_sort
+from .sort_seed import get_seeds_value
