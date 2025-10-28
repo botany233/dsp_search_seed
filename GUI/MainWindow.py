@@ -40,7 +40,7 @@ from .Compoents import UserLayout
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget
 
-from .seed_viewer.sort_seed.MainInterface import ViewerInterface
+from .seed_viewer.MainInterface import ViewerInterface
 
 import math
 
