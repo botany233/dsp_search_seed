@@ -3,6 +3,8 @@ import colorlog
 import os
 import sys
 from pathlib import Path
+from traceback import format_exc
+
 
 class CustomFormatter(colorlog.ColoredFormatter):
 
@@ -10,6 +12,10 @@ class CustomFormatter(colorlog.ColoredFormatter):
 
     def format(self, record: logging.LogRecord) -> str:
         record.pathname = os.path.relpath(record.pathname, self.root).replace("..\\..\\", "")
+        if record.levelno >= logging.ERROR:
+            exc_msg = format_exc()
+            if "NoneType" not in exc_msg:
+                record.msg = f"{record.msg}\n{exc_msg}"
         msg = super().format(record)
         msg = msg.replace(",", ".", 1)
 
@@ -32,7 +38,7 @@ class Logger:
                     "INFO": "green",
                     "WARNING": "yellow",
                     "ERROR": "red",
-                    "CRITICAL": "red,bg_white",
+                    "CRITICAL": "purple",
                 },
             )
             console_handler.setFormatter(console_formatter)
@@ -51,7 +57,7 @@ class Logger:
             self.logger.addHandler(file_handler)
 
 
-            
+
 
     def get_logger(self) -> logging.Logger:
         return self.logger
@@ -63,3 +69,12 @@ if __name__ == "__main__":
     log.warning("This is a warning message")
     log.error("This is an error message")
     log.critical("This is a critical message")
+
+    try:
+        try:
+            raise ValueError("An example exception")
+        except Exception as e:
+            log.error("An exception occurred")
+    except Exception:
+        pass
+            
