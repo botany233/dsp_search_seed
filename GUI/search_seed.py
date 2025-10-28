@@ -7,6 +7,7 @@ from time import perf_counter
 from math import ceil
 from datetime import datetime
 from collections import deque
+import json
 
 from config import cfg
 from config.cfg_dict_tying import (
@@ -35,7 +36,7 @@ class SearchThread(QThread):
         return self.running
 
     def run(self):
-        # try:
+        try:
             self.mutex.lock()
             self.running = True
 
@@ -49,9 +50,9 @@ class SearchThread(QThread):
 
             if not self.end_flag:
                 self.search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
-        # except Exception as e:
-        #     log.error(f"Search failed: {e}")
-        # finally:
+        except Exception as e:
+            log.error(f"Search failed: {e}")
+        finally:
             self.mutex.unlock()
             self.end_flag = False
             self.running = False
