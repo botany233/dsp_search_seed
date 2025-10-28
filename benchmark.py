@@ -54,7 +54,7 @@ if __name__ == "__main__":
     # galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
 
-    galaxy_condition = change_condition_to_legal(galaxy_condition)
+    galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
     galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
 
     galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
@@ -66,16 +66,16 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 49999)
+    seeds = (0, 999999)
     star_nums = (32, 64)
     batch_size = 256
     max_thread = 20
 
-    record_seed = 1
+    record_seed = 0
 
-    flag = perf_counter()
-    check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    # flag = perf_counter()
+    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
+    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
