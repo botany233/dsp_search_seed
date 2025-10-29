@@ -1,8 +1,8 @@
 from CApi import GalaxyData
 
-planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩",
-                "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
-                "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
+planet_types = ["地中海", "冰巨星", "干旱荒漠", "灰烬冻土", "海洋丛林", "熔岩", "冰原冻土", "贫瘠荒漠", "戈壁",
+                "火山灰", "红石", "草原", "水世界", "黑石盐滩", "樱林海", "飓风石林", "猩红冰湖", "热带草原",
+                "橙晶荒漠", "极寒冻土", "潘多拉沼泽", "高产气巨", "气态巨星"]
 
 def handle_planet_sort(subtype: str):
     n = planet_types.index(subtype)
@@ -13,7 +13,7 @@ class GetPlanetValue():
         self.n = n
 
     def __call__(self, galaxy_data: GalaxyData) -> int:
-        if self.n == 1:
-            return galaxy_data.planet_type_nums[1] + galaxy_data.planet_type_nums[3]
+        if self.n == 22:
+            return galaxy_data.planet_type_nums[21] + galaxy_data.planet_type_nums[22]
         else:
             return galaxy_data.planet_type_nums[self.n]

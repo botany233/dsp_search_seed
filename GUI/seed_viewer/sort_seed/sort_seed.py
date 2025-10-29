@@ -10,21 +10,17 @@ if TYPE_CHECKING:
     from GUI.seed_viewer.MainInterface import ViewerInterface
 
 class SortThread(QThread):
-
     finished = Signal()
     label_text = Signal(str)
     completed = Signal()
 
-
     def __init__(self, parent: 'ViewerInterface'):
         super().__init__(parent)
         self.seed_list = parent.seed_list
-        self.seed_list_lock = parent.seed_list_lock
         self.main_type_combo = parent.main_type_combo
         self.sub_type_combo = parent.sub_type_combo
         self.running = False
         self.end_flag = False
-
 
     def terminate(self) -> None:
         self.end_flag = True
@@ -34,7 +30,6 @@ class SortThread(QThread):
 
     def run(self):
         try:
-            self.seed_list_lock.acquire()
             self.running = True
             seed_list_len = len(self.seed_list)
             self.label_text.emit("正在生成任务...")
@@ -57,7 +52,7 @@ class SortThread(QThread):
                     if self.end_flag:
                         executor.shutdown(wait=False, cancel_futures=True)
                         break
-            
+
             if self.end_flag:
                 self.label_text.emit("排序已取消")
             else:
@@ -65,8 +60,6 @@ class SortThread(QThread):
         except Exception as e:
             log.error(f"Sort failed: {e}")
         finally:
-            self.seed_list_lock.release()
             self.end_flag = False
             self.running = False
             self.finished.emit()
-

@@ -27,6 +27,13 @@ class SeedScroll(TableWidget):
         for row in range(len(self.seed_list)):
             for col in range(3):
                 self.setItem(row, col, QTableWidgetItem(str(self.seed_list[row][col])))
+    
+    def add_row(self, seed: int, star_num: int) -> None:
+        row_count = self.rowCount()
+        self.setRowCount(row_count + 1)
+        self.setItem(row_count, 0, QTableWidgetItem(str(seed)))
+        self.setItem(row_count, 1, QTableWidgetItem(str(star_num)))
+        self.setItem(row_count, 2, QTableWidgetItem(str(0)))
 
     def do_sort(self, is_ascending_order = True) -> None:
         sort_list = [(i, value[2]) for i, value in enumerate(self.seed_list)]
@@ -41,16 +48,16 @@ class SeedScroll(TableWidget):
                 self.setItem(table_row, table_col, QTableWidgetItem(str(self.seed_list[seed_row][table_col])))
 
     def delete_select(self) -> None:
-        target_seed, target_star_num = self.get_select_seed()
+        target_seed, target_star_num = self.get_select_seed(True)
         for i, (seed, star_num, _) in enumerate(self.seed_list):
-            QApplication.processEvents()
             if seed == target_seed and star_num == target_star_num:
                 self.seed_list.pop(i)
-                break
-        self.fresh()
+                return
 
-    def get_select_seed(self) -> tuple[int, int]:
-        selected_items = self.selectedItems()
-        seed = int(selected_items[0].text())
-        star_num = int(selected_items[1].text())
+    def get_select_seed(self, pop = False) -> tuple[int, int]:
+        row = self.selectedIndexes()[0].row()
+        seed = int(self.item(row, 0).text())
+        star_num = int(self.item(row, 1).text())
+        if pop:
+            self.removeRow(row)
         return seed, star_num
