@@ -1,1 +1,1 @@
-from .sort_seed import get_seeds_value
+from .sort_seed import SortThread

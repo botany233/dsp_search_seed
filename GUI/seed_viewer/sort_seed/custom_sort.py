@@ -1,9 +1,9 @@
 from CApi import GalaxyData, StarData, PlanetData
 
-def handle_custom_sort(subtype: str) -> function:
+def handle_custom_sort(subtype: str):
     if subtype == "例子：种子号":
         return get_seed_value
-    elif subtype == "例子：恒星数量":
+    elif subtype == "例子：恒星数":
         return get_star_num_value
     elif subtype == "自定义1":
         return get_custom1_value

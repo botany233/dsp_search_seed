@@ -21,7 +21,6 @@ from config.cfg_dict_tying import (
 from logger import log
 
 class SearchThread(QThread):
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self.mutex = QMutex()
@@ -29,7 +28,6 @@ class SearchThread(QThread):
         self.end_flag = False
 
     def terminate(self) -> None:
-        self.mutex.unlock()
         self.end_flag = True
 
     def isRunning(self) -> bool:

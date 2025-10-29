@@ -4,11 +4,16 @@ planet_types = ["地中海", "气态巨星", "冰巨星", "高产气巨", "干�
                 "冰原冻土", "贫瘠荒漠", "戈壁", "火山灰", "红石", "草原", "水世界", "黑石盐滩",
                 "樱林海", "飓风石林", "猩红冰湖", "热带草原", "橙晶荒漠", "极寒冻土", "潘多拉沼泽"]
 
-def handle_planet_sort(subtype: str) -> function:
+def handle_planet_sort(subtype: str):
     n = planet_types.index(subtype)
-    def get_planet_value(galaxy_data: GalaxyData) -> int:
-        if n == 1:
+    return GetPlanetValue(n)
+
+class GetPlanetValue():
+    def __init__(self, n):
+        self.n = n
+
+    def __call__(self, galaxy_data: GalaxyData) -> int:
+        if self.n == 1:
             return galaxy_data.planet_type_nums[1] + galaxy_data.planet_type_nums[3]
         else:
-            return galaxy_data.planet_type_nums[n]
-    return get_planet_value
+            return galaxy_data.planet_type_nums[self.n]
