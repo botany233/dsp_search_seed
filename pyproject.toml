@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "colorlog>=6.10.1",
     "pydantic>=2.12.3",
-    "pyside6>=6.10.0",
+    "pyside6==6.9.3",
     "pyside6-fluent-widgets>=1.9.1",
 ]
 

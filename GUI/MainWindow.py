@@ -28,6 +28,7 @@ from qfluentwidgets import (
     MessageBox,
     FluentIcon,
     NavigationDisplayMode,
+    setCustomStyleSheet
 )
 
 from config import cfg
@@ -78,6 +79,9 @@ class MainWindow(FluentWindow):
         width: int = 1260
         height: int = width // 16 * 8
         self.resize(width, height)
+
+        qss = """StackedWidget{background-color: white;}"""
+        setCustomStyleSheet(self.stackedWidget, qss, qss)
         setTheme(Theme.LIGHT)
         self.setMicaEffectEnabled(True)
         self.titleBar.raise_()
