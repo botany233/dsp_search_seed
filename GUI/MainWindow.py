@@ -80,7 +80,7 @@ class MainWindow(FluentWindow):
         height: int = width // 16 * 8
         self.resize(width, height)
 
-        qss = """StackedWidget{background-color: white;}"""
+        qss = """StackedWidget{background-color: #FCFCFC;}"""
         setCustomStyleSheet(self.stackedWidget, qss, qss)
         setTheme(Theme.LIGHT)
         self.setMicaEffectEnabled(True)
