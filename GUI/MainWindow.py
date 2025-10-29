@@ -28,7 +28,6 @@ from qfluentwidgets import (
     MessageBox,
     FluentIcon,
     NavigationDisplayMode,
-    IndeterminateProgressRing,
 )
 
 from config import cfg
@@ -39,7 +38,7 @@ from .Messenger import SearchMessages
 
 from .Compoents import UserLayout
 from .Compoents.Widgets.line_edit import LimitLineEdit
-from .Widgets import SortTreeWidget
+from .Widgets import SortTreeWidget, WaitRing
 
 from .seed_viewer.MainInterface import ViewerInterface
 
@@ -108,6 +107,9 @@ class MainWindow(FluentWindow):
         self.search_thread = SearchThread(self)
         SearchMessages.searchEnd.connect(self._on_search_finish)
 
+        self.waiting_ring = WaitRing(self.window())
+        self.waiting_ring.setHidden(True)
+
     def _waiting_thread_finish(self, thread) -> bool:
         message_box = MessageBox(
             "有任务正在进行中，是否强制退出？",
@@ -116,6 +118,7 @@ class MainWindow(FluentWindow):
         )
         if message_box.exec() != 1:
             return True  # 取消关闭事件
+        self.waiting_ring.setHidden(False)
         thread.terminate()
         while thread.isRunning():
             QApplication.processEvents()
