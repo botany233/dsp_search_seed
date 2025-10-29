@@ -66,9 +66,9 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 99999)
+    seeds = (0, 9999999)
     star_nums = (64, 64)
-    batch_size = 256
+    batch_size = 1024
     max_thread = 20
 
     record_seed = 1

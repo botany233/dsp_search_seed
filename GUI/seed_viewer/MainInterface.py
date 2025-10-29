@@ -11,25 +11,15 @@ class ViewerInterface(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.seed_list = []
-        self.max_seed = 100
-
+        self.max_seed = 100000
 
         self.mainLayout = QHBoxLayout(self)
-        
         self.__init_left()
         self.__init_middle()
         self.__init_right()
-
-        middle = TitleLabel("中间区域")
-        middle.setAlignment(Qt.AlignCenter)
-
-        self.middleLayout.addWidget(middle)
-
-
         self.mainLayout.setStretch(0, 1)
         self.mainLayout.setStretch(1, 2)
         self.mainLayout.setStretch(2, 1)
-
 
     def __init_left(self):
         self.leftWidget = QWidget()
@@ -39,13 +29,9 @@ class ViewerInterface(QFrame):
 
         self.leftLayout.setContentsMargins(0, 0, 0, 0)
 
-        # self.seed_scroll = ListWidget()
-        # self.seed_scroll.setEditTriggers(ListWidget.NoEditTriggers)
-        # self.seed_scroll.setItemDelegate(ListItemDelegate(self.seed_scroll))
-        # self.leftLayout.addWidget(self.seed_scroll)
-
-        self.seed_scroll = SeedScroll()
+        self.seed_scroll = SeedScroll(self.seed_list)
         self.leftLayout.addWidget(self.seed_scroll)
+        self.seed_scroll.itemSelectionChanged.connect(self.__on_select_seed_change)
 
         self.seed_text = CaptionLabel()
         self.seed_text.setAlignment(Qt.AlignBottom)
@@ -61,11 +47,15 @@ class ViewerInterface(QFrame):
         self.seed_button.clicked.connect(self.__on_seed_button_clicked)
         self.leftLayout.addWidget(self.seed_button)
 
-        self.refresh_seed_text()
+        self.update_seed_text()
 
     def __init_middle(self):
         self.middleLayout = QVBoxLayout()
         self.mainLayout.addLayout(self.middleLayout)
+
+        middle = TitleLabel("中间区域")
+        middle.setAlignment(Qt.AlignCenter)
+        self.middleLayout.addWidget(middle)
 
     def __init_right(self):
         self.rightLayout = QVBoxLayout()
@@ -101,9 +91,11 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.startButon, 2, 0)
         self.buttonsLayout.addWidget(self.stopButton, 2, 1)
 
+    def __on_select_seed_change(self):
+        seed, star_num = self.seed_scroll.get_select_seed()
+        print("已选中：", seed, star_num)
 
-
-    def refresh_seed_text(self) -> None:
+    def update_seed_text(self) -> None:
         self.seed_text.setText(f"种子数: {len(self.seed_list)}")
 
     def __on_sort_order_clicked(self, checked: bool):
@@ -121,7 +113,7 @@ class ViewerInterface(QFrame):
         self.setStyleSheet(qss)
 
     def __on_delete_button_clicked(self) -> None:
-        pass
+        self.seed_scroll.delete_select()
 
     def __on_seed_button_clicked(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
@@ -133,13 +125,20 @@ class ViewerInterface(QFrame):
 
         if not file_paths:
             return
-    
-        for file_path in file_paths:
 
+        if len(self.seed_list) >= self.max_seed:
+            return
+
+        seed_set = set([(i[0], i[1]) for i in self.seed_list])
+        for file_path in file_paths:
+            QApplication.processEvents()
+            if len(self.seed_list) >= self.max_seed:
+                break
             with open(file_path, "r", encoding="utf-8") as f:
                 data = reader(f)
                 for row in data:
-                    QApplication.processEvents()
+                    if len(self.seed_list) >= self.max_seed:
+                        break
                     try:
                         seed = int(row[0])
                         star_num = int(row[1])
@@ -148,8 +147,10 @@ class ViewerInterface(QFrame):
 
                     if not (0 <= seed <= 99999999 and 32 <= star_num <= 64):
                         continue
-                    if len(self.seed_list) < self.max_seed and (seed, star_num) not in self.seed_list:
+
+                    if (seed, star_num) not in seed_set:
+                        seed_set.add((seed, star_num))
                         self.seed_list.append((seed, star_num, 0))
 
-        self.refresh_seed_text()
-        self.seed_scroll.update(self.seed_list)
+        self.update_seed_text()
+        self.seed_scroll.update()
