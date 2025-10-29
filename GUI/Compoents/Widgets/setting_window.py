@@ -1,16 +1,16 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QGridLayout, QHBoxLayout
-from .line_edit import LabelWithLimitLineEdit, LimitLineEdit
+from PySide6.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QFrame
+from .line_edit import LabelWithLimitLineEdit
 
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
 from config import cfg
-from config.cfg_dict_tying import VeinsCondition, BaseModel, VeinsName
+from config.cfg_dict_tying import VeinsName
 
 
 # from typing import TYPE_CHECKING
 # if TYPE_CHECKING:
 from GUI.Compoents.sort_tree import SettingsTreeLeave
 
-class SettingsWindow(QWidget):
+class SettingsWindow(QFrame):
     def __init__(
         self,
         parent=None,
@@ -18,6 +18,8 @@ class SettingsWindow(QWidget):
         context: SettingsTreeLeave | None = None,
     ):
         super().__init__(parent)
+
+        self.setStyleSheet("""SettingsWindow{border: 1px solid #EDEDED; border-radius: 8px;}""")
 
         self.context = context  # 预留给设置使用的上下文
         self.config_obj = None
@@ -94,8 +96,3 @@ class SettingsWindow(QWidget):
             )
 
             self.settingsLayout.addWidget(line_edit, j, i)
-
-if __name__ == "__main__":
-    import sys
-
-    pass
