@@ -23,6 +23,14 @@ class WaitRing(MaskDialogBase):
         self.vLayout.addWidget(self.overlayWidget, 0, Qt.AlignCenter)
         self._hBoxLayout.addLayout(self.vLayout, 1)
 
+    def start(self):
+        self.ring.start()
+        self.show()
+
+    def stop(self):
+        self.ring.stop()
+        self.hide()
+
 if __name__ == "__main__":
     import sys
     from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget

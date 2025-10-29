@@ -108,7 +108,7 @@ class MainWindow(FluentWindow):
         SearchMessages.searchEnd.connect(self._on_search_finish)
 
         self.waiting_ring = WaitRing(self.window())
-        self.waiting_ring.setHidden(True)
+        self.waiting_ring.stop()
 
     def _waiting_thread_finish(self, thread) -> bool:
         message_box = MessageBox(
@@ -118,7 +118,7 @@ class MainWindow(FluentWindow):
         )
         if message_box.exec() != 1:
             return True  # 取消关闭事件
-        self.waiting_ring.setHidden(False)
+        self.waiting_ring.start()
         thread.terminate()
         while thread.isRunning():
             QApplication.processEvents()
