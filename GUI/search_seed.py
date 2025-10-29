@@ -93,7 +93,7 @@ class SearchThread(QThread):
                 SearchMessages.search_progress_info.emit(index, total_batch, total_seed_num, last_seed, start_time, perf_counter())
 
                 if self.end_flag:
-                    executor.shutdown(wait=False, cancel_futures=True)
+                    executor.shutdown(cancel_futures=True)
                     break
 
                 seed += batch_size

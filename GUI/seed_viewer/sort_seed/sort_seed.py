@@ -40,7 +40,7 @@ class SortThread(QThread):
                     futures.append(executor.submit(get_seed_value, seed[0], seed[1], value_func))
 
                     if self.end_flag:
-                        executor.shutdown(wait=False, cancel_futures=True)
+                        executor.shutdown(cancel_futures=True)
                         break
 
                 self.label_text.emit(f"0/{seed_list_len}(0%)")
@@ -50,7 +50,7 @@ class SortThread(QThread):
                         self.label_text.emit(f"{index+1}/{seed_list_len}({round((index+1)/seed_list_len*100)}%)")
 
                     if self.end_flag:
-                        executor.shutdown(wait=False, cancel_futures=True)
+                        executor.shutdown(cancel_futures=True)
                         break
 
             if self.end_flag:
