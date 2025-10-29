@@ -22,6 +22,9 @@ class ViewerInterface(QFrame):
         self.mainLayout.setStretch(2, 1)
 
         self.sort_thread = SortThread(self)
+        self.sort_thread.label_text.connect(self.progress_label.setText)
+        self.sort_thread.completed.connect(self._on_sort_completed)
+        self.sort_thread.finished.connect(self._on_sort_finished)
 
     def __init_left(self):
         self.leftWidget = QWidget()
@@ -78,7 +81,9 @@ class ViewerInterface(QFrame):
         self.progress_label = BodyLabel("进度: 0/0 (0%)")
 
         self.start_button = PushButton("开始搜索")
+        self.start_button.clicked.connect(self.__on_start_button_clicked)
         self.stop_button = PushButton("停止搜索")
+        self.stop_button.clicked.connect(self.__on_stop_button_clicked)
         self.stop_button.setEnabled(False)
 
         self.rightLayout.addLayout(self.infoLayout)
@@ -92,12 +97,34 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.start_button, 2, 0)
         self.buttonsLayout.addWidget(self.stop_button, 2, 1)
 
+    def update_seed_text(self) -> None:
+        self.seed_text.setText(f"种子数: {len(self.seed_list)}")
+
+    def __on_start_button_clicked(self) -> None:
+        if self.sort_thread.isRunning():
+            return
+        if len(self.seed_list) < 2:
+            self.progress_label.setText("<font color='red'>请导入种子，再排序！</font>")
+            return
+        self.sort_thread.start()
+        self.start_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
+
+    def __on_stop_button_clicked(self) -> None:
+        self.sort_thread.terminate()
+
+    def _on_sort_finished(self) -> None:
+        self.start_button.setEnabled(True)
+        self.stop_button.setEnabled(False)
+
+    def _on_sort_completed(self) -> None:
+        self.progress_label.setText("排序中...")
+        self.seed_scroll.do_sort(self.sort_order_switch.isChecked())
+        self.progress_label.setText("排序完成！")
+
     def __on_select_seed_change(self):
         seed, star_num = self.seed_scroll.get_select_seed()
         print("已选中：", seed, star_num)
-
-    def update_seed_text(self) -> None:
-        self.seed_text.setText(f"种子数: {len(self.seed_list)}")
 
     def __on_delete_button_clicked(self) -> None:
         try:

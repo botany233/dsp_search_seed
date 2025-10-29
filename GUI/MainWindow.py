@@ -28,6 +28,7 @@ from qfluentwidgets import (
     MessageBox,
     FluentIcon,
     NavigationDisplayMode,
+    IndeterminateProgressRing,
 )
 
 from config import cfg
@@ -107,20 +108,28 @@ class MainWindow(FluentWindow):
         self.search_thread = SearchThread(self)
         SearchMessages.searchEnd.connect(self._on_search_finish)
 
+    def _waiting_thread_finish(self, thread) -> bool:
+        message_box = MessageBox(
+            "有任务正在进行中，是否强制退出？",
+            "强制退出可能会导致部分结果未保存，建议先停止任务。",
+            self.window(),
+        )
+        if message_box.exec() != 1:
+            return True  # 取消关闭事件
+        thread.terminate()
+        while thread.isRunning():
+            QApplication.processEvents()
+        return False
+
     def closeEvent(self, e: QEvent):
         if self.search_thread.isRunning():
-            message_box = MessageBox(
-                "有搜索任务正在进行中，是否强制退出？",
-                "强制退出可能会导致部分结果未保存，建议先停止搜索任务。",
-                self.window(),
-            )
-            if message_box.exec() != 1:
+            if self._waiting_thread_finish(self.search_thread):
                 e.ignore()
-                return # 取消关闭事件
-            self.search_thread.terminate()
-            while self.search_thread.isRunning():
-                QApplication.processEvents()
-            self.search_thread.deleteLater()
+                return
+        elif self.viewerInterface.sort_thread.isRunning():
+            if self._waiting_thread_finish(self.viewerInterface.sort_thread):
+                e.ignore()
+                return
         return super().closeEvent(e)
 
     def __init__layout__(self):
