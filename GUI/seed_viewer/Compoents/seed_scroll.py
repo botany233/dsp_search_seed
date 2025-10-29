@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QTableWidgetItem
+from PySide6.QtWidgets import QTableWidgetItem, QApplication
 from qfluentwidgets import TableWidget, TableItemDelegate
 from PySide6.QtCore import Qt
 
@@ -35,6 +35,7 @@ class SeedScroll(TableWidget):
         else:
             sort_list.sort(key=lambda x:x[1], reverse=True)
         for table_row, i in enumerate(sort_list):
+            QApplication.processEvents()
             seed_row = i[0]
             for table_col in range(3):
                 self.setItem(table_row, table_col, QTableWidgetItem(str(self.seed_list[seed_row][table_col])))
@@ -42,6 +43,7 @@ class SeedScroll(TableWidget):
     def delete_select(self) -> None:
         target_seed, target_star_num = self.get_select_seed()
         for i, (seed, star_num, _) in enumerate(self.seed_list):
+            QApplication.processEvents()
             if seed == target_seed and star_num == target_star_num:
                 self.seed_list.pop(i)
                 break

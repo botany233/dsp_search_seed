@@ -5,9 +5,12 @@ from multiprocessing import cpu_count
 from .sort_seed_util import get_seed_value, get_value_function
 
 from logger import log
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from GUI.seed_viewer.MainInterface import ViewerInterface
 
 class SortThread(QThread):
-    def __init__(self, parent):
+    def __init__(self, parent: 'ViewerInterface'):
         super().__init__(parent)
         self.process_label = parent.progress_label
         self.seed_list = parent.seed_list
@@ -70,7 +73,7 @@ class SortThread(QThread):
             self.seed_scroll.do_sort(self.sort_order_switch.isChecked())
             self.process_label.setText(f"排序完成！")
         except Exception as e:
-            log.error(f"Search failed: {e}")
+            log.error(f"Sort failed: {e}")
         finally:
             self.seed_list_lock.release()
             self.end_flag = False

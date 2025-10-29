@@ -99,20 +99,6 @@ class ViewerInterface(QFrame):
     def update_seed_text(self) -> None:
         self.seed_text.setText(f"种子数: {len(self.seed_list)}")
 
-    # def __on_sort_order_clicked(self, checked: bool):
-    #     if checked:
-    #         qss = """
-    #         QFrame {
-    #             border: 1px solid #ccc;
-    #             border-radius: 4px;
-    #             padding: 4px;
-    #         }
-    #         """
-    #     else:
-    #         qss = ""
-
-    #     self.setStyleSheet(qss)
-
     def __on_delete_button_clicked(self) -> None:
         try:
             if not self.seed_list_lock.acquire(False):
