@@ -3,9 +3,11 @@
 
 using namespace nlohmann;
 
-bool check_planet(const PlanetStruct& planet_data,const json& planet_condition)
+bool check_planet(const PlanetStructSimple& planet_data,const json& planet_condition)
 {
 	if(planet_condition.contains("is_in_dsp") && !planet_data.is_in_dsp)
+		return false;
+	if(planet_condition.contains("is_on_dsp") && !planet_data.is_on_dsp)
 		return false;
 	if(planet_condition.contains("type") && planet_condition["type"] != planet_data.type &&
 		!(planet_condition["type"] == "气态巨星" && planet_data.type == "高产气巨"))
@@ -42,7 +44,7 @@ bool check_planet(const PlanetStruct& planet_data,const json& planet_condition)
 	return true;
 }
 
-bool check_star(const StarStruct& star_data,const json& star_condition)
+bool check_star(const StarStructSimple& star_data,const json& star_condition)
 {
 	if(star_condition.contains("type") && star_condition["type"] != star_data.type)
 		return false;
@@ -63,7 +65,7 @@ bool check_star(const StarStruct& star_data,const json& star_condition)
 		for(const json& planet_condition: star_condition["planets"])
 		{
 			int left_satisfy_num = planet_condition["satisfy_num"];
-			for(const PlanetStruct& planet_data: star_data.planets)
+			for(const PlanetStructSimple& planet_data: star_data.planets)
 			{
 				if(check_planet(planet_data,planet_condition))
 				{
@@ -79,7 +81,7 @@ bool check_star(const StarStruct& star_data,const json& star_condition)
 	return true;
 }
 
-bool check_galaxy(const GalaxyStruct& galaxy_data,const json& galaxy_condition)
+bool check_galaxy(const GalaxyStructSimple& galaxy_data,const json& galaxy_condition)
 {
 	if(galaxy_condition.contains("veins"))
 	{
@@ -94,7 +96,7 @@ bool check_galaxy(const GalaxyStruct& galaxy_data,const json& galaxy_condition)
 		for(const json& star_condition: galaxy_condition["stars"])
 		{
 			int left_satisfy_num = star_condition["satisfy_num"];
-			for(const StarStruct& star_data: galaxy_data.stars)
+			for(const StarStructSimple& star_data: galaxy_data.stars)
 			{
 				if(check_star(star_data,star_condition))
 				{
@@ -112,11 +114,11 @@ bool check_galaxy(const GalaxyStruct& galaxy_data,const json& galaxy_condition)
 		for(const json& planet_condition: galaxy_condition["planets"])
 		{
 			int left_satisfy_num = planet_condition["satisfy_num"];
-			for(const StarStruct& star_data: galaxy_data.stars)
+			for(const StarStructSimple& star_data: galaxy_data.stars)
 			{
 				if(!left_satisfy_num)
 					break;
-				for(const PlanetStruct& planet_data: star_data.planets)
+				for(const PlanetStructSimple& planet_data: star_data.planets)
 				{
 					if(check_planet(planet_data,planet_condition))
 					{

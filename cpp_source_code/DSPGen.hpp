@@ -255,7 +255,7 @@ public:
         planet.mod_x = (double)themeProto1.ModX.x + rand3 * ((double)themeProto1.ModX.y - (double)themeProto1.ModX.x);
         planet.mod_y = (double)themeProto1.ModY.x + rand4 * ((double)themeProto1.ModY.y - (double)themeProto1.ModY.x);
 
-
+		planet.display_name = themeProto1.DisplayName;
         planet.style = theme_seed % 60;
         planet.type = themeProto1.PlanetType;
         planet.ionHeight = themeProto1.IonHeight;

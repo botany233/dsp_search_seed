@@ -4,4 +4,4 @@
 
 using namespace nlohmann;
 
-bool check_galaxy(const GalaxyStruct& galaxy_data,const json& galaxy_condition);
+bool check_galaxy(const GalaxyStructSimple& galaxy_data,const json& galaxy_condition);

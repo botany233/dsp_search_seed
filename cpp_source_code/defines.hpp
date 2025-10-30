@@ -145,10 +145,17 @@ public:
     PlanetData* orbitAroundPlanet = NULL;
     std::vector<int> gasItems;
     std::vector<float> gasSpeeds;
+	std::string display_name;
 
     inline float realRadius() {
         return radius * scale;
     }
+
+	inline float get_ion_enhance() {
+		float real_radius = realRadius();
+		float temp = real_radius + ionHeight * 0.6f;
+		return sqrt(temp*temp-real_radius*real_radius)/temp;
+	}
 
     std::vector<std::string> GetPlanetSingularityVector()
     {
@@ -273,35 +280,35 @@ public:
 		if(type == EStarType::GiantStar)
 		{
 			if(spectr <= ESpectrType::K)
-				return 0;
+				return 0; //红巨星
 			else if(spectr <= ESpectrType::F)
-				return 1;
+				return 1; //黄巨星
 			else if((spectr != ESpectrType::A))
-				return 2;
+				return 2; //蓝巨星
 			else
-				return 3;
+				return 3; //白巨星
 		} else if(type == EStarType::WhiteDwarf)
-			return 4;
+			return 4; //白矮星
 		else if(type == EStarType::NeutronStar)
-			return 5;
+			return 5; //中子星
 		else if(type == EStarType::BlackHole)
-			return 6;
+			return 6; //黑洞
 		else if(type == EStarType::MainSeqStar)
 		{
 			if(spectr == ESpectrType::A)
-				return 7;
+				return 7; //A型恒星
 			else if(spectr == ESpectrType::B)
-				return 8;
+				return 8; //B型恒星
 			else if(spectr == ESpectrType::F)
-				return 9;
+				return 9; //F型恒星
 			else if(spectr == ESpectrType::G)
-				return 10;
+				return 10; //G型恒星
 			else if(spectr == ESpectrType::K)
-				return 11;
+				return 11; //K型恒星
 			else if(spectr == ESpectrType::M)
-				return 12;
+				return 12; //M型恒星
 			else if(spectr == ESpectrType::O)
-				return 13;
+				return 13; //O型恒星
 			else
 				return 14;
 		} else
