@@ -22,8 +22,8 @@ class ViewerInterface(QFrame):
 
         self.sort_thread = SortThread(self)
         self.sort_thread.label_text.connect(self.progress_label.setText)
-        self.sort_thread.completed.connect(self._on_sort_completed)
-        self.sort_thread.finished.connect(self._on_sort_finished)
+        self.sort_thread.completed.connect(self.__on_sort_completed)
+        self.sort_thread.finished.connect(self.__on_sort_finished)
 
     def __init_left(self):
         self.leftWidget = QWidget()
@@ -37,7 +37,7 @@ class ViewerInterface(QFrame):
         self.leftLayout.addWidget(self.seed_scroll)
         self.seed_scroll.itemSelectionChanged.connect(self.__on_select_seed_change)
 
-        self.seed_text = SeedText(self.seed_list)
+        self.seed_text = SeedText(self.seed_list, self.max_seed)
         self.seed_text.setAlignment(Qt.AlignBottom)
         self.leftLayout.addWidget(self.seed_text)
 
@@ -105,13 +105,13 @@ class ViewerInterface(QFrame):
     def __on_stop_button_clicked(self) -> None:
         self.sort_thread.terminate()
 
-    def _on_sort_finished(self) -> None:
+    def __on_sort_finished(self) -> None:
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.delete_button.setEnabled(True)
         self.seed_button.setEnabled(True)
 
-    def _on_sort_completed(self) -> None:
+    def __on_sort_completed(self) -> None:
         self.progress_label.setText("排序中...")
         self.seed_scroll.do_sort(self.sort_order_switch.isChecked())
         self.progress_label.setText("排序完成！")
