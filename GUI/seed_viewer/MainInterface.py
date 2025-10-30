@@ -47,27 +47,24 @@ class ViewerInterface(QFrame):
         self.delete_button.clicked.connect(self.__on_delete_button_clicked)
         self.leftLayout.addWidget(self.delete_button)
 
-        self.add_button = PushButton("导入种子")
-        self.add_button.setFixedHeight(30)
-        self.add_button.clicked.connect(self.__on_add_button_clicked)
-        self.leftLayout.addWidget(self.add_button)
-
         self.manual_add_button = PushButton("手动加入种子")
         self.manual_add_button.setFixedHeight(30)
         self.manual_add_button.clicked.connect(self.__on_manual_add_button_clicked)
         self.leftLayout.addWidget(self.manual_add_button)
 
+        self.add_button = PushButton("导入种子")
+        self.add_button.setFixedHeight(30)
+        self.add_button.clicked.connect(self.__on_add_button_clicked)
+        self.leftLayout.addWidget(self.add_button)
+
         self.seed_text.fresh()
 
     def __init_middle(self):
-        self.middle_layout = QVBoxLayout()
-        self.middle_layout.setContentsMargins(0, 0, 0, 60)
-        self.mainLayout.addLayout(self.middle_layout)
         self.astro_tree = AstroTree()
         self.astro_tree.setBorderVisible(True)
         self.astro_tree.setBorderRadius(8)
         self.astro_tree.itemClicked.connect(self.__on_select_astro)
-        self.middle_layout.addWidget(self.astro_tree)
+        self.mainLayout.addWidget(self.astro_tree)
 
     def __init_right(self):
         self.rightLayout = QVBoxLayout()
