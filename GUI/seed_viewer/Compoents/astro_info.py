@@ -4,11 +4,12 @@ from qfluentwidgets import TitleLabel, BodyLabel, CaptionLabel
 from .astro_tree import GalaxyTreeWidgetItem, StarTreeWidgetItem, PlanetTreeWidgetItem
 from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c
 
-class AstroInfo(QWidget):
+class AstroInfo(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.main_layout = QVBoxLayout(self)
         self.main_widget = None
+        self.setStyleSheet("""AstroInfo{border: 1px solid #ededed; border-radius: 8px;}""")
 
     def fresh(self, item: QTreeWidgetItem|None) -> None:
         if self.main_widget is not None:

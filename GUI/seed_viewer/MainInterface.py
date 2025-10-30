@@ -60,9 +60,14 @@ class ViewerInterface(QFrame):
         self.seed_text.fresh()
 
     def __init_middle(self):
+        self.middle_layout = QVBoxLayout()
+        self.middle_layout.setContentsMargins(0, 0, 0, 60)
+        self.mainLayout.addLayout(self.middle_layout)
         self.astro_tree = AstroTree()
+        self.astro_tree.setBorderVisible(True)
+        self.astro_tree.setBorderRadius(8)
         self.astro_tree.itemClicked.connect(self.__on_select_astro)
-        self.mainLayout.addWidget(self.astro_tree)
+        self.middle_layout.addWidget(self.astro_tree)
 
     def __init_right(self):
         self.rightLayout = QVBoxLayout()
