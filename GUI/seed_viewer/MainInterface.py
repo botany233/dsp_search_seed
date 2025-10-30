@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QApplication, QGridLayout
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem
 from PySide6.QtCore import Qt
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from csv import reader
@@ -55,21 +55,14 @@ class ViewerInterface(QFrame):
 
     def __init_middle(self):
         self.astro_tree = AstroTree()
+        self.astro_tree.itemClicked.connect(self.__on_select_astro)
         self.mainLayout.addWidget(self.astro_tree)
-        # self.middleLayout = QVBoxLayout()
-        # self.mainLayout.addLayout(self.middleLayout)
-
-        # middle = TitleLabel("中间区域")
-        # middle.setAlignment(Qt.AlignCenter)
-        # self.middleLayout.addWidget(middle)
 
     def __init_right(self):
         self.rightLayout = QVBoxLayout()
         self.mainLayout.addLayout(self.rightLayout)
 
-        self.infoLayout = QVBoxLayout()
-
-        self.infoLayout.addWidget(TitleLabel("信息区域"), alignment=Qt.AlignCenter)
+        self.astro_info = AstroInfo()
 
         self.buttonsLayout = QGridLayout()
 
@@ -80,13 +73,13 @@ class ViewerInterface(QFrame):
 
         self.progress_label = BodyLabel("进度: 0/0 (0%)")
 
-        self.start_button = PushButton("开始搜索")
+        self.start_button = PushButton("开始排序")
         self.start_button.clicked.connect(self.__on_start_button_clicked)
-        self.stop_button = PushButton("停止搜索")
+        self.stop_button = PushButton("停止排序")
         self.stop_button.clicked.connect(self.__on_stop_button_clicked)
         self.stop_button.setEnabled(False)
 
-        self.rightLayout.addLayout(self.infoLayout)
+        self.rightLayout.addWidget(self.astro_info)
         self.rightLayout.addStretch()
         self.rightLayout.addLayout(self.buttonsLayout)
 
@@ -127,7 +120,9 @@ class ViewerInterface(QFrame):
         seed, star_num = self.seed_scroll.get_select_seed()
         galaxy_data = get_galaxy_data_c(seed, star_num)
         self.astro_tree.fresh(galaxy_data)
-        # print("已选中：", seed, star_num)
+
+    def __on_select_astro(self, item: QTreeWidgetItem, column: int) -> None:
+        self.astro_info.fresh(item)
 
     def __on_delete_button_clicked(self) -> None:
         if self.sort_thread.isRunning():

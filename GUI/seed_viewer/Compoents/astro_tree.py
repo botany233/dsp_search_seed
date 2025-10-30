@@ -53,6 +53,7 @@ class GalaxyTreeWidgetItem(QTreeWidgetItem):
         else:
             super().__init__(parent)
         self.root = root
+        self.galaxy_data = galaxy_data
 
         show_text = []
         show_text.append(str(galaxy_data.seed))
@@ -73,6 +74,7 @@ class StarTreeWidgetItem(QTreeWidgetItem):
         else:
             super().__init__(parent)
         self.root = root
+        self.star_data = star_data
 
         show_text = []
         show_text.append(f"{star_data.dyson_lumino:.2f}L")
@@ -97,6 +99,7 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
         else:
             super().__init__(parent)
         self.root = root
+        self.planet_data = planet_data
 
         show_text = []
         if planet_data.is_in_dsp:

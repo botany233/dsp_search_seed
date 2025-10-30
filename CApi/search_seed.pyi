@@ -23,6 +23,7 @@ class StarData:
     planets: list[PlanetData]
     veins: list[int]
     gas_veins: list[float]
+    liquid: list[int]
 
 class GalaxyData:
     seed: int
@@ -32,6 +33,7 @@ class GalaxyData:
     gas_veins: list[float]
     planet_type_nums: list[int]
     star_type_nums: list[int]
+    liquid: list[int]
 
 def get_galaxy_data_c(seed:int, star_num:int) -> GalaxyData: ...
 def check_batch_c(start_seed:int, end_seed:int, start_star_num:int, end_star_num:int, galaxy_condition:str, galaxy_condition_simple:str) -> list: ...
