@@ -77,7 +77,6 @@ class StarTreeWidgetItem(QTreeWidgetItem):
         self.star_data = star_data
 
         show_text = []
-        show_text.append(f"{star_data.dyson_lumino:.2f}L")
         show_text.append(f"{star_data.distance:.1f}LY")
 
         for i in range(6, 14):
