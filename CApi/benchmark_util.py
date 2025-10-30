@@ -1,4 +1,4 @@
-from .c_util import check_batch_py
+from .check_seed import check_batch_py
 from .search_seed import check_batch_c
 
 def batch_generator_py(galaxy_condition:dict,
