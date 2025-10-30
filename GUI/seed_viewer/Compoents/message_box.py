@@ -15,6 +15,7 @@ class ManualAddMessageBox(MessageBoxBase):
 
         self.warning_label = CaptionLabel(self)
         self.viewLayout.addWidget(self.warning_label)
+        self.buttonGroup.setMinimumWidth(370)
 
         self.seed_list = seed_list
 
