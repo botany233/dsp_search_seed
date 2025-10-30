@@ -1,7 +1,7 @@
 class PlanetData:
+    name: str
     type: str
     singularity: list[str]
-    id: int
     seed: int
     lumino: float
     wind: float
@@ -14,8 +14,8 @@ class PlanetData:
     gas_veins: list[float]
 
 class StarData:
-    type: str
     name: str
+    type: str
     seed: int
     distance: float
     dyson_lumino: float

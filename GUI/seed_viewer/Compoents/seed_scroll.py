@@ -1,6 +1,5 @@
 from PySide6.QtWidgets import QTableWidgetItem, QApplication
 from qfluentwidgets import TableWidget, TableItemDelegate
-from PySide6.QtCore import Qt
 
 class SeedScroll(TableWidget):
     def __init__(self, seed_list: list[int, int, float|int]):

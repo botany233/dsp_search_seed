@@ -4,6 +4,7 @@ from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from csv import reader
 from .Compoents import *
 from .sort_seed import SortThread
+from CApi import get_galaxy_data_c
 
 class ViewerInterface(QFrame):
     def __init__(self, parent=None):
@@ -53,12 +54,14 @@ class ViewerInterface(QFrame):
         self.seed_text.fresh()
 
     def __init_middle(self):
-        self.middleLayout = QVBoxLayout()
-        self.mainLayout.addLayout(self.middleLayout)
+        self.astro_tree = AstroTree()
+        self.mainLayout.addWidget(self.astro_tree)
+        # self.middleLayout = QVBoxLayout()
+        # self.mainLayout.addLayout(self.middleLayout)
 
-        middle = TitleLabel("中间区域")
-        middle.setAlignment(Qt.AlignCenter)
-        self.middleLayout.addWidget(middle)
+        # middle = TitleLabel("中间区域")
+        # middle.setAlignment(Qt.AlignCenter)
+        # self.middleLayout.addWidget(middle)
 
     def __init_right(self):
         self.rightLayout = QVBoxLayout()
@@ -122,7 +125,9 @@ class ViewerInterface(QFrame):
 
     def __on_select_seed_change(self):
         seed, star_num = self.seed_scroll.get_select_seed()
-        print("已选中：", seed, star_num)
+        galaxy_data = get_galaxy_data_c(seed, star_num)
+        self.astro_tree.fresh(galaxy_data)
+        # print("已选中：", seed, star_num)
 
     def __on_delete_button_clicked(self) -> None:
         if self.sort_thread.isRunning():
