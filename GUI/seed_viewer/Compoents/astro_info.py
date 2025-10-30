@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem
 from PySide6.QtCore import Qt
-from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
+from qfluentwidgets import TitleLabel, BodyLabel, CaptionLabel
 from .astro_tree import GalaxyTreeWidgetItem, StarTreeWidgetItem, PlanetTreeWidgetItem
 from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c
 

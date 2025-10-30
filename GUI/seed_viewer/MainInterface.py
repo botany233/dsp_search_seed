@@ -1,5 +1,6 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QDialog
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from csv import reader
 from .Compoents import *
@@ -35,7 +36,7 @@ class ViewerInterface(QFrame):
 
         self.seed_scroll = SeedScroll(self.seed_list)
         self.leftLayout.addWidget(self.seed_scroll)
-        self.seed_scroll.itemSelectionChanged.connect(self.__on_select_seed_change)
+        self.seed_scroll.itemClicked.connect(self.__on_select_seed_change)
 
         self.seed_text = SeedText(self.seed_list, self.max_seed)
         self.seed_text.setAlignment(Qt.AlignBottom)
@@ -46,10 +47,15 @@ class ViewerInterface(QFrame):
         self.delete_button.clicked.connect(self.__on_delete_button_clicked)
         self.leftLayout.addWidget(self.delete_button)
 
-        self.seed_button = PushButton("导入种子")
-        self.seed_button.setFixedHeight(30)
-        self.seed_button.clicked.connect(self.__on_seed_button_clicked)
-        self.leftLayout.addWidget(self.seed_button)
+        self.add_button = PushButton("导入种子")
+        self.add_button.setFixedHeight(30)
+        self.add_button.clicked.connect(self.__on_add_button_clicked)
+        self.leftLayout.addWidget(self.add_button)
+
+        self.manual_add_button = PushButton("手动加入种子")
+        self.manual_add_button.setFixedHeight(30)
+        self.manual_add_button.clicked.connect(self.__on_manual_add_button_clicked)
+        self.leftLayout.addWidget(self.manual_add_button)
 
         self.seed_text.fresh()
 
@@ -90,6 +96,16 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.start_button, 2, 0)
         self.buttonsLayout.addWidget(self.stop_button, 2, 1)
 
+    def __on_manual_add_button_clicked(self) -> None:
+        dlg = ManualAddMessageBox(self.seed_list, self)
+        if dlg.exec() != QDialog.Accepted:
+            return
+
+        seed_id, star_num = int(dlg.seed_id.text()), int(dlg.star_num.text())
+        self.seed_list.append([seed_id, star_num, 0])
+        self.seed_scroll.add_row(seed_id, star_num)
+        self.seed_text.fresh()
+
     def __on_start_button_clicked(self) -> None:
         if self.sort_thread.isRunning():
             return
@@ -99,7 +115,7 @@ class ViewerInterface(QFrame):
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
         self.delete_button.setEnabled(False)
-        self.seed_button.setEnabled(False)
+        self.add_button.setEnabled(False)
         self.sort_thread.start()
 
     def __on_stop_button_clicked(self) -> None:
@@ -109,7 +125,7 @@ class ViewerInterface(QFrame):
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.delete_button.setEnabled(True)
-        self.seed_button.setEnabled(True)
+        self.add_button.setEnabled(True)
 
     def __on_sort_completed(self) -> None:
         self.progress_label.setText("排序中...")
@@ -130,7 +146,7 @@ class ViewerInterface(QFrame):
         self.seed_scroll.delete_select()
         self.seed_text.fresh()
 
-    def __on_seed_button_clicked(self) -> None:
+    def __on_add_button_clicked(self) -> None:
         if self.sort_thread.isRunning():
             return
 
