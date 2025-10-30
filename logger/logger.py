@@ -77,4 +77,12 @@ if __name__ == "__main__":
             log.error("An exception occurred")
     except Exception:
         pass
-            
+    try:
+        raise ValueError("Another example exception")
+    except Exception:
+        log.critical("A critical exception occurred")
+    try:
+        raise Exception("A general exception")
+    except Exception:
+        pass
+    log.error("A simple error message without exception")
