@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDi
 from PySide6.QtCore import Qt
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from .astro_tree import GalaxyTreeWidgetItem, StarTreeWidgetItem, PlanetTreeWidgetItem
-from CApi import GalaxyData, StarData, PlanetData, vein_names_c, planet_types_c, star_types_c
+from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c
 
 class AstroInfo(QWidget):
     def __init__(self, parent=None):
@@ -33,15 +33,12 @@ class GalaxyInfo(QWidget):
         sub_title_label = BodyLabel(f"{data.star_num}星")
         self.main_layout.addWidget(sub_title_label)
 
+        text_layout = QHBoxLayout()
         veins_label = CaptionLabel(get_veins_text(data.veins, data.gas_veins, data.liquid))
-        self.main_layout.addWidget(veins_label)
-
-        other_layout = QHBoxLayout()
-        planet_label = CaptionLabel("\n".join([f"{planet_types_c[i]}: {data.planet_type_nums[i]}" for i in range(23)]))
-        other_layout.addWidget(planet_label)
-        star_label = CaptionLabel("\n".join([f"{star_types_c[i]}: {data.star_type_nums[i]}" for i in range(12)]))
-        other_layout.addWidget(star_label)
-        self.main_layout.addLayout(other_layout)
+        text_layout.addWidget(veins_label)
+        star_label = CaptionLabel("\n".join([f"{star_types_c[i]}: {data.star_type_nums[i]}" for i in range(14)]))
+        text_layout.addWidget(star_label)
+        self.main_layout.addLayout(text_layout)
 
 class StarInfo(QWidget):
     def __init__(self, data: StarData, parent=None):
