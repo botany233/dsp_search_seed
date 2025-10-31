@@ -48,6 +48,8 @@ from config.cfg_dict_tying import (
 )
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid
+from GUI.dsp_icons import AppIcons
+
 
 star_types = ["无限制"] + star_types
 planet_types = ["无限制"] + planet_types
@@ -130,11 +132,11 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.addButton = ToolButton(QIcon("./assets/planet.png"))
+        self.addButton = ToolButton(AppIcons.STAR)
         self.addButton.setToolTip("添加恒星条件")
         self.delButton = ToolButton(FluentIcon.DELETE)
         self.delButton.setToolTip("点击删除该项及其子项")
-        self.addPlanetButton = ToolButton(QIcon("./assets/planet.png"))
+        self.addPlanetButton = ToolButton(AppIcons.PLANET)
         self.addPlanetButton.setToolTip("添加星球条件")
 
         self.mainLayout.addWidget(self.addButton)
@@ -164,7 +166,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons.delButton.setHidden(True)
         self.manageButtons.addButton.setHidden(False)
-        self.manageButtons.addButton.setIcon(QIcon("./assets/star.png"))
+        self.manageButtons.addButton.setIcon(AppIcons.STAR)
         self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
 
