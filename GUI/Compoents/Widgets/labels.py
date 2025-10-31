@@ -1,5 +1,5 @@
 __all__ = ["AlwaysShowLabel", "GlowLabelBase"]
-from qfluentwidgets import FluentLabelBase, BodyLabel, getFont, TitleLabel
+from qfluentwidgets import FluentLabelBase, BodyLabel, getFont, CaptionLabel
 from PySide6.QtCore import Signal, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -25,7 +25,7 @@ class AlwaysShowLabel(BodyLabel):
 
 
 class GlowLabelBase():
-    
+    outline_alpha = 100
     def setup_glow_effect(self):
         # 创建阴影效果
         shadow_effect = QGraphicsDropShadowEffect(self)
@@ -41,17 +41,9 @@ class GlowLabelBase():
             }
         """) # raw #F5D00A
 
-    def setFontSize(self, size: int):
-        font = self.font()
-        font.setPointSize(size)
-        self.setFont(font)
 
-    def setOutlineColor(self, color):
-        self.outline_color = color
-        self.update()
-
-    def setOutlineWidth(self, width):
-        self.outline_width = width
+    def setOutlineAlpha(self, alpha: int):
+        self.outline_alpha = alpha
         self.update()
 
     def paintEvent(self, event, /):
@@ -63,7 +55,7 @@ class GlowLabelBase():
         
         # 添加字体描边效果
 
-        painter.setPen(QColor(0, 0, 0, 50)) # 半透明黑色描边
+        painter.setPen(QColor(0, 0, 0, self.outline_alpha)) # 半透明黑色描边
         offsets = [(-1, -1), (-1, 0), (-1, 1),
                 (0, -1),         (0, 1),
                 (1, -1),  (1, 0), (1, 1)]
@@ -75,21 +67,21 @@ class GlowLabelBase():
         super().paintEvent(event)
 
 
-class GlowLabel(TitleLabel, GlowLabelBase):
+class GlowLabel(CaptionLabel, GlowLabelBase):
     """后继承`GlowLabelBase` 有辉光无描边"""
     
     def _init(self):
-        ret =  super()._init()
+        super()._init()
         self.setup_glow_effect()
-        return ret
+        return self
     
 
-class GlowRevLabel(GlowLabelBase, TitleLabel):
+class GlowRevLabel(GlowLabelBase, CaptionLabel):
     """前继承`GlowLabelBase` 有描边"""
     def _init(self):
-        ret =  super()._init()
+        super()._init()
         self.setup_glow_effect()
-        return ret
+        return self
 
 if __name__ == "__main__":
     from PySide6.QtWidgets import QApplication, QVBoxLayout, QWidget, QFrame, QHBoxLayout

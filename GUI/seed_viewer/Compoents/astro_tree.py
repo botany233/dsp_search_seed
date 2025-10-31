@@ -1,5 +1,6 @@
 from typing import Any
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QEvent, QObject, Qt
+from PySide6.QtGui import QMouseEvent
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
@@ -10,9 +11,52 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QGridLayout,
 )
-from qfluentwidgets import TreeWidget, CaptionLabel
+from qfluentwidgets import TreeWidget, CaptionLabel, BodyLabel
 from CApi import GalaxyData, StarData, PlanetData
-from GUI import vein_names
+from GUI import vein_names, singularity
+
+COLORFUL_TEXTS = set(
+    [
+        "全包",
+        "全接收",
+    ]
+)
+
+COLORFUL_TEXTS.update(singularity)
+
+class IgnoreLabel(CaptionLabel):
+
+    def _init(self):
+        super()._init()
+        self.setTextInteractionFlags(Qt.NoTextInteraction)
+        self.setFocusPolicy(Qt.NoFocus)
+        return self
+    
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
+        event.ignore()
+        return True
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
+        event.ignore()
+        return None
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        event.ignore()
+        return None
+    def mouseMoveEvent(self, ev: QMouseEvent) -> None:
+        ev.ignore()
+        return None
+    
+    def set_texts(self, texts: list[str] | str) -> None:
+        if isinstance(texts, str):
+            if texts in COLORFUL_TEXTS:
+                texts = f"<font color=#409EFF>{texts}</font>"
+            self.setText(texts)
+            return
+        else:
+            for i, text in enumerate(texts):
+                if text in COLORFUL_TEXTS:
+                    texts[i] = f"<font color=#409EFF>{text}</font>"
+            self.setText("|".join(texts))
+
 
 class AstroTree(TreeWidget):
     def __init__(self, parent=None):
@@ -22,6 +66,7 @@ class AstroTree(TreeWidget):
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
         self.setColumnCount(2)
+
 
         self.setHeaderLabels(["类型", "信息"])
 
@@ -60,13 +105,15 @@ class GalaxyTreeWidgetItem(QTreeWidgetItem):
         show_text.append(str(galaxy_data.star_num))
 
         self.setText(0, "星系")
-        self.setText(1, "|".join(show_text))
+        
+        info_label = IgnoreLabel()
+        info_label.set_texts(show_text)
+        self.root.setItemWidget(self, 1, info_label)
 
         for star_data in galaxy_data.stars:
             self.addChild(StarTreeWidgetItem(self.root, star_data, self))
 
         self.setExpanded(True)
-
 class StarTreeWidgetItem(QTreeWidgetItem):
     def __init__(self, root: "AstroTree", star_data: StarData, parent = None):
         if parent is None:
@@ -84,7 +131,9 @@ class StarTreeWidgetItem(QTreeWidgetItem):
                 show_text.append(vein_names[i])
 
         self.setText(0, star_data.type)
-        self.setText(1, "|".join(show_text))
+        info_label = IgnoreLabel()
+        info_label.set_texts(show_text)
+        self.root.setItemWidget(self, 1, info_label)
 
         for planet_data in star_data.planets:
             self.addChild(PlanetTreeWidgetItem(self.root, planet_data, self))
@@ -119,6 +168,8 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
                 show_text.append(vein_names[i])
 
         self.setText(0, planet_data.type)
-        self.setText(1, "|".join(show_text))
+        info_label = IgnoreLabel()
+        info_label.set_texts(show_text)
+        self.root.setItemWidget(self, 1, info_label)
 
         self.setExpanded(True)
