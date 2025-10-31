@@ -85,9 +85,32 @@ class InfoBase(QWidget):
 
         self.info_layout = QHBoxLayout()
 
+        self.veins_V_layout = QVBoxLayout()
+        self.info_layout.addLayout(self.veins_V_layout)
+
         self.veins_layout = QGridLayout()
-        self.info_layout.addLayout(self.veins_layout)
+
         self.veins_layout.setVerticalSpacing(0)
+
+        # 在veins_layout上方添加分界线
+        self.top_separator = QFrame()
+        self.top_separator.setFrameShape(QFrame.HLine)
+        self.top_separator.setFrameShadow(QFrame.Sunken)
+        self.top_separator.setLineWidth(100)
+        self.top_separator.setMidLineWidth(0)
+
+        # 在veins_layout下方添加分界线
+        self.bottom_separator = QFrame()
+        self.bottom_separator.setFrameShape(QFrame.HLine)
+        self.bottom_separator.setFrameShadow(QFrame.Sunken)
+        self.bottom_separator.setLineWidth(100)
+        self.bottom_separator.setMidLineWidth(0)
+
+        self.veins_V_layout.addWidget(self.top_separator)
+
+        self.veins_V_layout.addLayout(self.veins_layout)
+
+        self.veins_V_layout.addWidget(self.bottom_separator)
 
         self.main_layout.addLayout(self.info_layout)
 
@@ -145,6 +168,7 @@ class InfoBase(QWidget):
 class GalaxyInfo(InfoBase):
     def __init__(self, data: GalaxyData, parent=None):
         super().__init__(data, parent)
+        self.bottom_separator.hide()
         self.title_label.setText("星系信息")
         self.sub_title_label.setText(f"{data.star_num}星")
 
