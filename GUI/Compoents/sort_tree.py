@@ -431,39 +431,39 @@ class SortTree(TreeWidget):
 
     def on_custom_context_menu_requested(self, pos: QPoint):
         item = self.itemAt(pos)
+        if item is None:
+            return
         menu = RoundMenu("test", self)
-        if item is not None:
-            if item is self.leaf:
-                del_action = Action("重置项")
-            else:
-                del_action = Action("删除项")
+        if not isinstance(item, GalaxyTreeWidgetItem):
+            del_action = Action("删除项")
             del_action.triggered.connect(
                 lambda: self.on_menu_del_action_triggered(item)
             )
             menu.addAction(del_action)
+
         if not isinstance(item, PlanetTreeWidgetItem):
-            add_action = Action("添加子项")
+            add_action = Action("添加星球条件")
             add_action.triggered.connect(
                 lambda: self.on_menu_add_action_triggered(item)
             )
             menu.addAction(add_action)
+        if isinstance(item, GalaxyTreeWidgetItem):
+            add_star_action = Action("添加恒星条件")
+            add_star_action.triggered.connect(
+                lambda: self.on_menu_add_star_action_triggered(item)
+            )
+            menu.addAction(add_star_action)
         pos = QPoint(pos.x() + 10, pos.y() + 30)
         menu.exec(self.mapToGlobal(pos))
 
-    def on_menu_del_action_triggered(self, item: QTreeWidgetItem):
-        if item is self.leaf:
-            return
-        if item.parent() is None:
-            self.takeTopLevelItem(self.indexOfTopLevelItem(item))
-            return
-        item.parent().removeChild(item)
+    def on_menu_del_action_triggered(self, item: TreeWidgetItem):
+        item._on_del_button_clicked()
 
-    def on_menu_add_action_triggered(self, item: QTreeWidgetItem):
-        if item is None:
-            leaf = self.addLeaf()
-        else:
-            if hasattr(item, "addLeaf"):
-                leaf = item.addLeaf()
+    def on_menu_add_star_action_triggered(self, item: GalaxyTreeWidgetItem):
+        item.addStarLeaf()
+
+    def on_menu_add_action_triggered(self, item: TreeWidgetItem):
+        item.addPlanetLeaf()
 
     def addLeaf(self, new_galaxy_condition: GalaxyCondition) -> GalaxyTreeWidgetItem:
         self.leaf = GalaxyTreeWidgetItem(self, new_galaxy_condition)
