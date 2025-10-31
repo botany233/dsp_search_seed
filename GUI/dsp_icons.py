@@ -1,21 +1,26 @@
-from PySide6.QtGui import QIcon
+from enum import Enum
+from qfluentwidgets import FluentIconBase
+from qfluentwidgets.common.config import Theme
 
-class DSPIcons:
-    BAMBOO = QIcon("assets/veins/bamboo.png")
-    COAL = QIcon("assets/veins/coal.png")
-    COPPER = QIcon("assets/veins/copper.png")
-    CASIMIR = QIcon("assets/veins/casimir.png")
-    DEUTERIUM = QIcon("assets/veins/deuterium.png")
-    DIAMOND = QIcon("assets/veins/diamond.png")
-    FIREICE = QIcon("assets/veins/fireice.png")
-    GRATING = QIcon("assets/veins/grating.png")
-    HYDROGEN = QIcon("assets/veins/hydrogen.png")
-    IRON = QIcon("assets/veins/iron.png")
-    MAG = QIcon("assets/veins/mag.png")
-    OIL = QIcon("assets/veins/oil.png")
-    RUBBER = QIcon("assets/veins/rubber.png")
-    SILICIUM = QIcon("assets/veins/silicium.png")
-    STONE = QIcon("assets/veins/stone.png")
-    SULPHURIC_ACID = QIcon("assets/veins/sulphuric_acid.png")
-    TITANIUM = QIcon("assets/veins/titanium.png")
-    WATER = QIcon("assets/veins/water.png")
+class DSPIcons(FluentIconBase, Enum):
+    BAMBOO = "bamboo"
+    COAL = "coal"
+    COPPER = "copper"
+    CASIMIR = "casimir"
+    DEUTERIUM = "deuterium"
+    DIAMOND = "diamond"
+    FIREICE = "fireice"
+    GRATING = "grating"
+    HYDROGEN = "hydrogen"
+    IRON = "iron"
+    MAG = "mag"
+    OIL = "oil"
+    RUBBER = "rubber"
+    SILICIUM = "silicium"
+    STONE = "stone"
+    SULPHURIC_ACID = "sulphuric_acid"
+    TITANIUM = "titanium"
+    WATER = "water"
+
+    def path(self, theme=Theme.AUTO):
+        return f'./assets/veins/{self.value}.png'
