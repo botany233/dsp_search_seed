@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
+from datetime import datetime
 from csv import reader
 from .Compoents import *
 from .sort_seed import SortThread
@@ -56,6 +57,11 @@ class ViewerInterface(QFrame):
         self.add_button.setFixedHeight(30)
         self.add_button.clicked.connect(self.__on_add_button_clicked)
         self.leftLayout.addWidget(self.add_button)
+
+        self.export_button = PushButton("导出种子")
+        self.export_button.setFixedHeight(30)
+        self.export_button.clicked.connect(self.__on_export_button_clicked)
+        self.leftLayout.addWidget(self.export_button)
 
         self.seed_text.fresh()
 
@@ -147,6 +153,23 @@ class ViewerInterface(QFrame):
             return
         self.seed_scroll.delete_select()
         self.seed_text.fresh()
+
+    def __on_export_button_clicked(self) -> None:
+        if self.sort_thread.isRunning():
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "保存文件",
+            "export_seed",
+            "CSV Files (*.csv);"
+        )
+
+        table_value = self.seed_scroll.get_table_value()
+        QApplication.processEvents()
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(f"seed_id, star_num, value\n")
+            f.writelines(f"{i[0]}, {i[1]}, {i[2]}\n" for i in table_value)
 
     def __on_add_button_clicked(self) -> None:
         if self.sort_thread.isRunning():

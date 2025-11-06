@@ -26,7 +26,7 @@ class SeedScroll(TableWidget):
         for row in range(len(self.seed_list)):
             for col in range(3):
                 self.setItem(row, col, QTableWidgetItem(str(self.seed_list[row][col])))
-    
+
     def add_row(self, seed: int, star_num: int) -> None:
         row_count = self.rowCount()
         self.setRowCount(row_count + 1)
@@ -60,3 +60,10 @@ class SeedScroll(TableWidget):
         if pop:
             self.removeRow(row)
         return seed, star_num
+
+    def get_table_value(self) -> list[tuple[int, int, float]]:
+        row_count = self.rowCount()
+        data = []
+        for row in range(row_count):
+            data.append((int(self.item(row, 0).text()), int(self.item(row, 1).text()), float(self.item(row, 2).text())))
+        return data

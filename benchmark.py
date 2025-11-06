@@ -43,6 +43,25 @@ def check_seeds_c(seeds: tuple[int, int],
                 with open("result_c.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
+def check_seeds_precise_c(seed_manager: SeedManager,
+                          galaxy_str: str,
+                          galaxy_str_simple: str,
+                          batch_size: int,
+                          max_thread: int,
+                          record_seed: bool):
+    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
+        generator = seed_manager.get_all_seeds(batch_size)
+
+        futures = []
+        for seed_list, star_num_list in generator:
+            futures.append(executor.submit(check_precise_c, seed_list, star_num_list, galaxy_str, galaxy_str_simple))
+
+        for future in futures:
+            result = future.result()
+            if record_seed:
+                with open("result_c_precise.csv", "a") as f:
+                    f.writelines(map(lambda x: f"{x}\n", result))
+
 if __name__ == "__main__":
     from time import perf_counter
     from benchmark_condition import *
@@ -66,12 +85,17 @@ if __name__ == "__main__":
         print(galaxy_str_simple)
         exit()
 
-    seeds = (0, 99999)
+    seeds = (0, 999999)
     star_nums = (64, 64)
     batch_size = 1024
     max_thread = 20
 
     record_seed = 1
+
+    seed_manager = SeedManager()
+    for seed in range(seeds[0], seeds[1]+1):
+        for star_num in range(star_nums[0], star_nums[1]+1):
+            seed_manager.add_seed(seed, star_num)
 
     # flag = perf_counter()
     # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
@@ -80,3 +104,7 @@ if __name__ == "__main__":
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")
+
+    flag = perf_counter()
+    check_seeds_precise_c(seed_manager, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
+    print(f"c++精确搜用时{perf_counter() - flag:.2f}s")
