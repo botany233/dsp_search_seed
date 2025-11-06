@@ -1,5 +1,5 @@
 from enum import Enum
-from qfluentwidgets import FluentIconBase
+from qfluentwidgets import FluentIconBase, getIconColor
 from qfluentwidgets.common.config import Theme
 
 class DSPIcons(FluentIconBase, Enum):
@@ -49,3 +49,13 @@ class DSPIcons(FluentIconBase, Enum):
             "硫酸": DSPIcons.SULPHURIC_ACID,
         }
         return map_dict.get(name, DSPIcons.UNKNOWN)
+
+
+class AppIcons(FluentIconBase, Enum):
+    LOGO = "icon"
+    PLANET = "planet"
+    STAR = "star"
+
+    def path(self, theme=Theme.AUTO) -> str:
+        theme = getIconColor(theme)
+        return f'./assets/{self.value}_{theme}.png'

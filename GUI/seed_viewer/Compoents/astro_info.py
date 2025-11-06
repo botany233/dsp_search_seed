@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
-from qfluentwidgets import TitleLabel, BodyLabel, CaptionLabel, getFont
+from qfluentwidgets import TitleLabel, BodyLabel, CaptionLabel, getFont, isDarkTheme
 from .astro_tree import GalaxyTreeWidgetItem, StarTreeWidgetItem, PlanetTreeWidgetItem
 from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c
 
@@ -48,7 +48,12 @@ class AstroInfo(QFrame):
         super().__init__(parent)
         self.main_layout = QVBoxLayout(self)
         self.main_widget = None
-        self.setStyleSheet("""AstroInfo{border: 1px solid #ededed; border-radius: 8px;}""")
+        lt_qss = """AstroInfo{border: 1px solid #ededed; border-radius: 8px;}"""
+        dk_qss = """AstroInfo{border: 1px solid #2B2B2B; border-radius: 8px;}"""
+        if isDarkTheme():
+            self.setStyleSheet(dk_qss)
+        else:
+            self.setStyleSheet(lt_qss)
 
     def fresh(self, item: QTreeWidgetItem|None) -> None:
         if self.main_widget is not None:

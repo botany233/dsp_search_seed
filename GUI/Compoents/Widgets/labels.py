@@ -1,5 +1,5 @@
 __all__ = ["AlwaysShowLabel", "GlowLabelBase"]
-from qfluentwidgets import FluentLabelBase, BodyLabel, getFont, CaptionLabel
+from qfluentwidgets import FluentLabelBase, BodyLabel, getFont, CaptionLabel, isDarkTheme
 from PySide6.QtCore import Signal, QTimer
 from PySide6.QtWidgets import QGraphicsDropShadowEffect
 from PySide6.QtGui import QColor, QFont, QPainter, QPen
@@ -29,6 +29,7 @@ class GlowLabelBase():
     def setup_glow_effect(self):
         # 创建阴影效果
         shadow_effect = QGraphicsDropShadowEffect(self)
+
         shadow_effect.setBlurRadius(20)  # 辉光半径
         shadow_effect.setColor(QColor(255,231,95))  # 辉光颜色
         shadow_effect.setOffset(0, 0)  # 偏移量为0，实现均匀辉光
@@ -47,12 +48,12 @@ class GlowLabelBase():
         self.update()
 
     def paintEvent(self, event, /):
+        if isDarkTheme():
+            return super().paintEvent(event)
+
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
-        
-        # 获取文本颜色
-        text_color = self.palette().color(self.foregroundRole())
-        
+
         # 添加字体描边效果
 
         painter.setPen(QColor(0, 0, 0, self.outline_alpha)) # 半透明黑色描边

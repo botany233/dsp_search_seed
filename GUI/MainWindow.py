@@ -42,6 +42,8 @@ from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 
 from .seed_viewer.MainInterface import ViewerInterface
+from GUI.dsp_icons import AppIcons
+
 
 import math
 
@@ -51,7 +53,7 @@ class MainWindow(FluentWindow):
         self.setObjectName("MainWindow")
 
         setThemeColor("#409EFF")
-
+        setTheme(Theme.AUTO)
         # 设置字体，提供多个备选
         font_families = [
             "Microsoft YaHei",  # 微软雅黑
@@ -75,14 +77,15 @@ class MainWindow(FluentWindow):
             }
         """)
         self.setWindowTitle("戴森球计划种子搜索查看器 made by 前前&哒哒")
-        self.setWindowIcon(QIcon(r".\assets\icon.png"))
+        self.setWindowIcon(AppIcons.LOGO.icon())
         width: int = 1260
         height: int = width // 16 * 8
         self.resize(width, height)
 
-        qss = """StackedWidget{background-color: #FCFCFC;}"""
-        setCustomStyleSheet(self.stackedWidget, qss, qss)
-        setTheme(Theme.LIGHT)
+        lt_qss = """StackedWidget{background-color: #FCFCFC;}"""
+        dk_qss = """StackedWidget{background-color: #181818;}"""
+        setCustomStyleSheet(self.stackedWidget, lt_qss, dk_qss)
+
         self.setMicaEffectEnabled(True)
         self.titleBar.raise_()
 
