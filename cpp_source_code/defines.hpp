@@ -157,7 +157,7 @@ public:
 		return sqrt(temp*temp-real_radius*real_radius)/temp;
 	}
 
-    std::vector<std::string> GetPlanetSingularityVector()
+    inline std::vector<std::string> GetPlanetSingularityVector()
     {
 		std::vector<std::string> singularityVector;
         if (orbitAround > 0)

@@ -1019,7 +1019,7 @@ public:
             break;
         default:
             star.age = (double)star.mass >= 0.5 ? ((double)star.mass >= 0.8 ? (float)(num2 * 0.699999988079071 + 0.200000002980232) : (float)(num2 * 0.400000005960464 + 0.100000001490116)) : (float)(num2 * 0.119999997317791 + 0.0199999995529652);
-            break;
+			break;
         }
         float num8 = star.lifetime * star.age;
         if ((double)num8 > 5000.0)
@@ -1071,7 +1071,7 @@ public:
         int Seed = dotNet35Random1.Next();
         //birthStar.name = NameGen.RandomName(seed1);
         birthStar.overrideName = "";
-        birthStar.position = VectorLF3::zero;
+        birthStar.position = VectorLF3::zero();
         DotNet35Random dotNet35Random2(Seed);
         double r1 = dotNet35Random2.NextDouble();
         double r2 = dotNet35Random2.NextDouble();
@@ -1110,7 +1110,7 @@ public:
         birthStar.dysonRadius = birthStar.orbitScaler * 0.28f;
         if ((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
             birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
-        birthStar.uPosition = VectorLF3::zero;
+        birthStar.uPosition = VectorLF3::zero();
         if (!fast)
             birthStar.name = NameGen.RandomStarName(seed1, birthStar);
         birthStar.overrideName = "";
@@ -1163,7 +1163,7 @@ public:
     {
         DotNet35Random dotNet35Random(seed);
         double num1 = dotNet35Random.NextDouble();
-        tmp_poses.push_back(VectorLF3::zero);
+        tmp_poses.push_back(VectorLF3::zero());
         int num2 = 6;
         int num3 = 8;
         if (num2 < 1)

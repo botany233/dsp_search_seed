@@ -17,7 +17,15 @@ vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int 
 	bool check_no_veins = galaxy_str == galaxy_str_simple;
 	json galaxy_condition = json::parse(galaxy_str);
 	json galaxy_condition_simple = json::parse(galaxy_str_simple);
-	return check_batch(start_seed,end_seed,start_star_num,end_star_num,galaxy_condition,galaxy_condition_simple,check_no_veins);
+	return check_batch(start_seed, end_seed, start_star_num, end_star_num, galaxy_condition, galaxy_condition_simple, check_no_veins);
+}
+
+vector<string> check_precise_c(vector<int>& seed_vector,vector<int>& star_num_vector,string& galaxy_str,string& galaxy_str_simple)
+{
+	bool check_no_veins = galaxy_str == galaxy_str_simple;
+	json galaxy_condition = json::parse(galaxy_str);
+	json galaxy_condition_simple = json::parse(galaxy_str_simple);
+	return check_precise(seed_vector, star_num_vector, galaxy_condition, galaxy_condition_simple, check_no_veins);
 }
 
 PYBIND11_MODULE(search_seed,m) {
@@ -60,4 +68,5 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("liquid",&GalaxyStruct::liquid);
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("star_num"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("galaxy_condition_simple"));
+	m.def("check_precise_c",&check_precise_c,py::arg("seed_vector"),py::arg("star_num_vector"),py::arg("galaxy_condition"),py::arg("galaxy_condition_simple"));
 }

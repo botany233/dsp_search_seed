@@ -26,3 +26,6 @@ class SeedManager:
                     num = 0
         if num > 0:
             yield current_seed, current_star_num
+
+    def get_seeds_count(self) -> int:
+        return sum(i.count() for i in self.records)
