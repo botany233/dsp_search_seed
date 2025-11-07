@@ -11,6 +11,7 @@ class PlanetData:
     is_in_dsp: bool
     is_on_dsp: bool
     veins: list[int]
+    veins_point: list[int]
     gas_veins: list[float]
 
 class StarData:

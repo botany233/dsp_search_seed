@@ -54,7 +54,10 @@ class SeedScroll(TableWidget):
                 return
 
     def get_select_seed(self, pop = False) -> tuple[int, int]:
-        row = self.selectedIndexes()[0].row()
+        selected_indexes = self.selectedIndexes()
+        if not selected_indexes:
+            return -1, -1
+        row = selected_indexes[0].row()
         seed = int(self.item(row, 0).text())
         star_num = int(self.item(row, 1).text())
         if pop:

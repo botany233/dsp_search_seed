@@ -142,6 +142,8 @@ class ViewerInterface(QFrame):
 
     def __on_select_seed_change(self):
         seed, star_num = self.seed_scroll.get_select_seed()
+        if seed < 0 or star_num < 0:
+            return
         galaxy_data = get_galaxy_data_c(seed, star_num)
         self.astro_tree.fresh(galaxy_data)
 
@@ -164,6 +166,9 @@ class ViewerInterface(QFrame):
             "export_seed",
             "CSV Files (*.csv);"
         )
+
+        if not file_path:
+            return
 
         table_value = self.seed_scroll.get_table_value()
         QApplication.processEvents()
