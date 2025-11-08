@@ -43,25 +43,33 @@ class ViewerInterface(QFrame):
         self.seed_text.setAlignment(Qt.AlignBottom)
         self.leftLayout.addWidget(self.seed_text)
 
+        self.seed_table_button_layout = QHBoxLayout()
+
         self.delete_button = PushButton("删除选中种子")
         self.delete_button.setFixedHeight(30)
         self.delete_button.clicked.connect(self.__on_delete_button_clicked)
-        self.leftLayout.addWidget(self.delete_button)
+        self.seed_table_button_layout.addWidget(self.delete_button)
 
         self.manual_add_button = PushButton("手动加入种子")
         self.manual_add_button.setFixedHeight(30)
         self.manual_add_button.clicked.connect(self.__on_manual_add_button_clicked)
-        self.leftLayout.addWidget(self.manual_add_button)
+        self.seed_table_button_layout.addWidget(self.manual_add_button)
+
+        self.leftLayout.addLayout(self.seed_table_button_layout)
+
+        self.seed_button_layout = QHBoxLayout()
 
         self.add_button = PushButton("导入种子")
         self.add_button.setFixedHeight(30)
         self.add_button.clicked.connect(self.__on_add_button_clicked)
-        self.leftLayout.addWidget(self.add_button)
+        self.seed_button_layout.addWidget(self.add_button)
 
         self.export_button = PushButton("导出种子")
         self.export_button.setFixedHeight(30)
         self.export_button.clicked.connect(self.__on_export_button_clicked)
-        self.leftLayout.addWidget(self.export_button)
+        self.seed_button_layout.addWidget(self.export_button)
+
+        self.leftLayout.addLayout(self.seed_button_layout)
 
         self.seed_text.fresh()
 
