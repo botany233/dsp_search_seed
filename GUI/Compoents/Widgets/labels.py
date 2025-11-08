@@ -26,11 +26,17 @@ class AlwaysShowLabel(BodyLabel):
 
 class GlowLabelBase():
     outline_alpha = 100
+    debug = False
     def setup_glow_effect(self):
+        if isDarkTheme():
+            blur_radius = 3
+        else:
+            blur_radius = 8
+
         # 创建阴影效果
         shadow_effect = QGraphicsDropShadowEffect(self)
 
-        shadow_effect.setBlurRadius(20)  # 辉光半径
+        shadow_effect.setBlurRadius(blur_radius)  # 辉光半径
         shadow_effect.setColor(QColor(255,231,95))  # 辉光颜色
         shadow_effect.setOffset(0, 0)  # 偏移量为0，实现均匀辉光
         
@@ -49,6 +55,9 @@ class GlowLabelBase():
 
     def paintEvent(self, event, /):
         if isDarkTheme():
+            return super().paintEvent(event)
+        
+        if self.debug is True:
             return super().paintEvent(event)
 
         painter = QPainter(self)
@@ -107,9 +116,12 @@ if __name__ == "__main__":
     qframe_layout = QHBoxLayout(qframe)
     qframe_layout.setContentsMargins(0, 0, 0, 0)
 
+    # setTheme(Theme.DARK)
     glow_label2 = GlowLabel("This is a Glow Label \nwith black background\n这是黑色背景下的辉光标签")
+    glow_label2.debug = True
     qframe_layout.addWidget(glow_label2)
     glow_rev_label2 = GlowRevLabel("This is a Glow Label \nwith black background\n这是黑色背景下的辉光标签")
+    glow_rev_label2.debug = True
     qframe_layout.addWidget(glow_rev_label2)
 
     layout.addWidget(qframe)
