@@ -114,7 +114,7 @@ class MainWindow(FluentWindow):
         self.move(x, y)
 
         signal.signal(signal.SIGINT, self.__handle_exit__)
-        self.search_thread = SearchThread(self)
+        self.search_thread = SearchThread(self.seed_manager, self)
         SearchMessages.searchEnd.connect(self._on_search_finish)
 
         self.waiting_ring = WaitRing(self.window())

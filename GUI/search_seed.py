@@ -11,14 +11,16 @@ import json
 
 from config import cfg
 from .config_to_condition import get_galaxy_condition
+from .Compoents.seed_manager import SeedManager
 from logger import log
 
 class SearchThread(QThread):
-    def __init__(self, parent=None):
+    def __init__(self, seed_manager: SeedManager, parent=None):
         super().__init__(parent)
         self.mutex = QMutex()
         self.running = False
         self.end_flag = False
+        self.seed_manager = seed_manager
 
     def terminate(self) -> None:
         self.end_flag = True
@@ -33,14 +35,19 @@ class SearchThread(QThread):
 
             gui_cfg = cfg.copy()
             galaxy_condition = get_galaxy_condition(gui_cfg.galaxy_condition)
-            seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
-            star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
+            save_name = gui_cfg.save_name + ".csv"
             batch_size = gui_cfg.batch_size
             max_thread = gui_cfg.max_thread
-            save_name = gui_cfg.save_name + ".csv"
 
-            if not self.end_flag:
-                self.search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
+            if gui_cfg.search_mode == 0:
+                seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
+                star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
+
+                if not self.end_flag:
+                    self.range_search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
+            else:
+                if not self.end_flag:
+                    self.precise_search(galaxy_condition, batch_size, max_thread, save_name)
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -49,7 +56,60 @@ class SearchThread(QThread):
             self.running = False
             SearchMessages.searchEnd.emit()
 
-    def search(self,
+    def precise_search(self,
+                galaxy_condition: dict,
+                batch_size: int,
+                max_thread: int,
+                save_name: str) -> None:
+        galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
+        galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
+
+        galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
+        galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
+
+        last_valid_seed, valid_seed_num = str(-1), 0
+        total_batch = ceil(self.seed_manager.get_seeds_count() / batch_size)
+        start_time = perf_counter()
+        with open(save_name, "a", encoding="utf-8") as f:
+            f.write(f"#search seed time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        SearchMessages.search_progress_info.emit(0, total_batch, 0, last_valid_seed, start_time, perf_counter())
+        real_thread = min(max_thread, cpu_count())
+        generator = self.seed_manager.get_all_seeds(batch_size)
+        with ProcessPoolExecutor(max_workers = real_thread) as executor:
+            futures = deque()
+            for _ in range(real_thread * 10):
+                try:
+                    seeds_list, star_num_list = next(generator)
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, galaxy_str_simple))
+                except Exception:
+                    break
+            
+            index = 0
+            while (len(futures) > 0):
+                result = futures.popleft().result()
+                index += 1
+
+                with open(save_name, "a", encoding="utf-8") as f:
+                    f.writelines(map(lambda x: f"{x}\n", result))
+
+                if result:
+                    last_valid_seed = result[-1]
+                    valid_seed_num += len(result)
+                SearchMessages.search_progress_info.emit(index, total_batch, valid_seed_num, last_valid_seed, start_time, perf_counter())
+
+                if self.end_flag:
+                    executor.shutdown(cancel_futures=True)
+                    break
+
+                try:
+                    seeds_list, star_num_list = next(generator)
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, galaxy_str_simple))
+                except Exception:
+                    continue
+            else:
+                SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
+
+    def range_search(self,
                galaxy_condition: dict,
                seeds: tuple[int, int],
                star_nums: tuple[int, int],
