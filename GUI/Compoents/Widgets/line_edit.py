@@ -28,8 +28,11 @@ class LimitLineEdit(LineEdit):
         self.default_value = default_value
         self.empty_invisible = empty_invisible
 
+        self.fresh()
+
+    def fresh(self) -> None:
         config_value = getattr(self.config_obj, self.config_key)
-        if config_value == self.default_value and empty_invisible:
+        if config_value == self.default_value and self.empty_invisible:
             self.setText("")
         else:
             self.setText(str(config_value))

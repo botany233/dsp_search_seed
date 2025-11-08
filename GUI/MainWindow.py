@@ -42,7 +42,6 @@ from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 
 from .seed_viewer.MainInterface import ViewerInterface
-from .TwiceSearchInterface import TwiceSearchInterface
 from GUI.dsp_icons import AppIcons
 
 
@@ -99,12 +98,9 @@ class MainWindow(FluentWindow):
         self.searchLayout = VBoxLayout(self.searchInterface)
         self.viewerInterface = ViewerInterface(self)
         self.viewerInterface.setObjectName("viewerLayout")
-        self.twiceSearchInterface = TwiceSearchInterface(self)
-        self.twiceSearchInterface.setObjectName("twiceSearchLayout")
 
         self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
         self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
-        self.addSubInterface(self.twiceSearchInterface, icon=FluentIcon.SEARCH_MIRROR, text="二次搜索器")
 
         self.__build__()
 
