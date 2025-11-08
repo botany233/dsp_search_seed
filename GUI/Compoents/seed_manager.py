@@ -5,10 +5,10 @@ class SeedManager:
     def __init__(self):
         self.records = [bitarray(10**8) for _ in range(32, 65)]
 
-    def add_seed(self, seed: int, star_num: int):
+    def add_seed(self, seed: int, star_num: int) -> None:
         self.records[star_num - 32][seed] = 1
 
-    def del_seed(self, seed: int, star_num: int):
+    def del_seed(self, seed: int, star_num: int) -> None:
         self.records[star_num - 32][seed] = 0
 
     def get_all_seeds(self, batch_size: int) -> Generator[tuple[list[int], list[int]], None, None]:
@@ -29,3 +29,7 @@ class SeedManager:
 
     def get_seeds_count(self) -> int:
         return sum(i.count() for i in self.records)
+    
+    def clear(self) -> None:
+        for ba in self.records:
+            ba.setall(0)

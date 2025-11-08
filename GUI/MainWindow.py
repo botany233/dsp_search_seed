@@ -1,4 +1,5 @@
 import signal
+from csv import reader
 from multiprocessing import cpu_count
 from PySide6.QtCore import Qt, QEvent
 from PySide6.QtGui import QColor, QCursor, QFont, QFontDatabase, QIcon
@@ -10,6 +11,7 @@ from PySide6.QtWidgets import (
     QToolTip,
     QTreeWidgetItem,
     QFrame,
+    QFileDialog
 )
 from qfluentwidgets import (
     FluentWindow,
@@ -37,7 +39,7 @@ from logger import log
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
-from .Compoents import UserLayout
+from .Compoents import UserLayout, SeedManager, ImportSeedInfo
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 
@@ -102,6 +104,7 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
         self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
 
+        self.seed_manager = SeedManager()
         self.__build__()
 
         screen = QApplication.primaryScreen()
@@ -143,7 +146,7 @@ class MainWindow(FluentWindow):
         return super().closeEvent(e)
 
     def __init__layout__(self):
-        self.topLayout = QGridLayout()
+        self.topLayout = QHBoxLayout()
         self.searchLayout.addLayout(self.topLayout)
         self.middleLayout = QHBoxLayout()
         self.searchLayout.addLayout(self.middleLayout, stretch=1)
@@ -155,6 +158,11 @@ class MainWindow(FluentWindow):
         self.searchLayout.setContentsMargins(10, 10, 10, 10)
 
     def __init__widgets__(self):
+        self.add_file_button = PushButton("导入种子")
+        self.add_file_button.clicked.connect(self.__on_add_file_button_clicked)
+        self.del_file_button = PushButton("清空种子")
+        self.del_file_button.clicked.connect(self.__on_del_file_button_clicked)
+        self.seed_info_label = ImportSeedInfo(self.seed_manager)
         self.label_seed_range = BodyLabel("种子范围:")
         self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
         # self.input_seed_start.setMinimumWidth(80)
@@ -180,19 +188,23 @@ class MainWindow(FluentWindow):
         self.__init__layout__()
         self.__init__widgets__()
 
-        self.topLayout.addWidget(self.label_seed_range, 0, 0)
-        self.topLayout.addWidget(self.input_seed_start, 0, 1)
-        self.topLayout.addWidget(BodyLabel("至"), 0, 2)
-        self.topLayout.addWidget(self.input_seed_end, 0, 3)
+        self.topLayout.addWidget(self.add_file_button)
+        self.topLayout.addWidget(self.del_file_button)
+        self.topLayout.addWidget(self.seed_info_label)
+
+        self.topLayout.addWidget(self.label_seed_range)
+        self.topLayout.addWidget(self.input_seed_start)
+        self.topLayout.addWidget(BodyLabel("至"))
+        self.topLayout.addWidget(self.input_seed_end)
         # self.topLayout.addWidget(self.seed_step_range, 0, 4)
-        self.topLayout.addWidget(self.label_star_num, 0, 4)
-        self.topLayout.addWidget(self.input_star_num_start, 0, 5)
-        self.topLayout.addWidget(BodyLabel("至"), 0, 6)
-        self.topLayout.addWidget(self.input_star_num_end, 0, 7)
-        self.topLayout.addWidget(self.label_batch_size, 0, 8)
-        self.topLayout.addWidget(self.input_batch_size, 0, 9)
-        self.topLayout.addWidget(self.label_thread_num, 0, 10)
-        self.topLayout.addWidget(self.input_thread_num, 0, 11)
+        self.topLayout.addWidget(self.label_star_num)
+        self.topLayout.addWidget(self.input_star_num_start)
+        self.topLayout.addWidget(BodyLabel("至"))
+        self.topLayout.addWidget(self.input_star_num_end)
+        self.topLayout.addWidget(self.label_batch_size)
+        self.topLayout.addWidget(self.input_batch_size)
+        self.topLayout.addWidget(self.label_thread_num)
+        self.topLayout.addWidget(self.input_thread_num)
 
         self.middleLayout.addWidget(self.tree_view)
 
@@ -226,6 +238,40 @@ class MainWindow(FluentWindow):
     def _on_search_finish(self):
         self.button_start.setEnabled(True)
         self.button_stop.setEnabled(False)
+
+    def __on_add_file_button_clicked(self):
+        if self.search_thread.isRunning():
+            return
+        file_paths, _ = QFileDialog.getOpenFileNames(
+            self,
+            '选择CSV文件',
+            '',
+            'CSV Files (*.csv);'
+        )
+        for file_path in file_paths:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = reader(f)
+                for i, row in enumerate(data):
+                    try:
+                        seed = int(row[0])
+                        star_num = int(row[1])
+                    except Exception:
+                        continue
+
+                    if not (0 <= seed <= 99999999 and 32 <= star_num <= 64):
+                        continue
+
+                    self.seed_manager.add_seed(seed, star_num)
+
+                    if i % 1000 == 0:
+                        QApplication.processEvents()
+        self.seed_info_label.fresh()
+
+    def __on_del_file_button_clicked(self):
+        if self.search_thread.isRunning():
+            return
+        self.seed_manager.clear()
+        self.seed_info_label.fresh()
 
     def __on_button_start_clicked(self):
         if self.search_thread.isRunning():

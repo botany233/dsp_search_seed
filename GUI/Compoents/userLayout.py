@@ -5,6 +5,7 @@ from PySide6.QtCore import QTimer, Qt
 from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, LineEdit
 
 from config import cfg
+from .Widgets.button import ConfigSwitchButton
 
 from GUI.Messenger import SearchMessages
 
@@ -15,6 +16,11 @@ class UserLayout(QVBoxLayout):
 
         self.addLayout(self.userButtonsLayout)
         self.addStretch()
+
+        self.search_mode_switch = ConfigSwitchButton("范围搜索", indicatorPos=1)
+        self.search_mode_switch.setOnText("二次搜索")
+        self.search_mode_switch.set_config(config_obj=cfg.config, config_key="search_mode")
+        self.userButtonsLayout.addWidget(self.search_mode_switch)
 
         self.outputFileLabel = BodyLabel("输出文件名称 ")
         self.userButtonsLayout.addWidget(self.outputFileLabel)
