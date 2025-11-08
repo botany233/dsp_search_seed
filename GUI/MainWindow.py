@@ -120,6 +120,8 @@ class MainWindow(FluentWindow):
         self.waiting_ring = WaitRing(self.window())
         self.waiting_ring.stop()
 
+        self.__switch_search_mode(cfg.config.search_mode)
+
     def _waiting_thread_finish(self, thread) -> bool:
         message_box = MessageBox(
             "有任务正在进行中，是否强制退出？",
@@ -151,6 +153,7 @@ class MainWindow(FluentWindow):
         self.middleLayout = QHBoxLayout()
         self.searchLayout.addLayout(self.middleLayout, stretch=1)
         self.userLayout = UserLayout()
+        self.userLayout.search_mode_switch.checkedChanged.connect(self._on_search_mode_changed)
         self.searchLayout.addLayout(self.userLayout)
         self.buttonLayout = QHBoxLayout()
         self.searchLayout.addStretch()
@@ -189,17 +192,19 @@ class MainWindow(FluentWindow):
         self.__init__widgets__()
 
         self.topLayout.addWidget(self.add_file_button)
-        self.topLayout.addWidget(self.del_file_button)
         self.topLayout.addWidget(self.seed_info_label)
+        self.topLayout.addWidget(self.del_file_button)
 
         self.topLayout.addWidget(self.label_seed_range)
         self.topLayout.addWidget(self.input_seed_start)
-        self.topLayout.addWidget(BodyLabel("至"))
+        self.seed_to_label = BodyLabel("至")
+        self.topLayout.addWidget(self.seed_to_label)
         self.topLayout.addWidget(self.input_seed_end)
         # self.topLayout.addWidget(self.seed_step_range, 0, 4)
         self.topLayout.addWidget(self.label_star_num)
         self.topLayout.addWidget(self.input_star_num_start)
-        self.topLayout.addWidget(BodyLabel("至"))
+        self.star_to_label = BodyLabel("至")
+        self.topLayout.addWidget(self.star_to_label)
         self.topLayout.addWidget(self.input_star_num_end)
         self.topLayout.addWidget(self.label_batch_size)
         self.topLayout.addWidget(self.input_batch_size)
@@ -228,6 +233,37 @@ class MainWindow(FluentWindow):
 
         self.close()
         sys.exit(0)
+
+    def _on_search_mode_changed(self, checked: bool):
+        self.__switch_search_mode(0 if not checked else 1)
+
+    def __switch_search_mode(self, mode: int):
+        if mode == 0:
+            self.label_seed_range.setHidden(False)
+            self.input_seed_start.setHidden(False)
+            self.input_seed_end.setHidden(False)
+            self.label_star_num.setHidden(False)
+            self.input_star_num_start.setHidden(False)
+            self.input_star_num_end.setHidden(False)
+            self.seed_to_label.setHidden(False)
+            self.star_to_label.setHidden(False)
+
+            self.add_file_button.setHidden(True)
+            self.del_file_button.setHidden(True)
+            self.seed_info_label.setHidden(True)
+        else:
+            self.label_seed_range.setHidden(True)
+            self.input_seed_start.setHidden(True)
+            self.input_seed_end.setHidden(True)
+            self.label_star_num.setHidden(True)
+            self.input_star_num_start.setHidden(True)
+            self.input_star_num_end.setHidden(True)
+            self.seed_to_label.setHidden(True)
+            self.star_to_label.setHidden(True)
+
+            self.add_file_button.setHidden(False)
+            self.del_file_button.setHidden(False)
+            self.seed_info_label.setHidden(False)
 
     def _on_display_mode_changed(self, mode):
         if mode == NavigationDisplayMode.MENU:
