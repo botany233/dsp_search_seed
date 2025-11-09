@@ -1,4 +1,4 @@
-__all__ = ["get_galaxy_condition"]
+__all__ = ["config_to_galaxy_condition"]
 
 from config.cfg_dict_tying import (
     GalaxyCondition,
@@ -8,19 +8,24 @@ from config.cfg_dict_tying import (
     VeinsName,
 )
 
-def get_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
+def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
     galaxy_condition = {}
-    if galaxy_cfg.checked and (galaxy_veins := get_veins_dict(galaxy_cfg.veins_condition)):
-        galaxy_condition["veins"] = galaxy_veins
-    galaxy_condition["stars"] = [get_star_condition(star_cfg) for star_cfg in galaxy_cfg.star_condition]
-    galaxy_condition["planets"] = [get_planet_condition(planet_cfg) for planet_cfg in galaxy_cfg.planet_condition]
+    if galaxy_cfg.checked:
+        if (veins := get_veins_dict(galaxy_cfg.veins_condition)):
+            galaxy_condition["veins"] = veins
+        if (veins_point := get_veins_dict(galaxy_cfg.veins_point_condition)):
+            galaxy_condition["veins_point"] = veins_point
+    galaxy_condition["stars"] = [config_to_star_condition(star_cfg) for star_cfg in galaxy_cfg.star_condition]
+    galaxy_condition["planets"] = [config_to_planet_condition(planet_cfg) for planet_cfg in galaxy_cfg.planet_condition]
     return galaxy_condition
 
-def get_star_condition(star_cfg: StarCondition) -> dict:
+def config_to_star_condition(star_cfg: StarCondition) -> dict:
     star_condition = {}
     if star_cfg.checked:
-        if (star_veins := get_veins_dict(star_cfg.veins_condition)):
-            star_condition["veins"] = star_veins
+        if (veins := get_veins_dict(star_cfg.veins_condition)):
+            star_condition["veins"] = veins
+        if (veins_point := get_veins_dict(star_cfg.veins_point_condition)):
+            star_condition["veins_point"] = veins_point
         if star_cfg.star_type != "无限制":
             star_condition["type"] = star_cfg.star_type
         if star_cfg.distance_level >= 0:
@@ -29,14 +34,16 @@ def get_star_condition(star_cfg: StarCondition) -> dict:
             star_condition["lumino"] = star_cfg.lumino_level
         if star_cfg.satisfy_num > 1:
             star_condition["satisfy_num"] = star_cfg.satisfy_num
-    star_condition["planets"] = [get_planet_condition(planet_cfg) for planet_cfg in star_cfg.planet_condition]
+    star_condition["planets"] = [config_to_planet_condition(planet_cfg) for planet_cfg in star_cfg.planet_condition]
     return star_condition
 
-def get_planet_condition(planet_cfg: PlanetCondition) -> dict:
+def config_to_planet_condition(planet_cfg: PlanetCondition) -> dict:
     planet_condition = {}
     if planet_cfg.checked:
-        if (planet_veins := get_veins_dict(planet_cfg.veins_condition)):
-            planet_condition["veins"] = planet_veins
+        if (veins := get_veins_dict(planet_cfg.veins_condition)):
+            planet_condition["veins"] = veins
+        if (veins_point := get_veins_dict(planet_cfg.veins_point_condition)):
+            planet_condition["veins_point"] = veins_point
         if planet_cfg.planet_type != "无限制":
             planet_condition["type"] = planet_cfg.planet_type
         if planet_cfg.singularity != "无限制":

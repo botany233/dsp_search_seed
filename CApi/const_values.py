@@ -5,9 +5,3 @@ star_types_c = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星",
               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 vein_names_c = ["铁", "铜", "硅", "钛", "石", "煤", "油", "可燃冰", "金伯利", "分型硅", "有机晶体", "光栅石", "刺笋结晶", "单极磁石"]
 liquid_types_c = ["无", "水", "硫酸"]
-
-# with open("./assets/indexMap.data", "r") as f:
-#     index_map = [int(i) for i in f.read().splitlines()]
-
-# with open("./assets/vertices.data", "r") as f:
-#     vertices = [[float(coord) for coord in line.split(",")] for line in f.read().splitlines()]

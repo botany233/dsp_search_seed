@@ -29,37 +29,19 @@ def check_seeds_py(seeds: tuple[int, int],
 
 def check_seeds_c(seeds: tuple[int, int],
                   star_nums: tuple[int, int],
-                  galaxy_str: str,
-                  galaxy_str_simple: str,
+                  galaxy_str_1: str,
+                  galaxy_str_2: str,
+                  galaxy_str_3: str,
                   batch_size: int,
                   max_thread: int,
                   record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator_c(galaxy_str, galaxy_str_simple, seeds, star_nums, batch_size)
+        generator = batch_generator_c(galaxy_str_1, galaxy_str_2, galaxy_str_3, seeds, star_nums, batch_size)
 
-        results = executor.map(check_batch_wrapper, generator)
+        results = executor.map(check_batch_wrapper_c, generator)
         for result in results:
             if record_seed:
                 with open("result_c.csv", "a") as f:
-                    f.writelines(map(lambda x: f"{x}\n", result))
-
-def check_seeds_precise_c(seed_manager: SeedManager,
-                          galaxy_str: str,
-                          galaxy_str_simple: str,
-                          batch_size: int,
-                          max_thread: int,
-                          record_seed: bool):
-    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = seed_manager.get_all_seeds(batch_size)
-
-        futures = []
-        for seed_list, star_num_list in generator:
-            futures.append(executor.submit(check_precise_c, seed_list, star_num_list, galaxy_str, galaxy_str_simple))
-
-        for future in futures:
-            result = future.result()
-            if record_seed:
-                with open("result_c_precise.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
 
 if __name__ == "__main__":
@@ -73,16 +55,19 @@ if __name__ == "__main__":
     galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
 
-    galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
-    galaxy_condition_simple = get_galaxy_condition_simple(galaxy_condition)
+    galaxy_condition_3 = change_galaxy_condition_legal(galaxy_condition)
+    galaxy_condition_2 = get_galaxy_condition_2(galaxy_condition_3)
+    galaxy_condition_1 = get_galaxy_condition_1(galaxy_condition_2)
 
-    galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
-    galaxy_str_simple = json.dumps(galaxy_condition_simple, ensure_ascii = False)
+    galaxy_str_3 = json.dumps(galaxy_condition_3, ensure_ascii = False)
+    galaxy_str_2 = json.dumps(galaxy_condition_2, ensure_ascii = False)
+    galaxy_str_1 = json.dumps(galaxy_condition_1, ensure_ascii = False)
 
     print_condition_str = 0
     if print_condition_str:
-        print(galaxy_str)
-        print(galaxy_str_simple)
+        print(galaxy_str_3)
+        print(galaxy_str_2)
+        print(galaxy_str_1)
         exit()
 
     seeds = (0, 999999)
@@ -92,19 +77,10 @@ if __name__ == "__main__":
 
     record_seed = 1
 
-    seed_manager = SeedManager()
-    for seed in range(seeds[0], seeds[1]+1):
-        for star_num in range(star_nums[0], star_nums[1]+1):
-            seed_manager.add_seed(seed, star_num)
-
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, batch_size, max_thread, record_seed)
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    flag = perf_counter()
+    check_seeds_py(seeds, star_nums, galaxy_condition_3, batch_size, max_thread, record_seed)
+    print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_str_1, galaxy_str_2, galaxy_str_3, batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")
-
-    flag = perf_counter()
-    check_seeds_precise_c(seed_manager, galaxy_str, galaxy_str_simple, batch_size, max_thread, record_seed)
-    print(f"c++精确搜用时{perf_counter() - flag:.2f}s")

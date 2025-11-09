@@ -2,11 +2,13 @@ from .search_seed import *
 import copy
 from .const_values import *
 
-__all__ = ["change_galaxy_condition_legal", "get_galaxy_condition_simple"]
+__all__ = ["change_galaxy_condition_legal", "get_galaxy_condition_1", "get_galaxy_condition_2"]
 
 def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     if "veins" in galaxy_condition:
         galaxy_condition["veins"] = change_veins_legal(galaxy_condition["veins"])
+    if "veins_point" in galaxy_condition:
+        galaxy_condition["veins_point"] = change_veins_legal(galaxy_condition["veins_point"])
     galaxy_condition["stars"] = [change_star_condition_legal(star_condition) for star_condition in galaxy_condition.get("stars", [])]
     galaxy_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in galaxy_condition.get("planets", [])]
     return del_empty_condition(galaxy_condition)
@@ -16,6 +18,8 @@ def change_star_condition_legal(star_condition:dict) -> dict:
         star_condition["satisfy_num"] = 1
     if "veins" in star_condition:
         star_condition["veins"] = change_veins_legal(star_condition["veins"])
+    if "veins_point" in star_condition:
+        star_condition["veins_point"] = change_veins_legal(star_condition["veins_point"])
     star_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in star_condition.get("planets", [])]
     return star_condition
 
@@ -26,21 +30,34 @@ def change_planet_condition_legal(planet_condition:dict) -> dict:
         planet_condition["liquid"] = liquid_types_c.index(planet_condition["liquid"])
     if "veins" in planet_condition:
         planet_condition["veins"] = change_veins_legal(planet_condition["veins"])
+    if "veins_point" in planet_condition:
+        planet_condition["veins_point"] = change_veins_legal(planet_condition["veins_point"])
     return planet_condition
 
 def change_veins_legal(veins:dict) -> list:
     return [veins.get(vein_name, 0) for vein_name in vein_names_c]
 
-def get_galaxy_condition_simple(galaxy_condition:dict) -> dict:
-    galaxy_condition_simple = copy.deepcopy(galaxy_condition)
-    galaxy_condition_simple.pop("veins", 0)
-    for star_condition in galaxy_condition_simple.get("stars", []):
+def get_galaxy_condition_2(galaxy_condition_3:dict) -> dict:
+    galaxy_condition_2 = copy.deepcopy(galaxy_condition_3)
+    galaxy_condition_2.pop("veins_point", 0)
+    for star_condition in galaxy_condition_2.get("stars", []):
+        star_condition.pop("veins_point", 0)
+        for planet_condition in star_condition.get("planets", []):
+            planet_condition.pop("veins_point", 0)
+    for planet_condition in galaxy_condition_2.get("planets", []):
+        planet_condition.pop("veins_point", 0)
+    return del_empty_condition(galaxy_condition_2)
+
+def get_galaxy_condition_1(galaxy_condition_2:dict) -> dict:
+    galaxy_condition_1 = copy.deepcopy(galaxy_condition_2)
+    galaxy_condition_1.pop("veins", 0)
+    for star_condition in galaxy_condition_1.get("stars", []):
         star_condition.pop("veins", 0)
         for planet_condition in star_condition.get("planets", []):
             planet_condition.pop("veins", 0)
-    for planet_condition in galaxy_condition_simple.get("planets", []):
+    for planet_condition in galaxy_condition_1.get("planets", []):
         planet_condition.pop("veins", 0)
-    return del_empty_condition(galaxy_condition_simple)
+    return del_empty_condition(galaxy_condition_1)
 
 def del_empty_condition(galaxy_condition:dict) -> dict:
     if "stars" in galaxy_condition:

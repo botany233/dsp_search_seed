@@ -20,6 +20,11 @@ def check_planet_py(planet_data:PlanetData, planet_condition:dict) -> bool:
             return False
         if not all(planet_data.veins[i] >= planet_condition["veins"][i] for i in range(14)):
             return False
+    if "veins_point" in planet_condition:
+        if planet_data.is_gas:
+            return False
+        if not all(planet_data.veins_point[i] >= planet_condition["veins_point"][i] for i in range(14)):
+            return False
     return True
 
 def check_star_py(star_data:StarData, star_condition:dict) -> bool:
@@ -31,6 +36,9 @@ def check_star_py(star_data:StarData, star_condition:dict) -> bool:
         return False
     if "veins" in star_condition:
         if not all(star_data.veins[i] >= star_condition["veins"][i] for i in range(14)):
+            return False
+    if "veins_point" in star_condition:
+        if not all(star_data.veins_point[i] >= star_condition["veins_point"][i] for i in range(14)):
             return False
     if "planets" in star_condition:
         for planet_condition in star_condition["planets"]:
@@ -47,6 +55,9 @@ def check_star_py(star_data:StarData, star_condition:dict) -> bool:
 def check_galaxy_py(galaxy_data:GalaxyData, galaxy_condition:dict) -> bool:
     if "veins" in galaxy_condition:
         if not all(galaxy_data.veins[i] >= galaxy_condition["veins"][i] for i in range(14)):
+            return False
+    if "veins_point" in galaxy_condition:
+        if not all(galaxy_data.veins_point[i] >= galaxy_condition["veins_point"][i] for i in range(14)):
             return False
     if "stars" in galaxy_condition:
         for star_condition in galaxy_condition["stars"]:

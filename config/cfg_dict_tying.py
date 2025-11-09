@@ -47,6 +47,7 @@ class PlanetCondition(BaseModel):
     satisfy_num: int = 1
 
     veins_condition: VeinsCondition = VeinsCondition()
+    veins_point_condition: VeinsCondition = VeinsCondition()
     uuid: UUID = Field(default_factory=uuid4)
 
 class StarCondition(BaseModel):
@@ -59,6 +60,7 @@ class StarCondition(BaseModel):
     satisfy_num: int = 1
 
     veins_condition: VeinsCondition = VeinsCondition()
+    veins_point_condition: VeinsCondition = VeinsCondition()
     planet_condition: list[PlanetCondition] = []
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -67,6 +69,7 @@ class GalaxyCondition(BaseModel):
     checked: bool = True
 
     veins_condition: VeinsCondition = VeinsCondition()
+    veins_point_condition: VeinsCondition = VeinsCondition()
     star_condition: list[StarCondition] = []
     planet_condition: list[PlanetCondition] = []
 
