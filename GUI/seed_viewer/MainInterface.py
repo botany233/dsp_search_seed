@@ -12,7 +12,9 @@ class ViewerInterface(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.seed_list = []
-        self.max_seed = 100000
+        self.seed_buffer = {}
+        self.max_seed = 10000
+        self.max_buffer = 100
 
         self.mainLayout = QHBoxLayout(self)
         self.__init_left()
@@ -152,7 +154,13 @@ class ViewerInterface(QFrame):
         seed, star_num = self.seed_scroll.get_select_seed()
         if seed < 0 or star_num < 0:
             return
-        galaxy_data = get_galaxy_data_c(seed, star_num)
+        if (seed, star_num) in self.seed_buffer:
+            galaxy_data = self.seed_buffer[(seed, star_num)]
+        else:
+            galaxy_data = get_galaxy_data_c(seed, star_num)
+            if len(self.seed_buffer) >= self.max_buffer:
+                self.seed_buffer.pop(next(iter(self.seed_buffer)))
+            self.seed_buffer[(seed, star_num)] = galaxy_data
         self.astro_tree.fresh(galaxy_data)
 
     def __on_select_astro(self, item: QTreeWidgetItem, column: int) -> None:

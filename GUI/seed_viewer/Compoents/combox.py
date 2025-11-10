@@ -8,7 +8,8 @@ from GUI import vein_names, planet_types, star_types
 custom_types = ["例子：种子号", "例子：恒星数", "自定义1", "自定义2", "自定义3"]
 
 sort_types = {
-    "矿物": vein_names,
+    "矿簇": vein_names,
+    "矿脉": vein_names,
     "行星类别": planet_types,
     "恒星类别": star_types,
     "自定义": custom_types

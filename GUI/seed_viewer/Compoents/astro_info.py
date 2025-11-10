@@ -177,7 +177,7 @@ class GalaxyInfo(InfoBase):
         self.title_label.setText("星系信息")
         self.sub_title_label.setText(f"{data.star_num}星")
 
-        self.add_veins(get_veins_list(data.veins, data.gas_veins, data.liquid))
+        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid))
 
         star_labels = [f"{star_types_c[i]}：{data.star_type_nums[i]}" for i in range(14)]
         self.add_stars(star_labels)
@@ -192,7 +192,7 @@ class StarInfo(InfoBase):
         self.sub_title_label.setText(data.type)
 
 
-        self.add_veins(get_veins_list(data.veins, data.gas_veins, data.liquid))
+        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid))
 
 
         other_label = CaptionLabel(f'''\
@@ -215,7 +215,7 @@ class PlanetInfo(InfoBase):
         sub_title_text.extend(data.singularity)
         self.add_subtitle(sub_title_text)
 
-        self.add_veins(get_veins_list(data.veins, data.gas_veins, data.liquid, data.is_gas))
+        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid, data.is_gas))
         other_label = CaptionLabel(f'''\
 风能利用率：{data.wind*100:.0f}%
 光能利用率：{data.lumino*100:.0f}%''')

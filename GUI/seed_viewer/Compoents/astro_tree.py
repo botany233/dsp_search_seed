@@ -114,6 +114,7 @@ class GalaxyTreeWidgetItem(QTreeWidgetItem):
             self.addChild(StarTreeWidgetItem(self.root, star_data, self))
 
         self.setExpanded(True)
+
 class StarTreeWidgetItem(QTreeWidgetItem):
     def __init__(self, root: "AstroTree", star_data: StarData, parent = None):
         if parent is None:
@@ -127,7 +128,7 @@ class StarTreeWidgetItem(QTreeWidgetItem):
         show_text.append(f"{star_data.distance:.1f}LY")
 
         for i in range(6, 14):
-            if star_data.veins[i] > 0:
+            if star_data.veins_point[i] > 0:
                 show_text.append(vein_names[i])
 
         self.setText(0, star_data.type)
@@ -154,7 +155,7 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
             show_text.append("全包")
         elif planet_data.is_on_dsp:
             show_text.append("全接收")
-        
+
         for i in planet_data.singularity:
             show_text.append(i)
 
@@ -164,7 +165,7 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
             show_text.append("硫酸")
 
         for i in range(6, 14):
-            if planet_data.veins[i] > 0:
+            if planet_data.veins_point[i] > 0:
                 show_text.append(vein_names[i])
 
         self.setText(0, planet_data.type)
