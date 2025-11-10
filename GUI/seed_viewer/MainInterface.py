@@ -1,12 +1,14 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import QDialog
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from datetime import datetime
 from csv import reader
 from .Compoents import *
 from .sort_seed import SortThread
-from CApi import get_galaxy_data_c
+from CApi import get_galaxy_data_c, data_to_dict, dict_to_data
+import multiprocessing
+import time
 
 class ViewerInterface(QFrame):
     def __init__(self, parent=None):
@@ -15,6 +17,9 @@ class ViewerInterface(QFrame):
         self.seed_buffer = {}
         self.max_seed = 10000
         self.max_buffer = 100
+
+        self.current_select = None
+        self.getting_seed = set()
 
         self.mainLayout = QHBoxLayout(self)
         self.__init_left()
@@ -152,16 +157,31 @@ class ViewerInterface(QFrame):
 
     def __on_select_seed_change(self):
         seed, star_num = self.seed_scroll.get_select_seed()
-        if seed < 0 or star_num < 0:
+        if seed < 0 or star_num < 0 or self.current_select == (seed, star_num):
             return
+
+        self.current_select = (seed, star_num)
         if (seed, star_num) in self.seed_buffer:
             galaxy_data = self.seed_buffer[(seed, star_num)]
+            self.astro_tree.fresh(galaxy_data)
         else:
-            galaxy_data = get_galaxy_data_c(seed, star_num)
+            if (seed, star_num) in self.getting_seed or len(self.getting_seed) > multiprocessing.cpu_count() - 1:
+                return
+            self.getting_seed.add((seed, star_num))
+            result_queue = multiprocessing.Queue()
+            get_data_process = multiprocessing.Process(target=get_data_thread, args=(seed, star_num, result_queue))
+            get_data_process.start()
+            while result_queue.empty():
+                QApplication.processEvents()
+                time.sleep(0.05)
+            data_seed, data_star_num, galaxy_dict = result_queue.get()
+            galaxy_data = dict_to_data(galaxy_dict)
             if len(self.seed_buffer) >= self.max_buffer:
                 self.seed_buffer.pop(next(iter(self.seed_buffer)))
-            self.seed_buffer[(seed, star_num)] = galaxy_data
-        self.astro_tree.fresh(galaxy_data)
+            self.seed_buffer[(data_seed, data_star_num)] = galaxy_data
+            self.getting_seed.remove((data_seed, data_star_num))
+            if self.current_select == (data_seed, data_star_num):
+                self.astro_tree.fresh(galaxy_data)
 
     def __on_select_astro(self, item: QTreeWidgetItem, column: int) -> None:
         self.astro_info.fresh(item)
@@ -233,3 +253,8 @@ class ViewerInterface(QFrame):
                         self.seed_scroll.add_row(seed, star_num)
 
         self.seed_text.fresh()
+
+def get_data_thread(seed, star_num, queue):
+    galaxy_data = get_galaxy_data_c(seed, star_num)
+    galaxy_dict = data_to_dict(galaxy_data)
+    queue.put((seed, star_num, galaxy_dict))
