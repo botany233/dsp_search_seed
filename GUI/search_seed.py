@@ -61,13 +61,9 @@ class SearchThread(QThread):
                 batch_size: int,
                 max_thread: int,
                 save_name: str) -> None:
-        galaxy_condition_3 = change_galaxy_condition_legal(galaxy_condition)
-        galaxy_condition_2 = get_galaxy_condition_2(galaxy_condition_3)
-        galaxy_condition_1 = get_galaxy_condition_1(galaxy_condition_2)
+        galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-        galaxy_str_3 = json.dumps(galaxy_condition_3, ensure_ascii = False)
-        galaxy_str_2 = json.dumps(galaxy_condition_2, ensure_ascii = False)
-        galaxy_str_1 = json.dumps(galaxy_condition_1, ensure_ascii = False)
+        galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
 
         last_valid_seed, valid_seed_num = str(-1), 0
         total_batch = ceil(self.seed_manager.get_seeds_count() / batch_size)
@@ -82,10 +78,10 @@ class SearchThread(QThread):
             for _ in range(real_thread * 10):
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str_1, galaxy_str_2, galaxy_str_3))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, False))
                 except Exception:
                     break
-            
+
             index = 0
             while (len(futures) > 0):
                 result = futures.popleft().result()
@@ -105,7 +101,7 @@ class SearchThread(QThread):
 
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str_1, galaxy_str_2, galaxy_str_3))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, False))
                 except Exception:
                     continue
             else:
@@ -118,13 +114,9 @@ class SearchThread(QThread):
                batch_size: int,
                max_thread: int,
                save_name: str) -> None:
-        galaxy_condition_3 = change_galaxy_condition_legal(galaxy_condition)
-        galaxy_condition_2 = get_galaxy_condition_2(galaxy_condition_3)
-        galaxy_condition_1 = get_galaxy_condition_1(galaxy_condition_2)
+        galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-        galaxy_str_3 = json.dumps(galaxy_condition_3, ensure_ascii = False)
-        galaxy_str_2 = json.dumps(galaxy_condition_2, ensure_ascii = False)
-        galaxy_str_1 = json.dumps(galaxy_condition_1, ensure_ascii = False)
+        galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
 
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
         start_time = perf_counter()
@@ -135,7 +127,7 @@ class SearchThread(QThread):
         with ProcessPoolExecutor(max_workers = real_thread) as executor:
             futures = deque()
             for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
-                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str_1, galaxy_str_2, galaxy_str_3))
+                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, False))
             index = 0
             while (len(futures) > 0):
                 result = futures.popleft().result()
@@ -155,6 +147,6 @@ class SearchThread(QThread):
 
                 seed += batch_size
                 if seed <= seeds[1]:
-                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str_1, galaxy_str_2, galaxy_str_3))
+                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, False))
             else:
                 SearchMessages.searchEndNormal.emit(perf_counter() - start_time)

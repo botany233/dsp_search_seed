@@ -12,31 +12,15 @@ import json
 #               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
 
-def check_seeds_py(seeds: tuple[int, int],
-                   star_nums: tuple[int, int],
-                   galaxy_condition: dict,
-                   batch_size: int,
-                   max_thread: int,
-                   record_seed: bool):
-    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator_py(galaxy_condition, seeds, star_nums, batch_size)
-
-        results = executor.map(check_batch_wrapper_py, generator)
-        for result in results:
-            if record_seed:
-                with open("result_py.csv", "a") as f:
-                    f.writelines(map(lambda x: f"{x}\n", result))
-
 def check_seeds_c(seeds: tuple[int, int],
                   star_nums: tuple[int, int],
-                  galaxy_str_1: str,
-                  galaxy_str_2: str,
-                  galaxy_str_3: str,
+                  galaxy_str: str,
+                  quick_check: bool,
                   batch_size: int,
                   max_thread: int,
                   record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator_c(galaxy_str_1, galaxy_str_2, galaxy_str_3, seeds, star_nums, batch_size)
+        generator = batch_generator_c(galaxy_str, quick_check, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_c, generator)
         for result in results:
@@ -51,36 +35,28 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
+    galaxy_condition = get_ttenyx_condition()
     # galaxy_condition = get_easy_condition()
-    galaxy_condition = get_3_blue_condition()
+    # galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
 
-    galaxy_condition_3 = change_galaxy_condition_legal(galaxy_condition)
-    galaxy_condition_2 = get_galaxy_condition_2(galaxy_condition_3)
-    galaxy_condition_1 = get_galaxy_condition_1(galaxy_condition_2)
+    galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    galaxy_str_3 = json.dumps(galaxy_condition_3, ensure_ascii = False)
-    galaxy_str_2 = json.dumps(galaxy_condition_2, ensure_ascii = False)
-    galaxy_str_1 = json.dumps(galaxy_condition_1, ensure_ascii = False)
+    galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
 
     print_condition_str = 0
     if print_condition_str:
-        print(galaxy_str_3)
-        print(galaxy_str_2)
-        print(galaxy_str_1)
+        print(galaxy_str)
         exit()
 
-    seeds = (0, 999999)
+    seeds = (0, 99999)
     star_nums = (64, 64)
-    batch_size = 1024
+    batch_size = 32
     max_thread = 20
 
+    quick_check = False
     record_seed = 1
 
     flag = perf_counter()
-    check_seeds_py(seeds, star_nums, galaxy_condition_3, batch_size, max_thread, record_seed)
-    print(f"py多线程用时{perf_counter() - flag:.2f}s")
-
-    flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_str_1, galaxy_str_2, galaxy_str_3, batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_str, quick_check, batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")

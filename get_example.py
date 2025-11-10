@@ -29,7 +29,7 @@ def get_galaxy_dict(galaxy_data):
     return galaxy_dict
 
 if __name__ == "__main__":
-    galaxy_data = search_seed.get_galaxy_data_c(233, 32)
+    galaxy_data = search_seed.get_galaxy_data_c(90779, 64)
 
     galaxy_dict = get_galaxy_dict(galaxy_data)
 

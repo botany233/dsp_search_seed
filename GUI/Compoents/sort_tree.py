@@ -47,7 +47,7 @@ from config.cfg_dict_tying import (
     VeinsName,
 )
 from ..Messenger import SortTreeMessages
-from .. import star_types, planet_types, singularity, liquid
+from .. import star_types, planet_types, singularity, liquid, dsp_level
 from GUI.dsp_icons import AppIcons
 
 
@@ -55,6 +55,7 @@ star_types = ["无限制"] + star_types
 planet_types = ["无限制"] + planet_types
 liquid = ["无限制"] + liquid
 singularity = ["无限制"] + singularity
+dsp_level = ["无限制"] + dsp_level
 
 
 class LeaveBase(QWidget):
@@ -371,14 +372,19 @@ class PlanetTreeLeave(LeaveBase):
         self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type")
         self.liquidComboBox.addItems(liquid)
         self.mainLayout.addWidget(self.liquidComboBox)
-        self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全包", indicatorPos=1)
-        self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否全包")
-        self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
-        self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="is_in_dsp")
-        self.fullReceivePlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全接收", indicatorPos=1)
-        self.fullReceivePlanetSwitch.setOnText("<u><i>是</i></u>否全接收")
-        self.mainLayout.addWidget(self.fullReceivePlanetSwitch)
-        self.fullReceivePlanetSwitch.set_config(config_obj=config_obj, config_key="is_on_dsp")
+        self.dspLevelLabel = BodyLabel("戴森球接收")
+        self.mainLayout.addWidget(self.dspLevelLabel)
+        self.dspLevelComboBox = AutoFixedComboBox(config_key="dsp_level")
+        self.dspLevelComboBox.addItems(dsp_level)
+        self.mainLayout.addWidget(self.dspLevelComboBox)
+        # self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全包", indicatorPos=1)
+        # self.fullCoverdPlanetSwitch.setOnText("<u><i>是</i></u>否全包")
+        # self.mainLayout.addWidget(self.fullCoverdPlanetSwitch)
+        # self.fullCoverdPlanetSwitch.set_config(config_obj=config_obj, config_key="is_in_dsp")
+        # self.fullReceivePlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全接收", indicatorPos=1)
+        # self.fullReceivePlanetSwitch.setOnText("<u><i>是</i></u>否全接收")
+        # self.mainLayout.addWidget(self.fullReceivePlanetSwitch)
+        # self.fullReceivePlanetSwitch.set_config(config_obj=config_obj, config_key="is_on_dsp")
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value = 1, default_value=1, empty_invisible=False)

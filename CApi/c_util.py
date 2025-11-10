@@ -2,7 +2,7 @@ from .search_seed import *
 import copy
 from .const_values import *
 
-__all__ = ["change_galaxy_condition_legal", "get_galaxy_condition_1", "get_galaxy_condition_2"]
+__all__ = ["change_galaxy_condition_legal"]
 
 def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     if "veins" in galaxy_condition:
@@ -32,32 +32,12 @@ def change_planet_condition_legal(planet_condition:dict) -> dict:
         planet_condition["veins"] = change_veins_legal(planet_condition["veins"])
     if "veins_point" in planet_condition:
         planet_condition["veins_point"] = change_veins_legal(planet_condition["veins_point"])
+    if "dsp_level" in planet_condition:
+        planet_condition["dsp_level"] = dsp_level_c.index(planet_condition["dsp_level"]) + 1
     return planet_condition
 
-def change_veins_legal(veins:dict) -> list:
+def change_veins_legal(veins:dict) -> list[int]:
     return [veins.get(vein_name, 0) for vein_name in vein_names_c]
-
-def get_galaxy_condition_2(galaxy_condition_3:dict) -> dict:
-    galaxy_condition_2 = copy.deepcopy(galaxy_condition_3)
-    galaxy_condition_2.pop("veins_point", 0)
-    for star_condition in galaxy_condition_2.get("stars", []):
-        star_condition.pop("veins_point", 0)
-        for planet_condition in star_condition.get("planets", []):
-            planet_condition.pop("veins_point", 0)
-    for planet_condition in galaxy_condition_2.get("planets", []):
-        planet_condition.pop("veins_point", 0)
-    return del_empty_condition(galaxy_condition_2)
-
-def get_galaxy_condition_1(galaxy_condition_2:dict) -> dict:
-    galaxy_condition_1 = copy.deepcopy(galaxy_condition_2)
-    galaxy_condition_1.pop("veins", 0)
-    for star_condition in galaxy_condition_1.get("stars", []):
-        star_condition.pop("veins", 0)
-        for planet_condition in star_condition.get("planets", []):
-            planet_condition.pop("veins", 0)
-    for planet_condition in galaxy_condition_1.get("planets", []):
-        planet_condition.pop("veins", 0)
-    return del_empty_condition(galaxy_condition_1)
 
 def del_empty_condition(galaxy_condition:dict) -> dict:
     if "stars" in galaxy_condition:

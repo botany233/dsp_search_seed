@@ -53,10 +53,8 @@ def config_to_planet_condition(planet_cfg: PlanetCondition) -> dict:
                 planet_condition["singularity"] = planet_cfg.singularity
         if planet_cfg.liquid_type != "无限制":
             planet_condition["liquid"] = planet_cfg.liquid_type
-        if planet_cfg.is_in_dsp:
-            planet_condition["is_in_dsp"] = True
-        if planet_cfg.is_on_dsp:
-            planet_condition["is_on_dsp"] = True
+        if planet_cfg.dsp_level != "无限制":
+            planet_condition["dsp_level"] = planet_cfg.dsp_level
         if planet_cfg.satisfy_num > 1:
             planet_condition["satisfy_num"] = planet_cfg.satisfy_num
     return planet_condition
