@@ -1,6 +1,6 @@
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication
+from PySide6.QtGui import QResizeEvent
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication, QDialog
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtWidgets import QDialog
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
 from datetime import datetime
 from csv import reader
@@ -82,8 +82,6 @@ class ViewerInterface(QFrame):
 
     def __init_middle(self):
         self.astro_tree = AstroTree()
-        self.astro_tree.setBorderVisible(True)
-        self.astro_tree.setBorderRadius(8)
         self.astro_tree.itemClicked.connect(self.__on_select_astro)
         self.mainLayout.addWidget(self.astro_tree)
 
@@ -120,6 +118,11 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.progress_label, 2, 1)
         self.buttonsLayout.addWidget(self.start_button, 3, 0)
         self.buttonsLayout.addWidget(self.stop_button, 3, 1)
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        ret = super().resizeEvent(event)
+        self.astro_tree.wait_ring.resize(self.astro_tree.size())
+        return ret
 
     def __on_manual_add_button_clicked(self) -> None:
         dlg = ManualAddMessageBox(self.seed_list, self)
@@ -167,7 +170,9 @@ class ViewerInterface(QFrame):
             galaxy_data = self.seed_buffer[(seed, star_num)]
             self.astro_tree.fresh(galaxy_data)
         else:
+            self.astro_tree.wait_ring.start()
             if (seed, star_num) in self.getting_seed or len(self.getting_seed) > multiprocessing.cpu_count() - 1:
+                self.astro_tree.wait_ring.stop()
                 return
             self.getting_seed.add((seed, star_num))
             result_queue = multiprocessing.Queue()
@@ -175,7 +180,6 @@ class ViewerInterface(QFrame):
             get_data_process.start()
             while result_queue.empty():
                 QApplication.processEvents()
-                time.sleep(0.05)
             data_seed, data_star_num, galaxy_dict = result_queue.get()
             galaxy_data = dict_to_data(galaxy_dict)
             if len(self.seed_buffer) >= self.max_buffer:
@@ -184,6 +188,7 @@ class ViewerInterface(QFrame):
             self.getting_seed.remove((data_seed, data_star_num))
             if self.current_select == (data_seed, data_star_num):
                 self.astro_tree.fresh(galaxy_data)
+        self.astro_tree.wait_ring.stop()
 
     def __on_select_astro(self, item: QTreeWidgetItem, column: int) -> None:
         self.astro_info.fresh(item)

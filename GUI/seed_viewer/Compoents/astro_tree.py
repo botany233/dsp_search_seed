@@ -10,10 +10,13 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QHeaderView,
     QGridLayout,
+    QTreeWidget,
 )
 from qfluentwidgets import TreeWidget, CaptionLabel, BodyLabel
 from CApi import GalaxyData, StarData, PlanetData
 from GUI import vein_names, singularity
+
+from GUI.Widgets import WaitRing
 
 COLORFUL_TEXTS = set(
     [
@@ -66,7 +69,8 @@ class AstroTree(TreeWidget):
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
         self.setColumnCount(2)
-
+        self.setBorderRadius(8)
+        self.setBorderVisible(True)
 
         self.setHeaderLabels(["类型", "信息"])
 
@@ -84,6 +88,10 @@ class AstroTree(TreeWidget):
         self.root.setExpanded(True)
 
         self.setContextMenuPolicy(Qt.NoContextMenu)
+
+        self.wait_ring = WaitRing(self)
+        self.wait_ring.textLabel.setText("加载中...")
+        self.wait_ring.stop()
 
     def fresh(self, galaxy_data: GalaxyData|None = None) -> None:
         if self.leaf is not None:

@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt
 class WaitRing(MaskDialogBase):
     """ A wait ring dialog """
 
-    def __init__(self, parent):
+    def __init__(self, parent: QWidget|None = None):
         super().__init__(parent)
 
         self.vLayout = QVBoxLayout()
