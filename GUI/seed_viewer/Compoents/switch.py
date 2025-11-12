@@ -11,5 +11,5 @@ class QuickSortSwitch(SwitchButton):
     def __init__(self):
         super().__init__()
         self.setChecked(True)
-        self.setOffText("标准排序")
-        self.setOnText("快速排序")
+        self.setOffText("标准模式")
+        self.setOnText("快速模式")

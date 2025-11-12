@@ -22,8 +22,8 @@ class UserLayout(QVBoxLayout):
         self.search_mode_switch.set_config(config_obj=cfg.config, config_key="search_mode")
         self.userButtonsLayout.addWidget(self.search_mode_switch)
 
-        self.quick_check_switch = ConfigSwitchButton("标准搜索", indicatorPos=1)
-        self.quick_check_switch.setOnText("快速搜索")
+        self.quick_check_switch = ConfigSwitchButton("标准模式", indicatorPos=1)
+        self.quick_check_switch.setOnText("快速模式")
         self.quick_check_switch.set_config(config_obj=cfg.config, config_key="quick_check")
         self.userButtonsLayout.addWidget(self.quick_check_switch)
 
