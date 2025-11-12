@@ -1,6 +1,6 @@
 from typing import Any
 from PySide6.QtCore import QEvent, QObject, Qt
-from PySide6.QtGui import QMouseEvent
+from PySide6.QtGui import QMouseEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
@@ -92,6 +92,11 @@ class AstroTree(TreeWidget):
         self.wait_ring = WaitRing(self)
         self.wait_ring.textLabel.setText("加载中...")
         self.wait_ring.stop()
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        ret = super().resizeEvent(event)
+        self.wait_ring.resize(self.size())
+        return ret
 
     def fresh(self, galaxy_data: GalaxyData|None = None) -> None:
         if self.leaf is not None:

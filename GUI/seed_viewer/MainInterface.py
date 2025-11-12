@@ -1,4 +1,3 @@
-from PySide6.QtGui import QResizeEvent
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication, QDialog
 from PySide6.QtCore import Qt, QThread, Signal
 from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
@@ -119,10 +118,6 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.start_button, 3, 0)
         self.buttonsLayout.addWidget(self.stop_button, 3, 1)
 
-    def resizeEvent(self, event: QResizeEvent) -> None:
-        ret = super().resizeEvent(event)
-        self.astro_tree.wait_ring.resize(self.astro_tree.size())
-        return ret
 
     def __on_manual_add_button_clicked(self) -> None:
         dlg = ManualAddMessageBox(self.seed_list, self)
