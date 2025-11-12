@@ -83,6 +83,7 @@ class GUIConfig(BaseModel):
     galaxy_condition: GalaxyCondition = GalaxyCondition()
     save_name: str = "seed"
     search_mode: int = 0  # 0: 范围搜索, 1: 二次搜索
+    quick_check: bool = False
 
 if __name__ == "__main__":
     # cfg = GUIConfig()

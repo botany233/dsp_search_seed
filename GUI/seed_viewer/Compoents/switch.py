@@ -6,3 +6,10 @@ class SortOrderSwitch(SwitchButton):
         self.setChecked(False)
         self.setOffText("降序排列")
         self.setOnText("升序排列")
+
+class QuickSortSwitch(SwitchButton):
+    def __init__(self):
+        super().__init__()
+        self.setChecked(True)
+        self.setOffText("标准排序")
+        self.setOnText("快速排序")

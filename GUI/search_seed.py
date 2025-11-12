@@ -38,16 +38,17 @@ class SearchThread(QThread):
             save_name = gui_cfg.save_name + ".csv"
             batch_size = gui_cfg.batch_size
             max_thread = gui_cfg.max_thread
+            quick = gui_cfg.quick_check
 
             if gui_cfg.search_mode == 0:
                 seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
                 star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
 
                 if not self.end_flag:
-                    self.range_search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name)
+                    self.range_search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name, quick)
             else:
                 if not self.end_flag:
-                    self.precise_search(galaxy_condition, batch_size, max_thread, save_name)
+                    self.precise_search(galaxy_condition, batch_size, max_thread, save_name, quick)
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -60,7 +61,8 @@ class SearchThread(QThread):
                 galaxy_condition: dict,
                 batch_size: int,
                 max_thread: int,
-                save_name: str) -> None:
+                save_name: str,
+                quick: bool) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
         galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
@@ -78,7 +80,7 @@ class SearchThread(QThread):
             for _ in range(real_thread * 10):
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, False))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, quick))
                 except Exception:
                     break
 
@@ -101,7 +103,7 @@ class SearchThread(QThread):
 
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, False))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, quick))
                 except Exception:
                     continue
             else:
@@ -113,7 +115,8 @@ class SearchThread(QThread):
                star_nums: tuple[int, int],
                batch_size: int,
                max_thread: int,
-               save_name: str) -> None:
+               save_name: str,
+               quick: bool) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
         galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
@@ -127,7 +130,7 @@ class SearchThread(QThread):
         with ProcessPoolExecutor(max_workers = real_thread) as executor:
             futures = deque()
             for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
-                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, False))
+                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, quick))
             index = 0
             while (len(futures) > 0):
                 result = futures.popleft().result()
@@ -147,6 +150,6 @@ class SearchThread(QThread):
 
                 seed += batch_size
                 if seed <= seeds[1]:
-                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, False))
+                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, quick))
             else:
                 SearchMessages.searchEndNormal.emit(perf_counter() - start_time)

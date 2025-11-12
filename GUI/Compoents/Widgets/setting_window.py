@@ -33,6 +33,8 @@ class SettingsWindow(QFrame):
             self.config_key = self.context.config_key
         if hasattr(self.context, "config_obj"):
             self.config_obj = self.context.config_obj
+        
+        print(self.config_key)
 
         if self.item_dict is not None:
             items = list(self.item_dict.values())
@@ -83,7 +85,8 @@ class SettingsWindow(QFrame):
             name = VeinsName().model_dump()
 
             veinsKeyDict = dict(zip(name.values(), name.keys()))
-            condition = self.config_obj.veins_condition
+            # condition = self.config_obj.veins_condition
+            condition = getattr(self.config_obj, self.config_key)
 
 
             line_edit = LabelWithLimitLineEdit(

@@ -15,12 +15,12 @@ import json
 def check_seeds_c(seeds: tuple[int, int],
                   star_nums: tuple[int, int],
                   galaxy_str: str,
-                  quick_check: bool,
+                  quick: bool,
                   batch_size: int,
                   max_thread: int,
                   record_seed: bool):
     with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
-        generator = batch_generator_c(galaxy_str, quick_check, seeds, star_nums, batch_size)
+        generator = batch_generator_c(galaxy_str, quick, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_c, generator)
         for result in results:
@@ -56,9 +56,9 @@ if __name__ == "__main__":
     batch_size = 128
     max_thread = 20
 
-    quick_check = False
+    quick = 1
     record_seed = 1
 
     flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_str, quick_check, batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_str, bool(quick), batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")

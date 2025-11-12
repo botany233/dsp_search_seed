@@ -15,7 +15,7 @@ class ViewerInterface(QFrame):
         super().__init__(parent)
         self.seed_list = []
         self.seed_buffer = {}
-        self.max_seed = 10000
+        self.max_seed = 100000
         self.max_buffer = 100
 
         self.current_select = None
@@ -99,6 +99,7 @@ class ViewerInterface(QFrame):
         self.sub_type_combo = SubTypeComboBox(self.main_type_combo)
 
         self.sort_order_switch = SortOrderSwitch()
+        self.quick_sort_switch = QuickSortSwitch()
 
         self.progress_label = BodyLabel("进度: 0/0 (0%)")
 
@@ -115,9 +116,10 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.main_type_combo, 0, 0)
         self.buttonsLayout.addWidget(self.sub_type_combo, 0, 1)
         self.buttonsLayout.addWidget(self.sort_order_switch, 1, 0)
-        self.buttonsLayout.addWidget(self.progress_label, 1, 1)
-        self.buttonsLayout.addWidget(self.start_button, 2, 0)
-        self.buttonsLayout.addWidget(self.stop_button, 2, 1)
+        self.buttonsLayout.addWidget(self.quick_sort_switch, 1, 1)
+        self.buttonsLayout.addWidget(self.progress_label, 2, 1)
+        self.buttonsLayout.addWidget(self.start_button, 3, 0)
+        self.buttonsLayout.addWidget(self.stop_button, 3, 1)
 
     def __on_manual_add_button_clicked(self) -> None:
         dlg = ManualAddMessageBox(self.seed_list, self)
@@ -255,6 +257,6 @@ class ViewerInterface(QFrame):
         self.seed_text.fresh()
 
 def get_data_thread(seed, star_num, queue):
-    galaxy_data = get_galaxy_data_c(seed, star_num)
+    galaxy_data = get_galaxy_data_c(seed, star_num, False)
     galaxy_dict = data_to_dict(galaxy_data)
     queue.put((seed, star_num, galaxy_dict))
