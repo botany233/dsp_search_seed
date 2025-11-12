@@ -35,10 +35,12 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
-    galaxy_condition = get_ttenyx_condition()
+    galaxy_condition = get_ttenyx_condition_simple()
     # galaxy_condition = get_easy_condition()
     # galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
+
+    # galaxy_condition = {"veins_point": {"单极磁石":250, "油":250}, "stars":[{"distance": 0, "veins_point": {"钛":30, "硅":30}}]}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
@@ -49,9 +51,9 @@ if __name__ == "__main__":
         print(galaxy_str)
         exit()
 
-    seeds = (0, 99999)
+    seeds = (0, 19999)
     star_nums = (64, 64)
-    batch_size = 32
+    batch_size = 128
     max_thread = 20
 
     quick_check = False

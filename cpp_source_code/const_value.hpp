@@ -1,0 +1,10 @@
+#pragma once
+
+constexpr int PRECISION = 200;
+constexpr int INDEXMAP_PRECISION = PRECISION >> 2;
+constexpr int INDEXMAP_FACE_STRIDE = INDEXMAP_PRECISION * INDEXMAP_PRECISION;
+constexpr int INDEXMAP_CORNER_STRIDE = INDEXMAP_FACE_STRIDE * 3;
+constexpr int INDEXMAP_DATA_LENGTH = INDEXMAP_CORNER_STRIDE * 8;
+constexpr int DATALENGTH = (PRECISION + 1) * (PRECISION + 1) * 4;
+constexpr int STRIDE = (PRECISION + 1) * 2;
+constexpr float MATHF_PI = 3.1415927f;

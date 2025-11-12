@@ -1,5 +1,6 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
 // Modified by https://github.com/botany233 on 2025.10
+#pragma once
 #include "defines.hpp"
 #include "util.hpp"
 
@@ -56,12 +57,12 @@ struct LDB_CLASS
         themes.push_back({ "Desert 5", 17, "黑石盐滩", EPlanetType::Desert, 1, EThemeDistribute::Default, {2}, {0, 0}, {1, 1}, {2, 8, 9, 1, 3, 1, 0}, {1, 0.8, 0.8, 1, 0.7, 0.3, 0}, {0.6, 0.6, 1, 1, 0.5, 0.3, 0}, {9, 12}, {0, 0.7, 0.7, 0.5, 0, 0.1, 0.2, 0.7}, {}, {}, false, 1.1, 60, 0, 0 });
         themes.push_back({ "Ocean 6", 18, "樱林海", EPlanetType::Ocean, 0, EThemeDistribute::Interstellar, {1}, {0, 0}, {0, 0}, {5, 6, 8, 0, 4, 8, 22}, {0.6, 0.5, 0.8, 0, 0.8, 1, 1}, {0.6, 0.6, 0.6, 0, 0.5, 1, 1}, {11, 13}, {0, 1, 0.3, 1, 0, 0.5, 0.2, 1}, {}, {}, false, 1, 60, 0, 1000 });
         themes.push_back({ "Desert 6", 19, "飓风石林", EPlanetType::Desert, 1, EThemeDistribute::Interstellar, {8}, {1.5, 1.5}, {-5, -5}, {2, 8, 2, 7, 4, 1, 0}, {1, 1, 1, 1, 1, 0.5, 0}, {0.6, 0.8, 1, 0.8, 0.6, 0.3, 0}, {9, 10, 12}, {0, 0.25, 0.6, 0.6, 0, 0.25, 0.6, 0.6, 0, 0.4, 0.3, 0.9}, {}, {}, false, 1.6, 70, 0, 0 });
-        themes.push_back({ "Desert 7", 20, "猩红冰湖", EPlanetType::Desert, -2, EThemeDistribute::Default, {9}, {6, 6}, {8, 8}, {5, 11, 1, 8, 3, 1, 0}, {0.8, 1, 0.5, 1, 0.7, 0.3, 0}, {1, 1, 1, 1, 0.5, 0.3, 0}, {8, 9, 12}, {0.25, 1, 0.6, 0.7, 0, 0.2, 0.6, 0.9, 0, 0.3, 0.4, 1}, {}, {}, false, 0.7, 55, 0, -1 });
+        themes.push_back({ "Desert 7", 20, "猩红冰湖", EPlanetType::Desert, -2, EThemeDistribute::Default, {9}, {6, 6}, {8, 8}, {5, 11, 1, 8, 3, 1, 0}, {0.8, 1, 0.5, 1, 0.7, 0.3, 0}, {1, 1, 1, 1, 0.5, 0.3, 0}, {8, 9, 12}, {0.25, 1, 0.6, 0.7, 0, 0.2, 0.6, 0.9, 0, 0.3, 0.4, 1}, {}, {}, false, 0.7, 55, 0, -2 });
         themes.push_back({ "Gas 5", 21, "高产气巨", EPlanetType::Gas, 1.0, EThemeDistribute::Interstellar, {0}, {0, 0}, {0, 0}, {}, {}, {}, {}, {}, {1120, 1121}, {0.84, 0.16}, false, 0, 0, 0, 0 });
-        themes.push_back({ "Desert 8", 22, "热带草原", EPlanetType::Ocean, 0, EThemeDistribute::Interstellar, {10}, {1, 1}, {1, 1}, {7, 4, 7, 2, 3, 6, 14}, {0.7, 0.6, 1, 0.8, 0.7, 1, 1}, {0.7, 0.6, 0.8, 0.7, 1, 1.2, 1}, {11, 13}, {0, 1, 0.5, 1, 0, 0.6, 0.25, 1}, {}, {}, false, 0.7, 55, 0, -1 });
-        themes.push_back({ "Desert 9", 23, "橙晶荒漠", EPlanetType::Desert, 0.08, EThemeDistribute::Interstellar, {11}, {1.5, 1.5}, {1, 1}, {13, 2, 0, 2, 0, 2, 0}, {1, 0.5, 0, 0.7, 0, 0.6, 0}, {1.2, 0.8, 0, 1, 0, 0.5, 0}, {11, 12}, {0, 0.7, 0.2, 0.6, 0, 1, 1, 0.84}, {}, {}, false, 0.7, 55, 0, -1 });
-        themes.push_back({ "Desert 10", 24, "极寒冻土", EPlanetType::Ice, -4, EThemeDistribute::Default, {12}, {1, 1}, {1, 1}, {9, 2, 2, 6, 2, 1, 0}, {0.8, 0.5, 0.8, 1, 0.7, 0.3, 0}, {0.8, 0.8, 1.2, 1, 1, 0.3, 0}, {8, 9, 12}, {0.3, 1, 0.8, 1, 0, 1, 0.7, 1, 0, 0.4, 0.5, 0.7}, {}, {}, false, 0.7, 55, 0, -1 });
-        themes.push_back({ "Desert 11", 25, "潘多拉沼泽", EPlanetType::Ocean, 0, EThemeDistribute::Interstellar, {13}, {1, 1}, {3, 3}, {8, 3, 8, 1, 3, 9, 20}, {0.7, 0.6, 1, 1, 0.6, 1, 1}, {0.7, 0.5, 1, 1, 0.7, 1.2, 1}, {10, 11, 13}, {0, 0.5, 0.3, 1, 0, 1, 0.3, 1, 0, 0.5, 0.2, 1}, {}, {}, false, 0.7, 55, 0, -1 });
+        themes.push_back({ "Desert 8", 22, "热带草原", EPlanetType::Ocean, 0, EThemeDistribute::Interstellar, {10}, {1, 1}, {1, 1}, {7, 4, 7, 2, 3, 6, 14}, {0.7, 0.6, 1, 0.8, 0.7, 1, 1}, {0.7, 0.6, 0.8, 0.7, 1, 1.2, 1}, {11, 13}, {0, 1, 0.5, 1, 0, 0.6, 0.25, 1}, {}, {}, false, 0.7, 55, 0, 1000 });
+        themes.push_back({ "Desert 9", 23, "橙晶荒漠", EPlanetType::Desert, 0.08, EThemeDistribute::Interstellar, {11}, {1.5, 1.5}, {1, 1}, {13, 2, 0, 2, 0, 2, 0}, {1, 0.5, 0, 0.7, 0, 0.6, 0}, {1.2, 0.8, 0, 1, 0, 0.5, 0}, {11, 12}, {0, 0.7, 0.2, 0.6, 0, 1, 1, 0.84}, {}, {}, false, 0.7, 55, 0, 0 });
+        themes.push_back({ "Desert 10", 24, "极寒冻土", EPlanetType::Ice, -4, EThemeDistribute::Default, {12}, {1, 1}, {1, 1}, {9, 2, 2, 6, 2, 1, 0}, {0.8, 0.5, 0.8, 1, 0.7, 0.3, 0}, {0.8, 0.8, 1.2, 1, 1, 0.3, 0}, {8, 9, 12}, {0.3, 1, 0.8, 1, 0, 1, 0.7, 1, 0, 0.4, 0.5, 0.7}, {}, {}, false, 0.7, 55, 0, 0 });
+        themes.push_back({ "Desert 11", 25, "潘多拉沼泽", EPlanetType::Ocean, 0, EThemeDistribute::Interstellar, {13}, {1, 1}, {3, 3}, {8, 3, 8, 1, 3, 9, 20}, {0.7, 0.6, 1, 1, 0.6, 1, 1}, {0.7, 0.5, 1, 1, 0.7, 1.2, 1}, {10, 11, 13}, {0, 0.5, 0.3, 1, 0, 1, 0.3, 1, 0, 0.5, 0.2, 1}, {}, {}, false, 0.7, 55, 0, 0 });
     }
 
     ThemeProto& Select(int index)
@@ -69,4 +70,6 @@ struct LDB_CLASS
         return themes[index - 1];
     }
 
-} LDB;
+};
+
+extern LDB_CLASS LDB;

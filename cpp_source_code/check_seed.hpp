@@ -5,4 +5,4 @@
 using namespace nlohmann;
 
 GalaxyStruct get_galaxy_data(int seed,int star_num);
-bool check_seed(int seed,int star_num,const json& galaxy_condition,const json& galaxy_condition_simple,bool check_no_veins);
+bool check_seed_level_1(int seed,int star_num,const json& galaxy_condition,int check_level);

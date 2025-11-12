@@ -2,21 +2,28 @@
 #pragma once
 
 #include <math.h>
+#include <cmath>
 #include <immintrin.h>
 
 template<class T>
 class Math_s
 {
 public:
-	const T PI = (T)3.141592653589793238463;
+	const T PI = (T)3.141592653589793;
 	inline int CeilToInt(T a) const {
 		return (int)ceil(a);
 	}
 	inline int RoundToInt(T a) const {
-		return (int)round(a);
+		return (int)std::nearbyint(a);
+	}
+	inline int FloorToInt(T a) const {
+		return (int)floor(a);
 	}
 	inline T Round(T a) const {
 		return (T)round(a);
+	}
+	inline T Sign(T a) const {
+		return (a >= (T)0) ? (T)1 : (T)-1;
 	}
 	inline T Clamp(T a,T min,T max) const {
 		if(a < min)return min;
@@ -61,6 +68,9 @@ public:
 	inline T Max(T a,T b) const {
 		return a > b ? a : b;
 	}
+	inline T Asin(T a) const {
+		return (T)asin(a);
+	}
 	inline T Acos(T a) const {
 		return (T)acos(a);
 	}
@@ -69,9 +79,126 @@ public:
 const Math_s<float> Mathf;
 const Math_s<double> Math;
 
+class Maths
+{
+public:
+	static double Clamp(double val,double min,double max)
+	{
+		if(val < min)
+		{
+			return min;
+		}
+		if(val > max)
+		{
+			return max;
+		}
+		return val;
+	}
+
+	static double Clamp01(double val)
+	{
+		if(val < 0.0)
+		{
+			return 0.0;
+		}
+		if(val > 1.0)
+		{
+			return 1.0;
+		}
+		return val;
+	}
+
+	static double Levelize(double f,double level = 1.0,double offset = 0.0) {
+		f = f / level - offset;
+		double num = std::floor(f);
+		double num2 = f - num;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		f = num + num2;
+		f = (f + offset) * level;
+		return f;
+	}
+
+	static double Levelize2(double f,double level = 1.0,double offset = 0.0) {
+		f = f / level - offset;
+		double num = std::floor(f);
+		double num2 = f - num;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		f = num + num2;
+		f = (f + offset) * level;
+		return f;
+	}
+
+	static double Levelize3(double f,double level = 1.0,double offset = 0.0) {
+		f = f / level - offset;
+		double num = std::floor(f);
+		double num2 = f - num;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		f = num + num2;
+		f = (f + offset) * level;
+		return f;
+	}
+
+	static double Levelize4(double f,double level = 1.0,double offset = 0.0) {
+		f = f / level - offset;
+		double num = std::floor(f);
+		double num2 = f - num;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		num2 = (3.0 - num2 - num2) * num2 * num2;
+		f = num + num2;
+		f = (f + offset) * level;
+		return f;
+	}
+};
+
 struct Vector2 {
 	float x = 0.0f;
 	float y = 0.0f;
+	static Vector2 zero() {
+		return Vector2{0.0f,0.0f};
+	};
+
+	Vector2 operator+(const Vector2& other) const {
+		return Vector2{x + other.x,y + other.y};
+	}
+
+	Vector2 operator-(const Vector2& other) const {
+		return Vector2{x - other.x,y - other.y};
+	}
+
+	Vector2 operator*(float s) const
+	{
+		return Vector2{x * s,y * s};
+	}
+
+	Vector2& operator+=(const Vector2& other) {
+		x += other.x;
+		y += other.y;
+		return *this;
+	}
+
+	float sqrMagnitude() {
+		return x * x + y * y;
+	};
+
+	float magnitude() const {
+		return std::sqrt(x * x + y * y);
+	};
+
+	void Normalize() {
+		float num = magnitude();
+		if(num > 1e-05f) {
+			x /= num;
+			y /= num;
+		} else {
+			x = 0.0f;
+			y = 0.0f;
+		}
+	}
 };
 
 class VectorLF3 {

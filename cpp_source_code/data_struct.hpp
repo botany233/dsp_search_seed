@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
-//#include <array>
+#include <cstdint>
 
 using namespace std;
 
@@ -10,9 +10,10 @@ struct PlanetStructSimple {
 	vector<string> singularity;
 	int liquid;
 	bool is_gas;
-	bool is_in_dsp;
-	bool is_on_dsp;
-	int veins[14]{0};
+	uint8_t dsp_level;
+	uint16_t need_veins = 0;
+	unsigned short veins[14]{0};
+	unsigned short veins_point[14]{0};
 };
 
 struct StarStructSimple {
@@ -20,12 +21,16 @@ struct StarStructSimple {
 	float distance;
 	float dyson_lumino;
 	vector<PlanetStructSimple> planets;
-	int veins[14]{0};
+	uint16_t need_veins = 0;
+	unsigned short veins[14]{0};
+	unsigned short veins_point[14]{0};
 };
 
 struct GalaxyStructSimple {
 	vector<StarStructSimple> stars;
-	int veins[14]{0};
+	uint16_t need_veins = 0;
+	unsigned short veins[14]{0};
+	unsigned short veins_point[14]{0};
 };
 
 struct PlanetStruct {
@@ -40,7 +45,8 @@ struct PlanetStruct {
 	bool is_gas;
 	bool is_in_dsp;
 	bool is_on_dsp;
-	vector<int> veins = vector<int>(14,0);
+	vector<unsigned short> veins = vector<unsigned short>(14,0);
+	vector<unsigned short> veins_point = vector<unsigned short>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
 };
 
@@ -52,18 +58,20 @@ struct StarStruct {
 	float dyson_lumino;
 	float dyson_radius;
 	vector<PlanetStruct> planets;
-	vector<int> veins = vector<int>(14,0);
+	vector<unsigned short> veins = vector<unsigned short>(14,0);
+	vector<unsigned short> veins_point = vector<unsigned short>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
-	vector<int> liquid = vector<int>(3,0);
+	vector<unsigned short> liquid = vector<unsigned short>(3,0);
 };
 
 struct GalaxyStruct {
 	int seed;
 	int star_num;
 	vector<StarStruct> stars;
-	vector<int> veins = vector<int>(14,0);
+	vector<unsigned short> veins = vector<unsigned short>(14,0);
+	vector<unsigned short> veins_point = vector<unsigned short>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
-	vector<int> planet_type_nums = vector<int>(23,0);
-	vector<int> star_type_nums = vector<int>(14,0);
-	vector<int> liquid = vector<int>(3,0);
+	vector<unsigned short> planet_type_nums = vector<unsigned short>(23,0);
+	vector<unsigned short> star_type_nums = vector<unsigned short>(14,0);
+	vector<unsigned short> liquid = vector<unsigned short>(3,0);
 };

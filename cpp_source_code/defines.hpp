@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include "util.hpp"
+#include "PlanetRawData.hpp"
 
 enum ESpectrType {
     M = 0,
@@ -22,8 +23,24 @@ enum EStarType {
     NeutronStar = 3,
     BlackHole = 4
 };
-
-
+enum EVeinType {
+	None_vein = 0,
+	Iron = 1,
+	Copper = 2,
+	Silicium = 3,
+	Titanium = 4,
+	Stone = 5,
+	Coal = 6,
+	Oil = 7,
+	Fireice = 8,
+	Diamond = 9,
+	Fractal = 10,
+	Crysrub = 11,
+	Grat = 12,
+	Bamboo = 13,
+	Mag = 14,
+	Max = 15
+};
 enum EPlanetSingularity
 {
     None = 0,
@@ -146,6 +163,7 @@ public:
     std::vector<int> gasItems;
     std::vector<float> gasSpeeds;
 	std::string display_name;
+	PlanetRawData data;
 
     inline float realRadius() {
         return radius * scale;
@@ -188,7 +206,6 @@ public:
         }
         return singularityVector;
     }
-
 };
 
 class StarData {

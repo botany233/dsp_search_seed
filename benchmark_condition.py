@@ -1,8 +1,8 @@
 def get_100k_factory_condition():
-    planet_condition_1 = {"veins_point": {"金伯利":20, "刺笋结晶":72, "煤":78}, "type": "红石"} #增产剂
-    planet_condition_2 = {"veins_point": {"分型硅":9, "油":14, "刺笋结晶":52, "煤":14}, "type": "潘多拉沼泽"} #紫糖
-    planet_condition_3 = {"veins_point": {"光栅石":55}, "singularity": "卫星", "type": "橙晶荒漠"} #卡晶
-    planet_condition_4 = {"dsp_level": 1, "satisfy_num": 2}
+    planet_condition_1 = {"veins_point": {"金伯利":20, "刺笋结晶":72, "煤":78}} #增产剂
+    planet_condition_2 = {"veins_point": {"分型硅":9, "油":14, "刺笋结晶":52, "煤":14}} #紫糖
+    planet_condition_3 = {"veins_point": {"光栅石":55}, "singularity": "卫星"} #卡晶
+    planet_condition_4 = {"dsp_level": "全接收", "satisfy_num": 2}
 
     star_condition_4 = {"planets": [planet_condition_4], "type": "O型恒星", "satisfy_num": 2}
 
@@ -19,9 +19,15 @@ def get_extreme_factory_condition():
     return galaxy_condition
 
 def get_ttenyx_condition():
-    star_condition = {"distance": 100, "veins_point": {"钛":30, "硅":30}}
+    star_condition = {"distance": 0, "veins_point": {"钛":30, "硅":30}}
 
     galaxy_condition = {"veins_point": {"单极磁石":350, "油":350}, "stars":[star_condition]}
+    return galaxy_condition
+
+def get_ttenyx_condition_simple():
+    star_condition = {"distance": 0, "veins_point": {"钛":30, "硅":30}}
+
+    galaxy_condition = {"veins_point": {"单极磁石":250, "油":250}, "stars":[star_condition]}
     return galaxy_condition
 
 def get_easy_condition():
@@ -29,7 +35,7 @@ def get_easy_condition():
     planet_condition_2 = {"type": "气态巨星"}
     planet_condition_3 = {"liquid": "水"}
     planet_condition_4 = {"liquid": "硫酸"}
-    planet_condition_5 = {"dsp_level": 2}
+    planet_condition_5 = {"dsp_level": "全包"}
 
     star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4, planet_condition_5],
                         "veins": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1},

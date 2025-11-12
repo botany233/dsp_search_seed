@@ -1,6 +1,8 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
 // Modified by https://github.com/botany233 on 2025.10
 #pragma once
+#include <iostream>
+
 #include "defines.hpp"
 #include "LDB.hpp"
 #include "util.hpp"
@@ -14,6 +16,7 @@ public:
     int fast;
 	std::vector<StarData> stars;
     int habitableCount;
+	int birthPlanetId;
 public:
     void CreateGalaxy(int galaxySeed, int starCount, int fast)
     {
@@ -72,7 +75,7 @@ public:
             CreateStarPlanets(stars[index]);
     }
 
-    void MyGenerateVeins(StarData& star, PlanetData& planet, int* res)
+    void MyGenerateVeins(StarData& star, PlanetData& planet,unsigned short* array1,unsigned short* array2)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
         DotNet35Random dotNet35Random1(planet.seed);
@@ -82,9 +85,13 @@ public:
         dotNet35Random1.Next();
         dotNet35Random1.Next();
         dotNet35Random1.Next();
+
+		float temp[14] = {0};
         
         for (int i = 0; i < themeProto.VeinSpot.size(); i++)
-            res[i] = themeProto.VeinSpot[i];
+            array1[i] = themeProto.VeinSpot[i];
+		for(int i = 0; i < themeProto.VeinCount.size(); i++)
+			temp[i] = themeProto.VeinCount[i];
 
         float p = 1.0f;
         ESpectrType spectr = star.spectr;
@@ -121,29 +128,34 @@ public:
             break;
         case EStarType::WhiteDwarf:
             p = 3.5f;
-            ++res[8];
-            ++res[8];
+            ++array1[8];
+            ++array1[8];
             for (int index = 1; index < 12 && dotNet35Random1.NextDouble() < 0.449999988079071; ++index)
-                ++res[8];
-            ++res[9];
-            ++res[9];
+                ++array1[8];
+			temp[8] = 0.7f;
+            ++array1[9];
+            ++array1[9];
             for (int index = 1; index < 12 && dotNet35Random1.NextDouble() < 0.449999988079071; ++index)
-                ++res[9];
-            ++res[11];
+                ++array1[9];
+			temp[9] = 0.7f;
+            ++array1[11];
             for (int index = 1; index < 12 && dotNet35Random1.NextDouble() < 0.5; ++index)
-                ++res[11];
+                ++array1[11];
+			temp[11] = 0.7f;
             break;
         case EStarType::NeutronStar:
             p = 4.5f;
-            ++res[13];
+            ++array1[13];
             for (int index = 1; index < 12 && dotNet35Random1.NextDouble() < 0.649999976158142; ++index)
-                ++res[13];
+                ++array1[13];
+			temp[13] = 0.7f;
             break;
         case EStarType::BlackHole:
             p = 5.0f;
-            ++res[13];
+            ++array1[13];
             for (int index = 1; index < 12 && dotNet35Random1.NextDouble() < 0.649999976158142; ++index)
-                ++res[13];
+                ++array1[13];
+			temp[13] = 0.7f;
             break;
         }
 
@@ -159,11 +171,19 @@ public:
             float num6 = 1.0f - Mathf.Pow(1.0f - num3, p);
             if (dotNet35Random1.NextDouble() < (double)num4)
             {
-                ++res[rareVein-1];
+                ++array1[rareVein-1];
+				temp[rareVein-1] = num5;
                 for (int index2 = 1; index2 < 12 && dotNet35Random1.NextDouble() < (double)rareSetting1; ++index2)
-                    ++res[rareVein-1];
+                    ++array1[rareVein-1];
             }
         }
+		for(int i=0;i<14;i++)
+		{
+			if(array1[i]>1)
+				array1[i] += 1;
+			array2[i] = Mathf.RoundToInt(temp[i]*24.0f) * array1[i];
+		}
+		array2[6] = array1[6];
     }
     
     void SetPlanetTheme(
@@ -263,6 +283,9 @@ public:
         planet.waterHeight = themeProto1.WaterHeight;
         planet.waterItemId = themeProto1.WaterItemId;
         planet.levelized = themeProto1.UseHeightForBuild;
+		if(themeProto1.Distribute == EThemeDistribute::Birth){
+			birthPlanetId = planet.id;
+		}
         if (planet.type != EPlanetType::Gas)
             return;
         if (!fast)
