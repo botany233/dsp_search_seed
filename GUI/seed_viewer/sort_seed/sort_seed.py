@@ -37,7 +37,7 @@ class SortThread(QThread):
             self.label_text.emit("正在生成任务...")
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
             futures = []
-            with ProcessPoolExecutor(max_workers = min(seed_list_len // 10, cpu_count())) as executor:
+            with ProcessPoolExecutor(max_workers = cpu_count()) as executor:
                 for seed in self.seed_list:
                     futures.append(executor.submit(get_seed_value, seed[0], seed[1], value_func, is_quick_sort))
 
