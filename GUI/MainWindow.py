@@ -44,6 +44,7 @@ from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 
 from .seed_viewer.MainInterface import ViewerInterface
+from .tutorial import TutorialInterface
 from GUI.dsp_icons import AppIcons
 
 
@@ -100,9 +101,12 @@ class MainWindow(FluentWindow):
         self.searchLayout = VBoxLayout(self.searchInterface)
         self.viewerInterface = ViewerInterface(self)
         self.viewerInterface.setObjectName("viewerLayout")
+        self.tutorialInterface = TutorialInterface()
+        self.tutorialInterface.setObjectName("tutorialLayout")
 
         self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
         self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
+        self.addSubInterface(self.tutorialInterface, icon=FluentIcon.HELP, text="使用教程")
 
         self.seed_manager = SeedManager()
         self.__build__()
