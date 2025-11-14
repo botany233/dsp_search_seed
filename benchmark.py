@@ -35,11 +35,10 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
-    # galaxy_condition = get_ttenyx_condition_simple()
+    galaxy_condition = get_ttenyx_condition_simple()
     # galaxy_condition = get_easy_condition()
     # galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
-    galaxy_condition = {"stars": [{"dyson_lumino": 2.4, "satisfy_num": 2}]}
 
     # galaxy_condition = {"veins_point": {"单极磁石":250, "油":250}, "stars":[{"distance": 0, "veins_point": {"钛":30, "硅":30}}]}
 

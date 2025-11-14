@@ -86,7 +86,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
     
-    def add_widgets(self): ...
+    # def add_widgets(self): ...
 
     def _update_check_state_from_config(self):
         if self.config_obj.checked:
@@ -111,7 +111,7 @@ class TreeWidgetItem(QTreeWidgetItem):
             return self.root.indexOfTopLevelItem(self)
         return self.parent().indexOfChild(self)
 
-    def _on_add_button_clicked(self): ...
+    # def _on_add_button_clicked(self): ...
 
     def _on_del_button_clicked(self):
         if self.parent() is None:
@@ -141,9 +141,9 @@ class TreeWidgetLeave(LeaveBase):
         self.addPlanetButton.setToolTip("添加星球条件")
 
         self.mainLayout.addWidget(self.addButton)
-
-        self.mainLayout.addSpacing(5)
-
+        # self.mainLayout.addSpacing(5)
+        self.mainLayout.addWidget(self.addPlanetButton)
+        # self.mainLayout.addSpacing(5)
         self.mainLayout.addWidget(self.delButton)
 
 class GalaxyTreeWidgetItem(TreeWidgetItem):
@@ -166,7 +166,7 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
         self.manageButtons.delButton.setHidden(True)
-        self.manageButtons.addButton.setHidden(False)
+        # self.manageButtons.addButton.setHidden(False)
         self.manageButtons.addButton.setIcon(AppIcons.STAR)
         self.manageButtons.mainLayout.addWidget(self.manageButtons.addPlanetButton)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
@@ -209,9 +209,10 @@ class StarTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons = TreeWidgetLeave()
         self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
+        self.manageButtons.addButton.setHidden(True)
+        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
-        self.manageButtons.addButton.setToolTip("添加星球条件")
+        self.manageButtons.addPlanetButton.setToolTip("添加星球条件")
 
     def _on_add_button_clicked(self):
         self.addPlanetLeaf()
@@ -239,15 +240,12 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons = TreeWidgetLeave()
         self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.addButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
         self.manageButtons.addButton.setHidden(True)
+        self.manageButtons.addPlanetButton.setHidden(True)
         self.manageButtons.adjustButton = TransparentToolButton()
         self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
-
-    def _on_add_button_clicked(self):
-        return
 
 class SettingsTreeLeave(QWidget):
     def __init__(
