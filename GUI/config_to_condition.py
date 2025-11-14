@@ -31,7 +31,7 @@ def config_to_star_condition(star_cfg: StarCondition) -> dict:
         if star_cfg.distance_level >= 0:
             star_condition["distance"] = star_cfg.distance_level
         if star_cfg.lumino_level > 0:
-            star_condition["lumino"] = star_cfg.lumino_level
+            star_condition["dyson_lumino"] = star_cfg.lumino_level
         if star_cfg.satisfy_num > 1:
             star_condition["satisfy_num"] = star_cfg.satisfy_num
     star_condition["planets"] = [config_to_planet_condition(planet_cfg) for planet_cfg in star_cfg.planet_condition]
