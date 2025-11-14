@@ -1,4 +1,4 @@
-from qfluentwidgets import LineEdit, BodyLabel
+from qfluentwidgets import LineEdit, BodyLabel, isDarkTheme
 from PySide6.QtCore import QTimer
 from typing import Any, Literal
 from config import cfg
@@ -104,6 +104,8 @@ class LabelWithLimitLineEdit(LimitLineEdit):
     def setShadow(self, enable: bool, extra=None) -> None:
         if enable:
             self.label_box.setStyleSheet("color: gray;")
+        elif isDarkTheme():
+            self.label_box.setStyleSheet("color: white;")
         else:
             self.label_box.setStyleSheet("color: black;")
         pass

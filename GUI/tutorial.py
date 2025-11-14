@@ -1,5 +1,6 @@
 import os
-from PySide6.QtWidgets import QFrame, QTextBrowser, QVBoxLayout, QWidget, QFileDialog
+from qfluentwidgets import TextBrowser, setCustomStyleSheet
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QFileDialog
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QFont
 import markdown
@@ -11,7 +12,7 @@ class TutorialInterface(QFrame):
 
         self.main_layout = QVBoxLayout(self)
 
-        self.text_browser = QTextBrowser()
+        self.text_browser = TextBrowser()
         self.text_browser.setOpenExternalLinks(True)  # 允许打开外部链接
         self.text_browser.setFont(QFont("Microsoft YaHei", 12))
         self.text_browser.document().setDefaultStyleSheet("""
@@ -21,6 +22,8 @@ class TutorialInterface(QFrame):
                 object-fit: contain;
             }
         """)
+        qss = """TextBrowser{background:transparent}TextBrowser:hover{background:transparent}"""
+        setCustomStyleSheet(self.text_browser,qss,qss)
         self.main_layout.addWidget(self.text_browser)
         self.load_markdown_file("assets/tutorial.md")
 

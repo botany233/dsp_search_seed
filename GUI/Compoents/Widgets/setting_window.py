@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QFrame
 from .line_edit import LabelWithLimitLineEdit
 
-from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel
+from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel, isDarkTheme
 from config import cfg
 from config.cfg_dict_tying import VeinsName
 
@@ -19,7 +19,15 @@ class SettingsWindow(QFrame):
     ):
         super().__init__(parent)
 
-        self.setStyleSheet("""SettingsWindow{border: 1px solid #EDEDED; border-radius: 8px;}""")
+        if isDarkTheme():
+            qss = """
+            SettingsWindow{border: 1px solid #2B2B2B; border-radius: 8px;}
+            """
+        else:
+            qss = """
+            SettingsWindow{border: 1px solid #EDEDED; border-radius: 8px;}
+            """
+        self.setStyleSheet(qss)
 
         self.context = context  # 预留给设置使用的上下文
         self.config_obj = None
@@ -33,8 +41,6 @@ class SettingsWindow(QFrame):
             self.config_key = self.context.config_key
         if hasattr(self.context, "config_obj"):
             self.config_obj = self.context.config_obj
-        
-        print(self.config_key)
 
         if self.item_dict is not None:
             items = list(self.item_dict.values())
