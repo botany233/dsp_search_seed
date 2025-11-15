@@ -42,6 +42,7 @@ from .Messenger import SearchMessages
 from .Compoents import UserLayout, SeedManager, ImportSeedInfo
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
+from .Compoents.about_interface import AboutInterface
 
 from .seed_viewer.MainInterface import ViewerInterface
 from .tutorial import TutorialInterface
@@ -103,10 +104,13 @@ class MainWindow(FluentWindow):
         self.viewerInterface.setObjectName("viewerLayout")
         self.tutorialInterface = TutorialInterface()
         self.tutorialInterface.setObjectName("tutorialLayout")
+        self.aboutInterface = AboutInterface(self)
+        self.aboutInterface.setObjectName("aboutLayout")
 
         self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
         self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
         self.addSubInterface(self.tutorialInterface, icon=FluentIcon.HELP, text="使用教程")
+        self.addSubInterface(self.aboutInterface, icon=FluentIcon.INFO, text="关于")
 
         self.seed_manager = SeedManager()
         self.__build__()

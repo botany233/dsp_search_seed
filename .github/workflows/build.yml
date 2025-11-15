@@ -35,7 +35,7 @@ jobs:
       
       - name: 构建程序
         run: |
-          uv run python ./scripts/build.py
+          uv run python ./scripts/build.py --version ${{ inputs.version }}
 
       - name: 上传程序
         uses: actions/upload-artifact@main

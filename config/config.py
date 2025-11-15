@@ -14,6 +14,10 @@ class Config:
             self.__init__config()
             self.save()
 
+        self.version = "PLACEHOLDER_VERSION"
+        if self.version == "PLACEHOLDER_VERSION":
+            self.version = "dev"
+
     def __init__config(self):
         self.config = GUIConfig()
         self.config.galaxy_condition.star_condition = [StarCondition()]
