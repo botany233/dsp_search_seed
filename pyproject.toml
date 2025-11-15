@@ -11,6 +11,7 @@ dependencies = [
     "pydantic>=2.12.3",
     "pyside6==6.9.3",
     "pyside6-fluent-widgets>=1.9.2",
+    "requests>=2.32.5",
 ]
 
 [dependency-groups]
