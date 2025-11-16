@@ -71,7 +71,21 @@ class SettingsWindow(QFrame):
         self.buttonLayout.addWidget(self.returnButton)
         self.mainLayout.addLayout(self.buttonLayout)
 
+    def _check_edited(self):
+        condition = getattr(self.config_obj, self.config_key)
+        try:
+            for item in condition:
+                if item[1] != 0:
+                    return True
+            return False
+        except Exception:
+            return False
+
     def _return_button_clicked(self):
+        if self._check_edited():
+            self.context.edited = True
+        else:
+            self.context.edited = False
         parent: PopUpAniStackedWidget = self.parent()  # type: ignore
         parent.setCurrentIndex(0)
         parent.removeWidget(self)
