@@ -2,7 +2,7 @@ __all__ = ["SortTree"]
 
 from typing import Any
 from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QMouseEvent, QIcon
+from PySide6.QtGui import QMouseEvent, QIcon, QColor
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
@@ -32,6 +32,7 @@ from qfluentwidgets import (
     TransparentToolButton,
     SwitchButton,
     setFont,
+    setCustomStyleSheet
 )
 
 from .combox import AutoFixedComboBox
@@ -45,6 +46,7 @@ from config.cfg_dict_tying import (
     PlanetCondition,
     StarCondition,
     VeinsName,
+    BaseModel
 )
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid, dsp_level
@@ -253,7 +255,7 @@ class SettingsTreeLeave(QWidget):
         parent=None,
         buttonText: str = "矿物",
         items: dict[str, str] | None = None,
-        config_obj=None,
+        config_obj: BaseModel|None = None,
         config_key: str | None = None,
         obj_name: str = "",
         description: str | None = None,
@@ -281,6 +283,59 @@ class SettingsTreeLeave(QWidget):
         # self.setFocusPolicy(Qt.NoFocus)
         self.config_obj = config_obj
         self.config_key = config_key
+        
+        self._edited = False
+        self.settingsButton.setProperty("edited", False)
+        ltqss = """
+        PushButton[edited="true"] {
+            color:black;
+        }
+        PushButton[edited="false"] {
+            color:grey;
+        }
+        """
+        dkqss = """
+        PushButton[edited="true"] {
+            color:white;
+        }
+        PushButton[edited="false"] {
+            color:grey;
+        }
+        """
+        setCustomStyleSheet(self.settingsButton, ltqss, dkqss)
+        if self._check_edited():
+            self.edited = True
+        else:
+            self.edited = False
+
+    def _check_edited(self):
+        if self.config_obj is None or self.config_key is None:
+            return False
+        condition = getattr(self.config_obj, self.config_key)
+        try:
+            for item in condition:
+                if item[1] != 0:
+                    return True
+            return False
+        except Exception:
+            return False
+    
+    @property
+    def edited(self):
+        return self._edited
+    @edited.setter
+    def edited(self, value: bool):
+        self._edited = value
+        self.settingsButton.setProperty("edited", value)
+        if not value:
+            color = QColor("grey")
+            icon = FluentIcon.SETTING.colored(color, color)
+            self.settingsButton.setIcon(icon)
+        else:
+            self.settingsButton.setIcon(FluentIcon.SETTING)
+        self.settingsButton.style().unpolish(self.settingsButton)
+        self.settingsButton.style().polish(self.settingsButton)
+        self.settingsButton.update()
 
     def _createSettingsWindow(self):
         SortTreeMessages.CreateSettingsWindow.emit(self)
