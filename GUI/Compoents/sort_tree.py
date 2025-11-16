@@ -2,7 +2,7 @@ __all__ = ["SortTree"]
 
 from typing import Any
 from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QMouseEvent, QIcon
+from PySide6.QtGui import QMouseEvent, QIcon, QColor
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
@@ -327,6 +327,12 @@ class SettingsTreeLeave(QWidget):
     def edited(self, value: bool):
         self._edited = value
         self.settingsButton.setProperty("edited", value)
+        if not value:
+            color = QColor("grey")
+            icon = FluentIcon.SETTING.colored(color, color)
+            self.settingsButton.setIcon(icon)
+        else:
+            self.settingsButton.setIcon(FluentIcon.SETTING)
         self.settingsButton.style().unpolish(self.settingsButton)
         self.settingsButton.style().polish(self.settingsButton)
         self.settingsButton.update()
