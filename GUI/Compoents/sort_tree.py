@@ -32,7 +32,9 @@ from qfluentwidgets import (
     TransparentToolButton,
     SwitchButton,
     setFont,
-    setCustomStyleSheet
+    setCustomStyleSheet,
+    ToolTipFilter,
+    ToolTipPosition
 )
 
 from .combox import AutoFixedComboBox
@@ -141,6 +143,10 @@ class TreeWidgetLeave(LeaveBase):
         self.delButton.setToolTip("点击删除该项及其子项")
         self.addPlanetButton = ToolButton(AppIcons.PLANET)
         self.addPlanetButton.setToolTip("添加星球条件")
+
+        self.addButton.installEventFilter(ToolTipFilter(self.addButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
+        self.delButton.installEventFilter(ToolTipFilter(self.delButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
+        self.addPlanetButton.installEventFilter(ToolTipFilter(self.addPlanetButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
 
         self.mainLayout.addWidget(self.addButton)
         # self.mainLayout.addSpacing(5)

@@ -1,4 +1,4 @@
-from qfluentwidgets import LineEdit, BodyLabel, isDarkTheme
+from qfluentwidgets import LineEdit, BodyLabel, isDarkTheme, ToolTipFilter
 from PySide6.QtCore import QTimer
 from typing import Any, Literal
 from config import cfg
@@ -96,6 +96,8 @@ class LabelWithLimitLineEdit(LimitLineEdit):
         self.label_box = BodyLabel(label)
         self.setToolTip(label)
         self.label_box.setToolTip(label)
+        self.installEventFilter(ToolTipFilter(self, showDelay=0))
+        self.label_box.installEventFilter(ToolTipFilter(self.label_box, showDelay=0))
         self.hBoxLayout.insertWidget(0, self.label_box)
 
         self.textChanged.connect(self._shadow_label)

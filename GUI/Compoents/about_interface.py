@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout
 from PySide6.QtCore import Qt, QUrl, QSize, QThread, Signal
 from PySide6.QtGui import QResizeEvent
-from qfluentwidgets import FluentIcon, HyperlinkLabel, LargeTitleLabel, TitleLabel, BodyLabel, HyperlinkButton, setCustomStyleSheet
+from qfluentwidgets import FluentIcon, HyperlinkLabel, LargeTitleLabel, TitleLabel, BodyLabel, HyperlinkButton, setCustomStyleSheet, ToolTipFilter, ToolTipPosition
 
 import requests
 from config import cfg
@@ -15,7 +15,8 @@ class AboutInterface(QFrame):
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setSpacing(0)
         self.bigIcon = HyperlinkLabel()
-        self.bigIcon.setToolTip("这是链接~~")
+        self.bigIcon.setToolTip("我是链接~~")
+        self.bigIcon.installEventFilter(ToolTipFilter(self.bigIcon, position=ToolTipPosition.TOP_RIGHT))
         self.bigIcon.setIcon(FluentIcon.GITHUB.icon())
         self.bigIcon.setIconSize(QSize(128, 128))
         self.bigIcon.setUrl(QUrl("https://github.com/botany233/dsp_search_seed"))
