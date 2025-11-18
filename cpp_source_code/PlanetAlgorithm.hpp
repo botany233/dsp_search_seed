@@ -42,7 +42,7 @@ public:
 
 	virtual void GenerateTerrain(PlanetData& planet, double modX, double modY) = 0;
 
-	virtual void GenerateVeins(StarData& star, PlanetData& planet, int birthPlanetId, unsigned short* veins, unsigned short* res) {
+	virtual void GenerateVeins(StarData& star, PlanetData& planet, int birthPlanetId, int* veins,int* res) {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -401,7 +401,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,unsigned short* veins,unsigned short* res) override {
+	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
 		//do nothing
 	}
 };
@@ -817,7 +817,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,unsigned short* veins,unsigned short* res) override {
+	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -1390,7 +1390,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,unsigned short* veins,unsigned short* res) override {
+	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -1771,7 +1771,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,unsigned short* veins,unsigned short* res) override {
+	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -2136,7 +2136,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,unsigned short* veins,unsigned short* res) override {
+	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();

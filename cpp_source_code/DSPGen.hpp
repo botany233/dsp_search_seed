@@ -75,7 +75,7 @@ public:
             CreateStarPlanets(stars[index]);
     }
 
-    void MyGenerateVeins(StarData& star, PlanetData& planet,unsigned short* array1,unsigned short* array2)
+    void MyGenerateVeins(StarData& star, PlanetData& planet,int* array1,int* array2)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
         DotNet35Random dotNet35Random1(planet.seed);

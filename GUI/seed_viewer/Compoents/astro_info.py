@@ -179,7 +179,10 @@ class GalaxyInfo(InfoBase):
 
         self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid))
 
-        star_labels = [f"{star_types_c[i]}：{data.star_type_nums[i]}" for i in range(14)]
+        star_type_nums = [0] * 14
+        for star in data.stars:
+            star_type_nums[star.type_id-1] += 1
+        star_labels = [f"{star_types_c[i]}：{star_type_nums[i]}" for i in range(14)]
         self.add_stars(star_labels)
 
 
@@ -208,11 +211,11 @@ class PlanetInfo(InfoBase):
         self.title_label.setText(data.name)
 
         sub_title_text = [data.type]
-        if data.is_in_dsp:
+        if data.dsp_level == 2:
             sub_title_text.append("全包星")
-        elif data.is_on_dsp:
+        elif data.dsp_level == 1:
             sub_title_text.append("全接收星")
-        sub_title_text.extend(data.singularity)
+        sub_title_text.extend(data.singularity_str)
         self.add_subtitle(sub_title_text)
 
         self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid, data.is_gas))

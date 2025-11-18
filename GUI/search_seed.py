@@ -7,7 +7,6 @@ from time import perf_counter
 from math import ceil
 from datetime import datetime
 from collections import deque
-import json
 
 from config import cfg
 from .config_to_condition import config_to_galaxy_condition
@@ -65,8 +64,6 @@ class SearchThread(QThread):
                 quick: bool) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-        galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
-
         last_valid_seed, valid_seed_num = str(-1), 0
         total_batch = ceil(self.seed_manager.get_seeds_count() / batch_size)
         start_time = perf_counter()
@@ -80,7 +77,7 @@ class SearchThread(QThread):
             for _ in range(real_thread * 10):
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, quick))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_condition, quick))
                 except Exception:
                     break
 
@@ -103,7 +100,7 @@ class SearchThread(QThread):
 
                 try:
                     seeds_list, star_num_list = next(generator)
-                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_str, quick))
+                    futures.append(executor.submit(check_precise_c, seeds_list, star_num_list, galaxy_condition, quick))
                 except Exception:
                     continue
             else:
@@ -119,8 +116,6 @@ class SearchThread(QThread):
                quick: bool) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-        galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
-
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
         start_time = perf_counter()
         with open(save_name, "a", encoding="utf-8") as f:
@@ -130,7 +125,7 @@ class SearchThread(QThread):
         with ProcessPoolExecutor(max_workers = real_thread) as executor:
             futures = deque()
             for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
-                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, quick))
+                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
             index = 0
             while (len(futures) > 0):
                 result = futures.popleft().result()
@@ -150,6 +145,6 @@ class SearchThread(QThread):
 
                 seed += batch_size
                 if seed <= seeds[1]:
-                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_str, quick))
+                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
             else:
                 SearchMessages.searchEndNormal.emit(perf_counter() - start_time)

@@ -3,6 +3,7 @@
 #pragma once
 #include <vector>
 #include <string>
+#include <cstdint>
 #include "util.hpp"
 #include "PlanetRawData.hpp"
 
@@ -117,6 +118,11 @@ const int themeres[] = {
     0x0000137e,
     0x00002cfe
 };
+const int planet_theme_to_type[25] = {
+	1,23,23,2,2,3,4,5,6,7,
+	8,9,10,11,12,13,14,15,16,17,
+	22,18,19,20,21
+};
 
 class PlanetData
 {
@@ -169,43 +175,55 @@ public:
         return radius * scale;
     }
 
+	int typeId() {
+		return planet_theme_to_type[theme-1];
+	}
+
 	inline float get_ion_enhance() {
 		float real_radius = realRadius();
 		float temp = real_radius + ionHeight * 0.6f;
 		return sqrt(temp*temp-real_radius*real_radius)/temp;
 	}
 
-    inline std::vector<std::string> GetPlanetSingularityVector()
+    std::vector<std::string> GetPlanetSingularityVector()
     {
 		std::vector<std::string> singularityVector;
         if (orbitAround > 0)
 			singularityVector.push_back("卫星");
         if ((singularity & EPlanetSingularity::TidalLocked) != EPlanetSingularity::None)
-        {
 			singularityVector.push_back("潮汐锁定永昼永夜");
-        }
         if ((singularity & EPlanetSingularity::TidalLocked2) != EPlanetSingularity::None)
-        {
-			singularityVector.push_back("潮汐锁定1:2");
-        }
+			singularityVector.push_back("轨道共振1:2");
         if ((singularity & EPlanetSingularity::TidalLocked4) != EPlanetSingularity::None)
-        {
-			singularityVector.push_back("潮汐锁定1:4");
-        }
+			singularityVector.push_back("轨道共振1:4");
         if ((singularity & EPlanetSingularity::LaySide) != EPlanetSingularity::None)
-        {
 			singularityVector.push_back("横躺自转");
-        }
         if ((singularity & EPlanetSingularity::ClockwiseRotate) != EPlanetSingularity::None)
-        {
 			singularityVector.push_back("反向自转");
-        }
         if ((singularity & EPlanetSingularity::MultipleSatellites) != EPlanetSingularity::None)
-        {
 			singularityVector.push_back("多卫星");
-        }
         return singularityVector;
     }
+
+	uint8_t GetPlanetSingularityMask()
+	{
+		uint8_t singularity_mask = 0;
+		if(orbitAround > 0)
+			singularity_mask |= 1;
+		if((singularity & EPlanetSingularity::TidalLocked) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 2;
+		if((singularity & EPlanetSingularity::TidalLocked2) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 3;
+		if((singularity & EPlanetSingularity::TidalLocked4) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 4;
+		if((singularity & EPlanetSingularity::LaySide) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 5;
+		if((singularity & EPlanetSingularity::ClockwiseRotate) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 6;
+		if((singularity & EPlanetSingularity::MultipleSatellites) != EPlanetSingularity::None)
+			singularity_mask |= 1 << 1;
+		return singularity_mask;
+	}
 };
 
 class StarData {
@@ -297,38 +315,38 @@ public:
 		if(type == EStarType::GiantStar)
 		{
 			if(spectr <= ESpectrType::K)
-				return 0; //红巨星
+				return 1; //红巨星
 			else if(spectr <= ESpectrType::F)
-				return 1; //黄巨星
+				return 2; //黄巨星
 			else if((spectr != ESpectrType::A))
-				return 2; //蓝巨星
+				return 3; //蓝巨星
 			else
-				return 3; //白巨星
+				return 4; //白巨星
 		} else if(type == EStarType::WhiteDwarf)
-			return 4; //白矮星
+			return 5; //白矮星
 		else if(type == EStarType::NeutronStar)
-			return 5; //中子星
+			return 6; //中子星
 		else if(type == EStarType::BlackHole)
-			return 6; //黑洞
+			return 7; //黑洞
 		else if(type == EStarType::MainSeqStar)
 		{
 			if(spectr == ESpectrType::A)
-				return 7; //A型恒星
+				return 8; //A型恒星
 			else if(spectr == ESpectrType::B)
-				return 8; //B型恒星
+				return 9; //B型恒星
 			else if(spectr == ESpectrType::F)
-				return 9; //F型恒星
+				return 10; //F型恒星
 			else if(spectr == ESpectrType::G)
-				return 10; //G型恒星
+				return 11; //G型恒星
 			else if(spectr == ESpectrType::K)
-				return 11; //K型恒星
+				return 12; //K型恒星
 			else if(spectr == ESpectrType::M)
-				return 12; //M型恒星
+				return 13; //M型恒星
 			else if(spectr == ESpectrType::O)
-				return 13; //O型恒星
+				return 14; //O型恒星
 			else
-				return 14;
+				return 15;
 		} else
-			return 15;
+			return 16;
 	}
 };

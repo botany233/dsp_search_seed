@@ -1,7 +1,8 @@
 from CApi import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-import json
+from tqdm import tqdm
+from math import ceil
 
 # vein_names = "铁, 铜, 硅, 钛, 石, 煤, 油, 可燃冰, 金伯利, 分型硅, 有机晶体, 光栅石, 刺笋结晶, 单极磁石"
 # liquid = "水, 硫酸"
@@ -11,6 +12,22 @@ import json
 # star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
 #               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
+
+def check_seeds_py(seeds: tuple[int, int],
+                   star_nums: tuple[int, int],
+                   galaxy_condition: dict,
+                   quick: bool,
+                   batch_size: int,
+                   max_thread: int,
+                   record_seed: bool):
+    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
+        generator = batch_generator_py(galaxy_condition, quick, seeds, star_nums, batch_size)
+
+        results = executor.map(check_batch_wrapper_py, generator)
+        for result in tqdm(results, total = ceil((seeds[1]-seeds[0]+1) / batch_size)):
+            if record_seed:
+                with open("result_py.csv", "a") as f:
+                    f.writelines(map(lambda x: f"{x}\n", result))
 
 def check_seeds_c(seeds: tuple[int, int],
                   star_nums: tuple[int, int],
@@ -23,7 +40,7 @@ def check_seeds_c(seeds: tuple[int, int],
         generator = batch_generator_c(galaxy_str, quick, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_c, generator)
-        for result in results:
+        for result in tqdm(results, total = ceil((seeds[1]-seeds[0]+1) / batch_size)):
             if record_seed:
                 with open("result_c.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
@@ -44,13 +61,6 @@ if __name__ == "__main__":
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    galaxy_str = json.dumps(galaxy_condition, ensure_ascii = False)
-
-    print_condition_str = 0
-    if print_condition_str:
-        print(galaxy_str)
-        exit()
-
     seeds = (0, 49999)
     star_nums = (64, 64)
     batch_size = 32
@@ -59,6 +69,13 @@ if __name__ == "__main__":
     quick = 0
     record_seed = 1
 
+    # print(check_batch_py(157, 158, 64, 65, galaxy_condition, bool(quick)))
+    # aaa
+
+    # flag = perf_counter()
+    # check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
+    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+
     flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_str, bool(quick), batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")

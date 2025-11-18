@@ -1,269 +1,301 @@
 #include "json.hpp"
 #include "data_struct.hpp"
+#include <array>
+#include <cstdint>
+#include <iostream>
 
 using namespace nlohmann;
+using namespace std;
 
-bool check_planet(PlanetStructSimple& planet_data,const json& planet_condition,const bool update_flag)
+bool check_planet(const PlanetStructSimple& planet_data,const PlanetCondition& planet_condition)
 {
-	if(planet_condition.contains("dsp_level") && planet_condition["dsp_level"] > planet_data.dsp_level)
+	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
-	if(planet_condition.contains("type") && planet_condition["type"] != planet_data.type &&
-		!(planet_condition["type"] == "气态巨星" && planet_data.type == "高产气巨"))
+	if(planet_condition.type && planet_condition.type != planet_data.type &&
+		!(planet_condition.type == 23 && planet_data.type == 22))
 		return false;
-	if(planet_condition.contains("liquid") && planet_condition["liquid"] != planet_data.liquid)
+	if((planet_condition.liquid & planet_data.liquid) != planet_condition.liquid)
 		return false;
-	if(planet_condition.contains("singularity"))
-	{
-		bool tag = true;
-		for(const string& planet_singularity: planet_data.singularity)
-		{
-			if(planet_condition["singularity"] == planet_singularity)
-			{
-				tag = false;
-				break;
-			}
-		}
-		if(tag)
-			return false;
-	}
-	if(planet_condition.contains("veins"))
-	{
-		if(planet_data.is_gas)
-			return false;
-		else
-		{
-			for(int i = 0;i < 14;i++)
-			{
-				if(planet_condition["veins"][i] > planet_data.veins[i])
-					return false;
-			}
+	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
+	if(planet_condition.need_veins) {
+		for(int i = 0;i < 14;i++) {
+			if(planet_condition.veins_group[i] > planet_data.veins_group[i] || planet_condition.veins_point[i] > planet_data.veins_point[i])
+				return false;
 		}
 	}
-	if(planet_condition.contains("veins_point"))
-	{
-		if(planet_data.is_gas)
-			return false;
-		else
-		{
-			for(int i = 0;i < 14;i++)
-			{
-				if(planet_condition["veins_point"][i] > planet_data.veins_point[i])
-					return false;
-			}
-		}
-	}
-	if(update_flag && planet_condition.contains("need_veins"))
-		planet_data.need_veins |= planet_condition["need_veins"];
 	return true;
 }
 
-bool check_star(StarStructSimple& star_data,const json& star_condition,const bool update_flag)
+bool check_star(const StarStructSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.contains("type") && star_condition["type"] != star_data.type)
+	if(star_condition.type && star_condition.type != star_data.type)
 		return false;
-	if(star_condition.contains("distance") && star_condition["distance"] < star_data.distance)
+	if(star_condition.distance < star_data.distance)
 		return false;
-	if(star_condition.contains("dyson_lumino") && star_condition["dyson_lumino"] > star_data.dyson_lumino)
+	if(star_condition.dyson_lumino > star_data.dyson_lumino)
 		return false;
-	if(star_condition.contains("planets"))
+	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
-		for(const json& planet_condition: star_condition["planets"])
+		int left_satisfy_num = planet_condition.satisfy_num;
+		for(const PlanetStructSimple& planet_data: star_data.planets)
 		{
-			int left_satisfy_num = planet_condition["satisfy_num"];
-			for(PlanetStructSimple& planet_data: star_data.planets)
+			if(check_planet(planet_data,planet_condition))
 			{
-				if(check_planet(planet_data,planet_condition,update_flag))
+				left_satisfy_num -= 1;
+				if(!left_satisfy_num)
+					break;
+			}
+		}
+		if(left_satisfy_num)
+			return false;
+	}
+	if(star_condition.need_veins) {
+		for(int i = 0;i < 14;i++) {
+			if(star_condition.veins_group[i] > star_data.veins_group[i] || star_condition.veins_point[i] > star_data.veins_point[i])
+				return false;
+		}
+	}
+	return true;
+}
+
+bool check_galaxy(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+{
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		int left_satisfy_num = star_condition.satisfy_num;
+		for(const StarStructSimple& star_data: galaxy_data.stars)
+		{
+			if(check_star(star_data,star_condition))
+			{
+				left_satisfy_num -= 1;
+				if(!left_satisfy_num)
+					break;
+			}
+		}
+		if(left_satisfy_num)
+			return false;
+	}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets)
+	{
+		int left_satisfy_num = planet_condition.satisfy_num;
+		for(const StarStructSimple& star_data: galaxy_data.stars)
+		{
+			for(const PlanetStructSimple& planet_data: star_data.planets)
+			{
+				if(check_planet(planet_data,planet_condition))
 				{
 					left_satisfy_num -= 1;
 					if(!left_satisfy_num)
-						break;
+						goto end_check_label;
 				}
 			}
-			if(left_satisfy_num)
+		}
+		end_check_label:
+		if(left_satisfy_num)
+			return false;
+	}
+	if(galaxy_condition.need_veins) {
+		for(int i = 0;i < 14;i++) {
+			if(galaxy_condition.veins_group[i] > galaxy_data.veins_group[i] || galaxy_condition.veins_point[i] > galaxy_data.veins_point[i])
 				return false;
 		}
 	}
-	if(star_condition.contains("veins"))
-	{
-		for(int i = 0;i < 14;i++)
-		{
-			if(star_condition["veins"][i] > star_data.veins[i])
-				return false;
-		}
-	}
-	if(star_condition.contains("veins_point"))
-	{
-		for(int i = 0;i < 14;i++)
-		{
-			if(star_condition["veins_point"][i] > star_data.veins_point[i])
-				return false;
-		}
-	}
-	if(update_flag && star_condition.contains("need_veins"))
-		star_data.need_veins |= star_condition["need_veins"];
 	return true;
 }
 
-bool check_galaxy(GalaxyStructSimple& galaxy_data,const json& galaxy_condition,const bool update_flag)
+bool check_planet_quick(const PlanetStructSimple& planet_data,const PlanetCondition& planet_condition)
 {
-	if(galaxy_condition.contains("stars"))
-	{
-		for(const json& star_condition: galaxy_condition["stars"])
-		{
-			int left_satisfy_num = star_condition["satisfy_num"];
-			for(StarStructSimple& star_data: galaxy_data.stars)
-			{
-				if(check_star(star_data,star_condition,update_flag))
-				{
-					left_satisfy_num -= 1;
-					if(!left_satisfy_num)
-						break;
-				}
-			}
-			if(left_satisfy_num)
-				return false;
-		}
-	}
-	if(galaxy_condition.contains("planets"))
-	{
-		for(const json& planet_condition: galaxy_condition["planets"])
-		{
-			int left_satisfy_num = planet_condition["satisfy_num"];
-			for(StarStructSimple& star_data: galaxy_data.stars)
-			{
-				for(PlanetStructSimple& planet_data: star_data.planets)
-				{
-					if(check_planet(planet_data,planet_condition,update_flag))
-					{
-						left_satisfy_num -= 1;
-						if(!left_satisfy_num)
-							goto end_check_label;
-					}
-				}
-			}
-			end_check_label:
-			if(left_satisfy_num)
-				return false;
-		}
-	}
-	if(galaxy_condition.contains("veins"))
-	{
-		for(int i = 0;i < 14;i++)
-		{
-			if(galaxy_condition["veins"][i] > galaxy_data.veins[i])
-				return false;
-		}
-	}
-	if(galaxy_condition.contains("veins_point"))
-	{
-		for(int i = 0;i < 14;i++)
-		{
-			if(galaxy_condition["veins_point"][i] > galaxy_data.veins_point[i])
-				return false;
-		}
-	}
-	if(update_flag && galaxy_condition.contains("need_veins"))
-		galaxy_data.need_veins |= galaxy_condition["need_veins"];
+	if(planet_condition.dsp_level > planet_data.dsp_level)
+		return false;
+	if(planet_condition.type && planet_condition.type != planet_data.type &&
+		!(planet_condition.type == 23 && planet_data.type == 22))
+		return false;
+	if((planet_condition.liquid & planet_data.liquid) != planet_condition.liquid)
+		return false;
+	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
 	return true;
 }
 
-bool check_planet_quick(const PlanetStructSimple& planet_data,const json& planet_condition)
+bool check_star_quick(const StarStructSimple& star_data,const StarCondition& star_condition)
 {
-	if(planet_condition.contains("dsp_level") && planet_condition["dsp_level"] > planet_data.dsp_level)
+	if(star_condition.type && star_condition.type != star_data.type)
 		return false;
-	if(planet_condition.contains("type") && planet_condition["type"] != planet_data.type &&
-		!(planet_condition["type"] == "气态巨星" && planet_data.type == "高产气巨"))
+	if(star_condition.distance < star_data.distance)
 		return false;
-	if(planet_condition.contains("liquid") && planet_condition["liquid"] != planet_data.liquid)
+	if(star_condition.dyson_lumino > star_data.dyson_lumino)
 		return false;
-	if(planet_condition.contains("singularity"))
+	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
-		bool tag = true;
-		for(const string& planet_singularity: planet_data.singularity)
+		int left_satisfy_num = planet_condition.satisfy_num;
+		for(const PlanetStructSimple& planet_data: star_data.planets)
 		{
-			if(planet_condition["singularity"] == planet_singularity)
+			if(check_planet_quick(planet_data,planet_condition))
 			{
-				tag = false;
-				break;
+				left_satisfy_num -= 1;
+				if(!left_satisfy_num)
+					break;
 			}
 		}
-		if(tag)
+		if(left_satisfy_num)
 			return false;
 	}
 	return true;
 }
 
-bool check_star_quick(const StarStructSimple& star_data,const json& star_condition)
+bool check_galaxy_quick(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
-	if(star_condition.contains("type") && star_condition["type"] != star_data.type)
-		return false;
-	if(star_condition.contains("distance") && star_condition["distance"] < star_data.distance)
-		return false;
-	if(star_condition.contains("dyson_lumino") && star_condition["dyson_lumino"] > star_data.dyson_lumino)
-		return false;
-	if(star_condition.contains("planets"))
-	{
-		for(const json& planet_condition: star_condition["planets"])
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		int left_satisfy_num = star_condition.satisfy_num;
+		for(const StarStructSimple& star_data: galaxy_data.stars)
 		{
-			int left_satisfy_num = planet_condition["satisfy_num"];
+			if(check_star_quick(star_data,star_condition))
+			{
+				left_satisfy_num -= 1;
+				if(!left_satisfy_num)
+					break;
+			}
+		}
+		if(left_satisfy_num)
+			return false;
+	}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets)
+	{
+		int left_satisfy_num = planet_condition.satisfy_num;
+		for(const StarStructSimple& star_data: galaxy_data.stars)
+		{
 			for(const PlanetStructSimple& planet_data: star_data.planets)
 			{
 				if(check_planet_quick(planet_data,planet_condition))
 				{
 					left_satisfy_num -= 1;
 					if(!left_satisfy_num)
-						break;
+						goto end_check_label;
 				}
 			}
-			if(left_satisfy_num)
-				return false;
 		}
+		end_check_label:
+		if(left_satisfy_num)
+			return false;
 	}
 	return true;
 }
 
-bool check_galaxy_quick(const GalaxyStructSimple& galaxy_data,const json& galaxy_condition)
+void del_empty_galaxy_condition(GalaxyConditionSimple& galaxy_condition) {
+	int index1 = 0;
+	while(index1 < galaxy_condition.planets.size()) {
+		if(galaxy_condition.planets[index1].need_veins) {
+			index1++;
+		} else {
+			galaxy_condition.planets.erase(galaxy_condition.planets.begin() + index1);
+		}
+	}
+	int index2 = 0;
+	while(index2 < galaxy_condition.stars.size()) {
+		StarConditionSimple& star_condition = galaxy_condition.stars[index2];
+		int index3 = 0;
+		while(index3 < star_condition.planets.size()) {
+			if(star_condition.planets[index3].need_veins) {
+				index3++;
+			} else {
+				star_condition.planets.erase(star_condition.planets.begin() + index3);
+			}
+		}
+		if(star_condition.need_veins || star_condition.planets.size()) {
+			index2++;
+		} else {
+			galaxy_condition.stars.erase(galaxy_condition.stars.begin() + index2);
+		}
+	}
+}
+
+void get_galaxy_condition_struct(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition,GalaxyConditionSimple& galaxy_condition_simple)
 {
-	if(galaxy_condition.contains("stars"))
-	{
-		for(const json& star_condition: galaxy_condition["stars"])
-		{
-			int left_satisfy_num = star_condition["satisfy_num"];
-			for(const StarStructSimple& star_data: galaxy_data.stars)
-			{
-				if(check_star_quick(star_data,star_condition))
-				{
-					left_satisfy_num -= 1;
-					if(!left_satisfy_num)
-						break;
-				}
-			}
-			if(left_satisfy_num)
-				return false;
-		}
-	}
-	if(galaxy_condition.contains("planets"))
-	{
-		for(const json& planet_condition: galaxy_condition["planets"])
-		{
-			int left_satisfy_num = planet_condition["satisfy_num"];
-			for(const StarStructSimple& star_data: galaxy_data.stars)
-			{
-				if(!left_satisfy_num)
-					break;
-				for(const PlanetStructSimple& planet_data: star_data.planets)
-				{
-					if(check_planet_quick(planet_data,planet_condition))
-					{
-						left_satisfy_num -= 1;
-						if(!left_satisfy_num)
-							break;
+	for(int sc_index=0;sc_index<galaxy_condition.stars.size();sc_index++) {
+		const StarCondition& star_condition = galaxy_condition.stars[sc_index];
+		StarConditionSimple& star_condition_simple = galaxy_condition_simple.stars[sc_index];
+		for(const StarStructSimple& star_data: galaxy_data.stars) {
+			if(check_star(star_data,star_condition)) {
+				StarIndexStruct star_index_struct = StarIndexStruct();
+				star_index_struct.star_index = star_data.index;
+				for(int pc_index=0;pc_index<star_condition_simple.planets.size();pc_index++) {
+					const PlanetCondition& planet_condition = star_condition.planets[pc_index];
+					PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
+					vector<int> temp_vector = vector<int>();
+					for(const PlanetStructSimple& planet_data: star_data.planets) {
+						if(check_planet(planet_data,planet_condition)) {
+							temp_vector.push_back(planet_data.index);
+						}
 					}
+					star_index_struct.satisfy_planets.push_back(temp_vector);
 				}
+				star_condition_simple.star_indexes.push_back(star_index_struct);
 			}
-			if(left_satisfy_num)
-				return false;
 		}
 	}
-	return true;
+	for(int pc_index=0;pc_index<galaxy_condition.planets.size();pc_index++) {
+		const PlanetCondition& planet_condition = galaxy_condition.planets[pc_index];
+		PlanetConditionSimple& planet_condition_struct = galaxy_condition_simple.planets[pc_index];
+		for(const StarStructSimple& star_data: galaxy_data.stars) {
+			for(const PlanetStructSimple& planet_data: star_data.planets) {
+				if(check_planet(planet_data,planet_condition)) {
+					PlanetIndexStruct planet_index_struct = PlanetIndexStruct();
+					planet_index_struct.star_index = star_data.index;
+					planet_index_struct.planet_index = planet_data.index;
+					planet_condition_struct.planet_indexes.push_back(planet_index_struct);
+				}
+			}
+		}
+	}
+	del_empty_galaxy_condition(galaxy_condition_simple);
+}
+
+PlanetConditionSimple init_planet_condition_simple(const PlanetCondition& planet_condition)
+{
+	PlanetConditionSimple planet_condition_simple = PlanetConditionSimple();
+	planet_condition_simple.satisfy_num = planet_condition.satisfy_num;
+	if(planet_condition.need_veins) {
+		planet_condition_simple.need_veins = planet_condition.need_veins;
+		for(int i=0;i<14;i++) {
+			planet_condition_simple.veins_group[i] = planet_condition.veins_group[i];
+			planet_condition_simple.veins_point[i] = planet_condition.veins_point[i];
+		}
+	}
+	return planet_condition_simple;
+}
+
+StarConditionSimple init_star_condition_struct(const StarCondition& star_condition)
+{
+	StarConditionSimple star_condition_simple = StarConditionSimple();
+	star_condition_simple.satisfy_num = star_condition.satisfy_num;
+	if(star_condition.need_veins) {
+		star_condition_simple.need_veins = star_condition.need_veins;
+		for(int i=0;i<14;i++) {
+			star_condition_simple.veins_group[i] = star_condition.veins_group[i];
+			star_condition_simple.veins_point[i] = star_condition.veins_point[i];
+		}
+	}
+	for(const PlanetCondition& planet_condition: star_condition.planets) {
+		star_condition_simple.planets.push_back(init_planet_condition_simple(planet_condition));
+	}
+	return star_condition_simple;
+}
+
+GalaxyConditionSimple init_galaxy_condition_struct(const GalaxyCondition& galaxy_condition)
+{
+	GalaxyConditionSimple galaxy_condition_simple = GalaxyConditionSimple();
+	if(galaxy_condition.need_veins) {
+		galaxy_condition_simple.need_veins = galaxy_condition.need_veins;
+		for(int i=0;i<14;i++) {
+			galaxy_condition_simple.veins_group[i] = galaxy_condition.veins_group[i];
+			galaxy_condition_simple.veins_point[i] = galaxy_condition.veins_point[i];
+		}
+	}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
+		galaxy_condition_simple.planets.push_back(init_planet_condition_simple(planet_condition));
+	}
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		galaxy_condition_simple.stars.push_back(init_star_condition_struct(star_condition));
+	}
+	return galaxy_condition_simple;
 }

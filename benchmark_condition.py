@@ -15,7 +15,7 @@ def get_extreme_factory_condition():
 
     star_condition = {"type": "O型恒星", "satisfy_num": 5}
 
-    galaxy_condition = {"stars":[star_condition], "planets": [planet_condition], "veins": {"单极磁石":20}, "veins_point": {"单极磁石": 300, "刺笋结晶": 600}}
+    galaxy_condition = {"stars":[star_condition], "planets": [planet_condition], "veins_group": {"单极磁石":20}, "veins_point": {"单极磁石": 300, "刺笋结晶": 600}}
     return galaxy_condition
 
 def get_ttenyx_condition():
@@ -38,10 +38,10 @@ def get_easy_condition():
     planet_condition_5 = {"dsp_level": "全包"}
 
     star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4, planet_condition_5],
-                        "veins": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1},
+                        "veins_group": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1},
                         "type": "O型恒星", "distance": 5}
 
-    galaxy_condition = {"veins": {"单极磁石":4}, "veins_point": {"单极磁石": 80}, "stars":[star_condition_1]}
+    galaxy_condition = {"veins_group": {"单极磁石":4}, "veins_point": {"单极磁石": 80}, "stars":[star_condition_1]}
     return galaxy_condition
 
 def get_3_blue_condition():

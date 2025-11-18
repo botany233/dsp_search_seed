@@ -4,15 +4,13 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
-#include "json.hpp"
 
 #include "check_seed.hpp"
-#include "check_batch.hpp"
 #include "data_struct.hpp"
 #include "PlanetRawData.hpp"
 #include "RandomTable.hpp"
+#include "condition_to_struct.hpp"
 
-using namespace nlohmann;
 using namespace std;
 namespace py = pybind11;
 
@@ -26,119 +24,76 @@ void do_init()
 	RandomTable::GenerateSphericNormal();
 };
 
-bool is_need_veins(const json& galaxy_condition)
+bool is_need_veins(const GalaxyCondition& galaxy_condition)
 {
-	if(galaxy_condition.contains("veins") || galaxy_condition.contains("veins_point"))
+	if(galaxy_condition.need_veins)
 		return true;
-	if(galaxy_condition.contains("stars")) {
-		for(const json& star_condition: galaxy_condition["stars"]) {
-			if(star_condition.contains("veins") || star_condition.contains("veins_point"))
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		if(star_condition.need_veins)
+			return true;
+		for(const PlanetCondition& planet_condition: star_condition.planets) {
+			if(planet_condition.need_veins)
 				return true;
-			if(star_condition.contains("planets")) {
-				for(const json& planet_condition: star_condition["planets"]) {
-					if(planet_condition.contains("veins") || planet_condition.contains("veins_point"))
-						return true;
-				}
-			}
 		}
 	}
-	if(galaxy_condition.contains("planets")) {
-		for(const json& planet_condition: galaxy_condition["planets"]) {
-			if(planet_condition.contains("veins") || planet_condition.contains("veins_point"))
-				return true;
-		}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
+		if(planet_condition.need_veins)
+			return true;
 	}
 	return false;
 }
 
-uint16_t update_veins(const vector<int>& veins) {
-	uint16_t need_veins = 0;
-	for(int i=0;i<14;i++) {
-		need_veins |= (veins[i] > 0) << i;
-	}
-	return need_veins;
-}
-
-void update_planet_condition(json& planet_condition) {
-	uint16_t need_veins = 0;
-	if(planet_condition.contains("veins")) {
-		need_veins |= update_veins(planet_condition["veins"]);
-	}
-	if(planet_condition.contains("veins_point")) {
-		need_veins |= update_veins(planet_condition["veins_point"]);
-	}
-	if(need_veins)
-		planet_condition["need_veins"] = need_veins;
-	return;
-}
-
-void update_star_condition(json& star_condition) {
-	uint16_t need_veins = 0;
-	if(star_condition.contains("veins")) {
-		need_veins |= update_veins(star_condition["veins"]);
-	}
-	if(star_condition.contains("veins_point")) {
-		need_veins |= update_veins(star_condition["veins_point"]);
-	}
-	if(need_veins)
-		star_condition["need_veins"] = need_veins;
-	if(star_condition.contains("planets")) {
-		for(json& planet_condition: star_condition["planets"]) {
-			update_planet_condition(planet_condition);
+vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,const GalaxyCondition& galaxy_condition,int check_level)
+{
+	vector<string> result;
+	for(int seed = start_seed;seed < end_seed;seed++)
+	{
+		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
+		{
+			if(check_seed_level_1(seed,star_num,galaxy_condition,check_level))
+				result.push_back(to_string(seed) + ", " + to_string(star_num));
 		}
 	}
-	return;
+	return result;
 }
 
-void update_galaxy_condition(json& galaxy_condition) {
-	uint16_t need_veins = 0;
-	if(galaxy_condition.contains("veins")) {
-		need_veins |= update_veins(galaxy_condition["veins"]);
+vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& star_num_vector,const GalaxyCondition& galaxy_condition,int check_level)
+{
+	vector<string> result;
+	for(int i = 0; i<seed_vector.size(); i++)
+	{
+		int seed = seed_vector[i];
+		int star_num = star_num_vector[i];
+		if(check_seed_level_1(seed,star_num,galaxy_condition,check_level))
+			result.push_back(to_string(seed) + ", " + to_string(star_num));
 	}
-	if(galaxy_condition.contains("veins_point")) {
-		need_veins |= update_veins(galaxy_condition["veins_point"]);
-	}
-	if(need_veins)
-		galaxy_condition["need_veins"] = need_veins;
-	if(galaxy_condition.contains("stars")) {
-		for(json& star_condition: galaxy_condition["stars"]) {
-			update_star_condition(star_condition);
-		}
-	}
-	if(galaxy_condition.contains("planets")) {
-		for(json& planet_condition: galaxy_condition["planets"]) {
-			update_planet_condition(planet_condition);
-		}
-	}
-	return;
+	return result;
 }
 
-GalaxyStruct get_galaxy_data_c(int seed,int star_num)
+GalaxyStruct get_galaxy_data_c(int seed,int star_num,bool quick)
 {
 	do_init();
-	return get_galaxy_data(seed,star_num);
+	return get_galaxy_data(seed,star_num,quick);
 }
 
-vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const string& galaxy_str,bool quick_check)
+vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const py::dict& galaxy_condition_dict,bool quick)
 {
 	do_init();
-	json galaxy_condition = json::parse(galaxy_str);
-	update_galaxy_condition(galaxy_condition);
+	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = 3;
-	if(quick_check)
+	if(quick)
 		check_level = 2;
 	if(!is_need_veins(galaxy_condition))
 		check_level = 1;
 	return check_batch(start_seed,end_seed,start_star_num,end_star_num,galaxy_condition,check_level);
 }
 
-vector<string> check_precise_c(vector<int>& seed_vector,vector<int>& star_num_vector,const string& galaxy_str,bool quick_check)
+vector<string> check_precise_c(const vector<int>& seed_vector,const vector<int>& star_num_vector,const py::dict& galaxy_condition_dict,bool quick)
 {
 	do_init();
-	json galaxy_condition = json::parse(galaxy_str);
-	update_galaxy_condition(galaxy_condition);
+	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = 3;
-	if(quick_check)
+	if(quick)
 		check_level = 2;
 	if(!is_need_veins(galaxy_condition))
 		check_level = 1;
@@ -146,32 +101,61 @@ vector<string> check_precise_c(vector<int>& seed_vector,vector<int>& star_num_ve
 }
 
 PYBIND11_MODULE(search_seed,m) {
+	py::class_<PlanetCondition>(m,"PlanetCondition")
+		.def(py::init<>())
+		.def_readwrite("satisfy_num",&PlanetCondition::satisfy_num)
+		.def_readwrite("dsp_level",&PlanetCondition::dsp_level)
+		.def_readwrite("type",&PlanetCondition::type)
+		.def_readwrite("liquid",&PlanetCondition::liquid)
+		.def_readwrite("singularity",&PlanetCondition::singularity)
+		.def_readwrite("need_veins",&PlanetCondition::need_veins)
+		.def_readwrite("veins_group",&PlanetCondition::veins_group)
+		.def_readwrite("veins_point",&PlanetCondition::veins_point);
+	py::class_<StarCondition>(m,"StarCondition")
+		.def(py::init<>())
+		.def_readwrite("satisfy_num",&StarCondition::satisfy_num)
+		.def_readwrite("type",&StarCondition::type)
+		.def_readwrite("distance",&StarCondition::distance)
+		.def_readwrite("dyson_lumino",&StarCondition::dyson_lumino)
+		.def_readwrite("need_veins",&StarCondition::need_veins)
+		.def_readwrite("veins_group",&StarCondition::veins_group)
+		.def_readwrite("veins_point",&StarCondition::veins_point)
+		.def_readwrite("planets",&StarCondition::planets);
+	py::class_<GalaxyCondition>(m,"GalaxyCondition")
+		.def(py::init<>())
+		.def_readwrite("need_veins",&GalaxyCondition::need_veins)
+		.def_readwrite("veins_group",&GalaxyCondition::veins_group)
+		.def_readwrite("veins_point",&GalaxyCondition::veins_point)
+		.def_readwrite("stars",&GalaxyCondition::stars)
+		.def_readwrite("planets",&GalaxyCondition::planets);
 	py::class_<PlanetStruct>(m,"PlanetData")
 		.def(py::init<>())
 		.def_readwrite("name",&PlanetStruct::name)
 		.def_readwrite("type",&PlanetStruct::type)
+		.def_readwrite("type_id",&PlanetStruct::type_id)
 		.def_readwrite("singularity",&PlanetStruct::singularity)
+		.def_readwrite("singularity_str",&PlanetStruct::singularity_str)
 		.def_readwrite("seed",&PlanetStruct::seed)
 		.def_readwrite("lumino",&PlanetStruct::lumino)
 		.def_readwrite("wind",&PlanetStruct::wind)
 		.def_readwrite("radius",&PlanetStruct::radius)
 		.def_readwrite("liquid",&PlanetStruct::liquid)
 		.def_readwrite("is_gas",&PlanetStruct::is_gas)
-		.def_readwrite("is_in_dsp",&PlanetStruct::is_in_dsp)
-		.def_readwrite("is_on_dsp",&PlanetStruct::is_on_dsp)
-		.def_readwrite("veins",&PlanetStruct::veins)
+		.def_readwrite("dsp_level",&PlanetStruct::dsp_level)
+		.def_readwrite("veins_group",&PlanetStruct::veins_group)
 		.def_readwrite("veins_point",&PlanetStruct::veins_point)
 		.def_readwrite("gas_veins",&PlanetStruct::gas_veins);
 	py::class_<StarStruct>(m,"StarData")
 		.def(py::init<>())
 		.def_readwrite("type",&StarStruct::type)
+		.def_readwrite("type_id",&StarStruct::type_id)
 		.def_readwrite("name",&StarStruct::name)
 		.def_readwrite("seed",&StarStruct::seed)
 		.def_readwrite("distance",&StarStruct::distance)
 		.def_readwrite("dyson_lumino",&StarStruct::dyson_lumino)
 		.def_readwrite("dyson_radius",&StarStruct::dyson_radius)
 		.def_readwrite("planets",&StarStruct::planets)
-		.def_readwrite("veins",&StarStruct::veins)
+		.def_readwrite("veins_group",&StarStruct::veins_group)
 		.def_readwrite("veins_point",&StarStruct::veins_point)
 		.def_readwrite("gas_veins",&StarStruct::gas_veins)
 		.def_readwrite("liquid",&StarStruct::liquid);
@@ -180,13 +164,12 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("seed",&GalaxyStruct::seed)
 		.def_readwrite("star_num",&GalaxyStruct::star_num)
 		.def_readwrite("stars",&GalaxyStruct::stars)
-		.def_readwrite("veins",&GalaxyStruct::veins)
+		.def_readwrite("veins_group",&GalaxyStruct::veins_group)
 		.def_readwrite("veins_point",&GalaxyStruct::veins_point)
 		.def_readwrite("gas_veins",&GalaxyStruct::gas_veins)
-		.def_readwrite("planet_type_nums",&GalaxyStruct::planet_type_nums)
-		.def_readwrite("star_type_nums",&GalaxyStruct::star_type_nums)
 		.def_readwrite("liquid",&GalaxyStruct::liquid);
-	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("star_num"));
-	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("quick_check"));
-	m.def("check_precise_c",&check_precise_c,py::arg("seed_vector"),py::arg("star_num_vector"),py::arg("galaxy_condition"),py::arg("quick_check"));
+	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
+	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("star_num"),py::arg("quick"));
+	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("quick"));
+	m.def("check_precise_c",&check_precise_c,py::arg("seed_vector"),py::arg("star_num_vector"),py::arg("galaxy_condition"),py::arg("quick"));
 }

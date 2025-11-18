@@ -164,12 +164,12 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
         self.planet_data = planet_data
 
         show_text = []
-        if planet_data.is_in_dsp:
+        if planet_data.dsp_level == 2:
             show_text.append("全包")
-        elif planet_data.is_on_dsp:
+        elif planet_data.dsp_level == 1:
             show_text.append("全接收")
 
-        for i in planet_data.singularity:
+        for i in planet_data.singularity_str:
             show_text.append(i)
 
         if planet_data.liquid == 1:
