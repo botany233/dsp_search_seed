@@ -374,7 +374,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addPlanetButton.setHidden(True)
         self.manageButtons.adjustButton = TransparentToolButton()
         self.manageButtons.adjustButton.setToolTip("eggg")
-        self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=1000))
+        self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=3000))
         qss = """TransparentToolButton:hover{background: transparent}"""
         setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
         self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
