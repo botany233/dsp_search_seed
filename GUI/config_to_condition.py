@@ -47,7 +47,7 @@ def config_to_planet_condition(planet_cfg: PlanetCondition) -> dict:
         if planet_cfg.planet_type != "无限制":
             planet_condition["type"] = planet_cfg.planet_type
         if planet_cfg.singularity != "无限制":
-            if planet_cfg.singularity == "永昼永夜":
+            if planet_cfg.singularity == "潮汐锁定":
                 planet_condition["singularity"] = "潮汐锁定永昼永夜"
             else:
                 planet_condition["singularity"] = planet_cfg.singularity

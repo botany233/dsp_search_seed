@@ -52,29 +52,32 @@ if __name__ == "__main__":
 
     # galaxy_condition = get_100k_factory_condition()
     # galaxy_condition = get_extreme_factory_condition()
-    galaxy_condition = get_ttenyx_condition_simple()
+    # galaxy_condition = get_ttenyx_condition_simple()
     # galaxy_condition = get_easy_condition()
     # galaxy_condition = get_3_blue_condition()
     # galaxy_condition["veins"] = {"单极磁石": 24}
 
-    # galaxy_condition = {"veins_point": {"单极磁石":200}, "stars":[{"distance": 0, "veins_point": {"钛":100, "硅":100}}]}
+    galaxy_condition = {"stars": [{"veins_point": {"单极磁石": 100}}]}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 49999)
+    seeds = (0, 499)
     star_nums = (64, 64)
-    batch_size = 32
+    batch_size = 4
     max_thread = 20
 
     quick = 0
     record_seed = 1
 
-    # print(check_batch_py(157, 158, 64, 65, galaxy_condition, bool(quick)))
+    # debug_seed = 7
+    # debug_star_num = 64
+    # print(check_batch_py(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
+    # print(check_batch_c(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
     # aaa
 
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    flag = perf_counter()
+    check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
+    print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)

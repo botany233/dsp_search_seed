@@ -193,30 +193,32 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 		for(const StarIndexStruct& si_struct: star_condition_simple.star_indexes) {
 			int star_index = si_struct.star_index;
 			StarStructSimple& star_data = galaxy_data.stars[star_index];
-			bool star_satisfy_flag = true;
-			for(int pc_index=0;pc_index<star_condition_simple.planets.size();pc_index++) {
-				const PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
-				int planet_satisfy_num = planet_condition_simple.satisfy_num;
-				for(uint8_t planet_index: si_struct.satisfy_planets[pc_index]) {
-					PlanetStructSimple& planet_data = star_data.planets[planet_index];
-					if(!planet_data.is_real_veins) {
-						StarData& star = g.stars[star_index];
-						PlanetData& planet = star.planets[planet_index];
-						generate_real_veins(g,star,planet,planet_data);
+			if(star_condition_simple.planets.size() > 0) {
+				bool satisfy_flag = false;
+				for(int pc_index=0;pc_index<star_condition_simple.planets.size();pc_index++) {
+					const PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
+					int planet_satisfy_num = planet_condition_simple.satisfy_num;
+					for(int planet_index: si_struct.satisfy_planets[pc_index]) {
+						PlanetStructSimple& planet_data = star_data.planets[planet_index];
+						if(!planet_data.is_real_veins) {
+							StarData& star = g.stars[star_index];
+							PlanetData& planet = star.planets[planet_index];
+							generate_real_veins(g,star,planet,planet_data);
+						}
+						if(check_pc_veins(planet_condition_simple,planet_data)) {
+							planet_satisfy_num -= 1;
+							if(!planet_satisfy_num)
+								break;
+						}
 					}
-					if(check_pc_veins(planet_condition_simple,planet_data)) {
-						planet_satisfy_num -= 1;
-						if(!planet_satisfy_num)
-							break;
+					if(!planet_satisfy_num) {
+						satisfy_flag = true;
+						break;
 					}
 				}
-				if(!planet_satisfy_num) {
-					star_satisfy_flag = false;
-					break;
-				}
+				if(!satisfy_flag)
+					continue;
 			}
-			if(!star_satisfy_flag)
-				continue;
 			if(star_condition_simple.need_veins) {
 				copy_n(star_condition_simple.veins_group,14,star_data.veins_group);
 				copy_n(star_condition_simple.veins_point,14,star_data.veins_point);
@@ -229,7 +231,7 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 					}
 				}
 				if(!check_sc_veins(star_data)) {
-					star_satisfy_flag = false;
+					bool star_satisfy_flag = false;
 					for(PlanetStructSimple& planet_data: star_data.planets) {
 						if(!planet_data.is_real_veins && (get_has_veins(star_data.veins_group,star_data.veins_point) & planet_data.has_veins)) {
 							StarData& star = g.stars[star_index];
