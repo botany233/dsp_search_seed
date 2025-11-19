@@ -9,4 +9,4 @@ class GetVeinsGroupValue():
         self.n = n
 
     def __call__(self, galaxy_data: GalaxyData) -> int:
-        return galaxy_data.veins[self.n]
+        return galaxy_data.veins_group[self.n]

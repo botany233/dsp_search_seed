@@ -50,18 +50,20 @@ if __name__ == "__main__":
     from benchmark_condition import *
     from sys import exit
 
-    # galaxy_condition = get_100k_factory_condition()
-    # galaxy_condition = get_extreme_factory_condition()
-    # galaxy_condition = get_ttenyx_condition_simple()
-    # galaxy_condition = get_easy_condition()
-    # galaxy_condition = get_3_blue_condition()
-    # galaxy_condition["veins"] = {"单极磁石": 24}
+    # galaxy_condition = debug_condition_100k_factory()
+    # galaxy_condition = debug_condition_extreme_factory()
+    # galaxy_condition = debug_condition_ttenyx()
 
-    galaxy_condition = {"stars": [{"veins_point": {"单极磁石": 100}}]}
+    # galaxy_condition = benchmark_condition_100k_factory()
+    # galaxy_condition = benchmark_condition_extreme_factory()
+    # galaxy_condition = benchmark_condition_ttenyx_simple()
+    # galaxy_condition = benchmark_condition_easy()
+    galaxy_condition = benchmark_condition_3_blue()
+    # galaxy_condition["veins_group"] = {"单极磁石": 24}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 499)
+    seeds = (0, 9999)
     star_nums = (64, 64)
     batch_size = 4
     max_thread = 20
@@ -69,7 +71,7 @@ if __name__ == "__main__":
     quick = 0
     record_seed = 1
 
-    # debug_seed = 7
+    # debug_seed = 12
     # debug_star_num = 64
     # print(check_batch_py(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
     # print(check_batch_c(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
