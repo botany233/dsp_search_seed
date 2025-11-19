@@ -4,8 +4,8 @@ import os
 import argparse
 
 # 读取版本号
-parser = argparse.ArgumentParser(description="Build AALC")
-parser.add_argument("--version", default="dev", help="AALC Version")
+parser = argparse.ArgumentParser(description="Build")
+parser.add_argument("--version", default="dev", help="Provide Version Startwith Vv")
 args = parser.parse_args()
 version = args.version
 

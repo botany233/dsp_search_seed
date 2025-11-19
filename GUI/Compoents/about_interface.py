@@ -15,7 +15,7 @@ class AboutInterface(QFrame):
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setSpacing(0)
         self.bigIcon = HyperlinkLabel()
-        self.bigIcon.setToolTip("点击跳转github仓库")
+        self.bigIcon.setToolTip("我是链接~~")
         self.bigIcon.installEventFilter(ToolTipFilter(self.bigIcon, position=ToolTipPosition.TOP_RIGHT))
         self.bigIcon.setIcon(FluentIcon.GITHUB.icon())
         self.bigIcon.setIconSize(QSize(128, 128))
