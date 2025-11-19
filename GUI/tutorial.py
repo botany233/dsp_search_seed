@@ -39,7 +39,7 @@ class TutorialInterface(QFrame):
                     'markdown.extensions.extra',
                     'markdown.extensions.codehilite',
                     'markdown.extensions.toc',
-                    'markdown.extensions.tables'
+                    'markdown.extensions.tables',
                 ]
             )
 
