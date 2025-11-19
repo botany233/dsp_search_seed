@@ -43,6 +43,7 @@ from .Widgets.button import ConfigSwitchButton
 
 
 from config import cfg
+from logger import log
 from config.cfg_dict_tying import (
     GalaxyCondition,
     PlanetCondition,
@@ -237,6 +238,125 @@ class StarTreeWidgetItem(TreeWidgetItem):
         self.setExpanded(True)
         return new_leaf
 
+from PySide6.QtCore import QObject, QEvent
+class ToolTipFilterWithEgg(ToolTipFilter):
+    def __init__(self, parent: QWidget, showDelay=300, position=ToolTipPosition.TOP):
+        super().__init__(parent, showDelay, position)
+        self.timer.setSingleShot(False)
+        self._is_shown = False
+        self.tooltip_num = 0
+        self._mainWindow = None
+        self._error = False
+
+    def eventFilter(self, obj: QObject, e: QEvent) -> bool:
+        if e.type() == QEvent.ToolTip:
+            return True
+        elif e.type() == QEvent.Hide:
+            self.hideToolTip()
+        elif e.type() == QEvent.Leave:
+            self.tooltip_num = 0
+            self.isEnter = False
+            self.timer.stop()
+            self.hideToolTip()
+        elif e.type() == QEvent.Enter:
+            if self._mainWindow is None and not self._error:
+                parent = self.parent()  # type: QWidget
+                loop_time = 0
+                while parent.objectName() != "MainWindow":
+                    parent = parent.parent()
+                    if parent is None:
+                        self._error = True
+                        log.error("彩蛋获取主菜单失败!!")
+                        break
+                    if parent.objectName() == "MainWindow":
+                        self._mainWindow = parent
+                        break
+                    loop_time += 1
+                    if loop_time > 20:
+                        self._error = True
+                        log.error("彩蛋获取主菜单失败!!")
+                        break
+            self.isEnter = True
+            parent = self.parent()  # type: QWidget
+            if self._canShowToolTip():
+                if self._tooltip is None:
+                    self._tooltip = self._createToolTip()
+
+                t = parent.toolTipDuration() if parent.toolTipDuration() > 0 else -1
+                self._tooltip.setDuration(t)
+
+                # show the tool tip after delay
+                self.timer.start(self._tooltipDelay)
+        elif e.type() == QEvent.MouseButtonPress:
+            # self.hideToolTip()
+            if self._is_shown:
+                self.hideToolTip()
+                self._tooltip.setText("（＞д＜）不许点我!!")
+                parent = self.parent()  # type: QWidget
+                self._tooltip.adjustPos(parent, self.position)
+                self._tooltip.show()
+                self._is_shown = True
+                e.ignore()
+                return True
+
+        return super().eventFilter(obj, e)
+
+    def _switchToolTipText(self):
+        match self.tooltip_num:
+            case 0: self._tooltip.setText("(*´∀`*) 呀, 被你发现惹")
+            case 1: self._tooltip.setText("(=^▽^=) 我其实是个按钮哦~~")
+            case 2: self._tooltip.setText("(..›ᴗ‹..) 不要再看着我啦~~")
+            case _: self._tooltip.setText("￣へ￣ 都是你自找的!!")
+        if self.tooltip_num >= 3:
+            if (
+                self._mainWindow is not None
+                and (self._mainWindow.search_thread.isRunning()
+                or self._mainWindow.viewerInterface.sort_thread.isRunning())
+            ):
+                self._tooltip.setText("(￣^￣) 这次放过你")
+    
+    def showToolTip(self):
+        """ show tool tip """
+        if not self.isEnter:
+            return
+        parent = self.parent()  # type: QWidget
+        if self.tooltip_num > 3:
+            if (
+                self._mainWindow is not None
+                and not (self._mainWindow.search_thread.isRunning()
+                or self._mainWindow.viewerInterface.sort_thread.isRunning())
+            ):
+                self._tooltip.setText("(￣^￣) 再见~")
+                self._tooltip.adjustPos(parent, self.position)
+                self._tooltip.show()
+                from PySide6.QtWidgets import QApplication
+                QApplication.processEvents()
+                from time import sleep
+                sleep(1)
+                self._mainWindow.close()
+
+            self.timer.stop()
+            return
+        if self._is_shown:
+            self.hideToolTip()
+            return
+
+        parent = self.parent()  # type: QWidget
+        self._switchToolTipText()
+        self._tooltip.adjustPos(parent, self.position)
+        self._tooltip.show()
+        if self.tooltip_num >= 3:
+            self.timer.stop()
+            self.timer.start(self._tooltipDelay)
+        self.tooltip_num += 1
+        self._is_shown = True
+    
+    def hideToolTip(self):
+        """ hide tool tip """
+        if self._tooltip:
+            self._tooltip.hide()
+            self._is_shown = False
+
 class PlanetTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj: PlanetCondition):
         super().__init__(root, config_obj, "planet_condition")
@@ -253,6 +373,10 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.setHidden(True)
         self.manageButtons.adjustButton = TransparentToolButton()
+        self.manageButtons.adjustButton.setToolTip("eggg")
+        self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=1000))
+        qss = """TransparentToolButton:hover{background: transparent}"""
+        setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
         self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
 
 class SettingsTreeLeave(QWidget):
