@@ -1,4 +1,5 @@
 from CApi import *
+from functools import partial
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 from tqdm import tqdm
@@ -19,12 +20,14 @@ def check_seeds_py(seeds: tuple[int, int],
                    quick: bool,
                    batch_size: int,
                    max_thread: int,
-                   record_seed: bool):
-    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
+                   record_seed: bool,
+                   init_args: tuple[int, int]):
+    max_thread = min(max_thread, cpu_count())
+    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=init_args) as executor:
         generator = batch_generator_py(galaxy_condition, quick, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_py, generator)
-        for result in tqdm(results, total = ceil((seeds[1]-seeds[0]+1) / batch_size)):
+        for result in results:
             if record_seed:
                 with open("result_py.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
@@ -35,12 +38,14 @@ def check_seeds_c(seeds: tuple[int, int],
                   quick: bool,
                   batch_size: int,
                   max_thread: int,
-                  record_seed: bool):
-    with ProcessPoolExecutor(max_workers = min(max_thread, cpu_count())) as executor:
+                  record_seed: bool,
+                  init_args: tuple[int, int]):
+    max_thread = min(max_thread, cpu_count())
+    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=init_args) as executor:
         generator = batch_generator_c(galaxy_str, quick, seeds, star_nums, batch_size)
 
         results = executor.map(check_batch_wrapper_c, generator)
-        for result in tqdm(results, total = ceil((seeds[1]-seeds[0]+1) / batch_size)):
+        for result in results:
             if record_seed:
                 with open("result_c.csv", "a") as f:
                     f.writelines(map(lambda x: f"{x}\n", result))
@@ -56,20 +61,22 @@ if __name__ == "__main__":
 
     # galaxy_condition = benchmark_condition_100k_factory()
     # galaxy_condition = benchmark_condition_extreme_factory()
-    # galaxy_condition = benchmark_condition_ttenyx_simple()
+    galaxy_condition = benchmark_condition_ttenyx_simple()
     # galaxy_condition = benchmark_condition_easy()
-    galaxy_condition = benchmark_condition_3_blue()
+    # galaxy_condition = benchmark_condition_3_blue()
     # galaxy_condition["veins_group"] = {"单极磁石": 24}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 9999)
+    seeds = (0, 49999)
     star_nums = (64, 64)
-    batch_size = 4
+    batch_size = 32
     max_thread = 20
+    device_id = 0
+    local_size = 256
 
     quick = 0
-    record_seed = 1
+    record_seed = 0
 
     # debug_seed = 12
     # debug_star_num = 64
@@ -77,10 +84,10 @@ if __name__ == "__main__":
     # print(check_batch_c(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
     # aaa
 
-    flag = perf_counter()
-    check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
-    print(f"py多线程用时{perf_counter() - flag:.2f}s")
+    # flag = perf_counter()
+    # check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
+    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed)
+    check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
     print(f"c++多线程用时{perf_counter() - flag:.2f}s")

@@ -1,8 +1,13 @@
 from .search_seed import *
-import copy
 from .const_values import *
 
-__all__ = ["change_galaxy_condition_legal"]
+__all__ = ["change_galaxy_condition_legal", "init_process"]
+
+def init_process(device_id: int, local_size: int):
+    do_init_c()
+    if not set_device_id_c(device_id):
+        raise Exception("Set device id failed!")
+    set_local_size_c(local_size)
 
 def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     galaxy_condition = del_empty_condition(galaxy_condition)
