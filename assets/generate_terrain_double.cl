@@ -48,7 +48,7 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	int num32 = permMod12[num27 + num15 + perm[num28 + num16 + perm[num29 + num17]]];
 	int num33 = permMod12[num27 + 1 + perm[num28 + 1 + perm[num29 + 1]]];
 	
-	//ÏòÁ¿»¯¼ÆËã
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	//float4 x_vec = (float4)(num9, num18, num21, num24);
 	//float4 y_vec = (float4)(num10, num19, num22, num25);
 	//float4 z_vec = (float4)(num11, num20, num23, num26);
@@ -70,7 +70,7 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	//float4 mask = select((float4)(0.0f), result_vec, att_vec < 0.0f);
 	//float total_ = mask.x + mask.y + mask.z + mask.w;
 
-	//±êÁ¿¼ÆËãÒÔÑéÖ¤ÏòÁ¿»¯½á¹û
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ö¤ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	float3 vec1 = (float3)(num9,num10,num11);
 	float num34 = 0.6f - dot(vec1, vec1);
 	float num35;
@@ -150,7 +150,7 @@ float Noise3DFBM_4arg(float x,float y,float z,int nOctaves,local const short* pe
 	return Noise3DFBM_6arg(x,y,z,nOctaves,0.5f,2.0f,perm,permMod12);
 }
 
-float RidgedNoise_7arg(double x,double y,double z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const short* perm,local const short* permMod12)
+float RidgedNoise_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const short* perm,local const short* permMod12)
 {
 	float num = 0.0f;
 	float num2 = initialAmp;
