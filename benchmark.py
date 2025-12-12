@@ -68,7 +68,7 @@ if __name__ == "__main__":
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 49999)
+    seeds = (0, 9999)
     star_nums = (64, 64)
     batch_size = 32
     max_thread = 20

@@ -5,9 +5,10 @@ from datetime import datetime
 from csv import reader
 from .Compoents import *
 from .sort_seed import SortThread
-from CApi import get_galaxy_data_c, data_to_dict, dict_to_data
+from CApi import get_galaxy_data_c, data_to_dict, dict_to_data, init_process
 import multiprocessing
 import time
+from config import cfg
 
 class ViewerInterface(QFrame):
     def __init__(self, parent=None):
@@ -166,12 +167,12 @@ class ViewerInterface(QFrame):
             self.astro_tree.fresh(galaxy_data)
         else:
             self.astro_tree.wait_ring.start()
-            if (seed, star_num) in self.getting_seed or len(self.getting_seed) > multiprocessing.cpu_count() - 1:
+            if (seed, star_num) in self.getting_seed or len(self.getting_seed) > min(multiprocessing.cpu_count(), cfg.config.max_thread) - 1:
                 self.astro_tree.wait_ring.stop()
                 return
             self.getting_seed.add((seed, star_num))
             result_queue = multiprocessing.Queue()
-            get_data_process = multiprocessing.Process(target=get_data_thread, args=(seed, star_num, result_queue))
+            get_data_process = multiprocessing.Process(target=get_data_thread, args=(seed, star_num, result_queue, cfg.config.device_id, cfg.config.local_size))
             get_data_process.start()
             while result_queue.empty():
                 QApplication.processEvents()
@@ -256,7 +257,8 @@ class ViewerInterface(QFrame):
 
         self.seed_text.fresh()
 
-def get_data_thread(seed, star_num, queue):
+def get_data_thread(seed, star_num, queue, device_id, local_size):
+    init_process(device_id, local_size)
     galaxy_data = get_galaxy_data_c(seed, star_num, False)
     galaxy_dict = data_to_dict(galaxy_data)
     queue.put((seed, star_num, galaxy_dict))

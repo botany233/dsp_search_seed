@@ -38,16 +38,18 @@ class SearchThread(QThread):
             batch_size = gui_cfg.batch_size
             max_thread = gui_cfg.max_thread
             quick = gui_cfg.quick_check
+            device_id = gui_cfg.device_id
+            local_size = gui_cfg.local_size
 
             if gui_cfg.search_mode == 0:
                 seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
                 star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
 
                 if not self.end_flag:
-                    self.range_search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name, quick)
+                    self.range_search(galaxy_condition, seeds, star_nums, batch_size, max_thread, save_name, quick, device_id, local_size)
             else:
                 if not self.end_flag:
-                    self.precise_search(galaxy_condition, batch_size, max_thread, save_name, quick)
+                    self.precise_search(galaxy_condition, batch_size, max_thread, save_name, quick, device_id, local_size)
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -61,7 +63,9 @@ class SearchThread(QThread):
                 batch_size: int,
                 max_thread: int,
                 save_name: str,
-                quick: bool) -> None:
+                quick: bool,
+                device_id: int,
+                local_size: int) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
         last_valid_seed, valid_seed_num = str(-1), 0
@@ -72,7 +76,7 @@ class SearchThread(QThread):
         SearchMessages.search_progress_info.emit(0, total_batch, 0, last_valid_seed, start_time, perf_counter())
         real_thread = min(max_thread, cpu_count())
         generator = self.seed_manager.get_all_seeds(batch_size)
-        with ProcessPoolExecutor(max_workers = real_thread) as executor:
+        with ProcessPoolExecutor(max_workers = real_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
             futures = deque()
             for _ in range(real_thread * 10):
                 try:
@@ -113,7 +117,9 @@ class SearchThread(QThread):
                batch_size: int,
                max_thread: int,
                save_name: str,
-               quick: bool) -> None:
+               quick: bool,
+               device_id: int,
+               local_size: int) -> None:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
         last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
@@ -122,7 +128,7 @@ class SearchThread(QThread):
             f.write(f"#search seed time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
         SearchMessages.search_progress_info.emit(0, total_batch, total_seed_num, last_seed, start_time, perf_counter())
         real_thread = min(max_thread, cpu_count())
-        with ProcessPoolExecutor(max_workers = real_thread) as executor:
+        with ProcessPoolExecutor(max_workers = real_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
             futures = deque()
             for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
                 futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))

@@ -3,6 +3,7 @@ from CApi import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 from .sort_seed_util import get_seed_value, get_value_function
+from config import cfg
 
 from logger import log
 from typing import TYPE_CHECKING

@@ -6,7 +6,7 @@ __all__ = ["change_galaxy_condition_legal", "init_process"]
 def init_process(device_id: int, local_size: int):
     do_init_c()
     if not set_device_id_c(device_id):
-        raise Exception("Set device id failed!")
+        print("Set device id failed! Roll back to cpu!")
     set_local_size_c(local_size)
 
 def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
