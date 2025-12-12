@@ -138,7 +138,5 @@ struct GalaxyStruct {
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
-	//vector<int> planet_type_nums = vector<int>(23,0);
-	//vector<int> star_type_nums = vector<int>(14,0);
 	vector<int> liquid = vector<int>(3,0);
 };

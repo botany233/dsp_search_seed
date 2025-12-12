@@ -199,6 +199,9 @@ void del_empty_galaxy_condition(GalaxyConditionSimple& galaxy_condition) {
 				index3++;
 			} else {
 				star_condition.planets.erase(star_condition.planets.begin() + index3);
+				for(StarIndexStruct& si_struct: star_condition.star_indexes) {
+					si_struct.satisfy_planets.erase(si_struct.satisfy_planets.begin() + index3);
+				}
 			}
 		}
 		if(star_condition.need_veins || star_condition.planets.size()) {

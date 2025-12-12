@@ -9,6 +9,7 @@
 #include "data_struct.hpp"
 #include "PlanetRawData.hpp"
 #include "RandomTable.hpp"
+#include "PlanetAlgorithm.hpp"
 #include "condition_to_struct.hpp"
 
 using namespace std;
@@ -21,8 +22,36 @@ void do_init()
 		return;
 	is_init = true;
 	PlanetRawData::ReadData();
+	OpenCLManager::do_init();
 	RandomTable::GenerateSphericNormal();
 };
+
+bool set_device_id_c(int device_id) {
+	return OpenCLManager::init_device(device_id);
+}
+
+int get_device_id_c() {
+	if(OpenCLManager::SUPPORT_GPU)
+		return OpenCLManager::device_id;
+	else
+		return -1;
+}
+
+void set_local_size_c(int local_size) {
+	OpenCLManager::set_local_size(local_size);
+}
+
+int get_local_size_c() {
+	return OpenCLManager::local_size;
+}
+
+vector<string> get_device_info_c() {
+	return OpenCLManager::devices_info;
+}
+
+bool get_support_double_c() {
+	return OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE;
+}
 
 bool is_need_veins(const GalaxyCondition& galaxy_condition)
 {
@@ -72,13 +101,11 @@ vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& s
 
 GalaxyStruct get_galaxy_data_c(int seed,int star_num,bool quick)
 {
-	do_init();
 	return get_galaxy_data(seed,star_num,quick);
 }
 
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const py::dict& galaxy_condition_dict,bool quick)
 {
-	do_init();
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = 3;
 	if(quick)
@@ -90,7 +117,6 @@ vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int 
 
 vector<string> check_precise_c(const vector<int>& seed_vector,const vector<int>& star_num_vector,const py::dict& galaxy_condition_dict,bool quick)
 {
-	do_init();
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = 3;
 	if(quick)
@@ -168,6 +194,13 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("veins_point",&GalaxyStruct::veins_point)
 		.def_readwrite("gas_veins",&GalaxyStruct::gas_veins)
 		.def_readwrite("liquid",&GalaxyStruct::liquid);
+	m.def("do_init_c",&do_init);
+	m.def("set_device_id_c",&set_device_id_c,py::arg("device_id"));
+	m.def("get_device_id_c",&get_device_id_c);
+	m.def("set_local_size_c",&set_local_size_c,py::arg("local_size"));
+	m.def("get_local_size_c",&get_local_size_c);
+	m.def("get_device_info_c",&get_device_info_c);
+	m.def("get_support_double_c",&get_support_double_c);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
 	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("star_num"),py::arg("quick"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("quick"));

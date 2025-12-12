@@ -249,7 +249,7 @@ public:
 
 		return 32.696434 * total;
 	}
-
+	
 	double Noise3DFBM(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0)
 	{
 		double num = 0.0;
