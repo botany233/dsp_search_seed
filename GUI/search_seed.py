@@ -3,7 +3,7 @@ from .Messenger import SearchMessages
 from CApi import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-from time import perf_counter
+from time import perf_counter, sleep
 from math import ceil
 from datetime import datetime
 from collections import deque
@@ -120,37 +120,88 @@ class SearchThread(QThread):
                quick: bool,
                device_id: int,
                local_size: int) -> None:
+        start_time = perf_counter()
+        start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        init_process(device_id, local_size)
+
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-        last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
-        start_time = perf_counter()
+        check_batch_manager = CheckBatchManager(
+            seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1,
+            galaxy_condition, quick, min(max_thread, cpu_count())
+        )
+        check_batch_manager.run()
+        task_num = check_batch_manager.get_task_num()
+        SearchMessages.search_progress_info.emit(0, task_num, 0, "-1, -1", start_time, perf_counter())
+        result_num = 0
+        while check_batch_manager.is_running():
+            new_result_num = check_batch_manager.get_result_num()
+            if new_result_num > result_num:
+                result_num = new_result_num
+                last_result = check_batch_manager.get_last_result()
+                SearchMessages.search_progress_info.emit(
+                    check_batch_manager.get_task_progress(),
+                    task_num,
+                    result_num,
+                    f"{last_result.seed_id}, {last_result.star_num}",
+                    start_time,
+                    perf_counter()
+                )
+
+            if self.end_flag:
+                check_batch_manager.shutdown()
+                break
+            sleep(0.05)
+        else:
+            SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
+
         with open(save_name, "a", encoding="utf-8") as f:
-            f.write(f"#search seed time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        SearchMessages.search_progress_info.emit(0, total_batch, total_seed_num, last_seed, start_time, perf_counter())
-        real_thread = min(max_thread, cpu_count())
-        with ProcessPoolExecutor(max_workers = real_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
-            futures = deque()
-            for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
-                futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
-            index = 0
-            while (len(futures) > 0):
-                result = futures.popleft().result()
-                index += 1
+            f.write(f"#search seed time {start_date_time}\n")
+            results = check_batch_manager.get_results()
+            results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
+            f.writelines(map(lambda x: f"{x.seed_id}, {x.star_num}\n", results))
 
-                with open(save_name, "a", encoding="utf-8") as f:
-                    f.writelines(map(lambda x: f"{x}\n", result))
+    # def range_search(self,
+    #            galaxy_condition: dict,
+    #            seeds: tuple[int, int],
+    #            star_nums: tuple[int, int],
+    #            batch_size: int,
+    #            max_thread: int,
+    #            save_name: str,
+    #            quick: bool,
+    #            device_id: int,
+    #            local_size: int) -> None:
+    #     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-                if result:
-                    last_seed = result[-1]
-                    total_seed_num += len(result)
-                SearchMessages.search_progress_info.emit(index, total_batch, total_seed_num, last_seed, start_time, perf_counter())
+    #     last_seed, total_seed_num, total_batch = str(-1), 0, ceil((seeds[1]-seeds[0]+1)/batch_size)
+    #     start_time = perf_counter()
+    #     with open(save_name, "a", encoding="utf-8") as f:
+    #         f.write(f"#search seed time {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+    #     SearchMessages.search_progress_info.emit(0, total_batch, total_seed_num, last_seed, start_time, perf_counter())
+    #     real_thread = min(max_thread, cpu_count())
+    #     with ProcessPoolExecutor(max_workers = real_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
+    #         futures = deque()
+    #         for seed in range(seeds[0], min(seeds[1]+1, seeds[0]+batch_size*real_thread*10+1), batch_size):
+    #             futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
+    #         index = 0
+    #         while (len(futures) > 0):
+    #             result = futures.popleft().result()
+    #             index += 1
 
-                if self.end_flag:
-                    executor.shutdown(cancel_futures=True)
-                    break
+    #             with open(save_name, "a", encoding="utf-8") as f:
+    #                 f.writelines(map(lambda x: f"{x}\n", result))
 
-                seed += batch_size
-                if seed <= seeds[1]:
-                    futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
-            else:
-                SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
+    #             if result:
+    #                 last_seed = result[-1]
+    #                 total_seed_num += len(result)
+    #             SearchMessages.search_progress_info.emit(index, total_batch, total_seed_num, last_seed, start_time, perf_counter())
+
+    #             if self.end_flag:
+    #                 executor.shutdown(cancel_futures=True)
+    #                 break
+
+    #             seed += batch_size
+    #             if seed <= seeds[1]:
+    #                 futures.append(executor.submit(check_batch_c, seed, min(seed+batch_size, seeds[1]+1), star_nums[0], star_nums[1]+1, galaxy_condition, quick))
+    #         else:
+    #             SearchMessages.searchEndNormal.emit(perf_counter() - start_time)

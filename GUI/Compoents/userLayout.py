@@ -68,7 +68,7 @@ class UserLayout(QVBoxLayout):
         self.seedInfoLabel.setText(f"累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed}")
         self.progressBar.setValue(batch_id)
 
-        progress_str = f"搜索进度: {batch_id}/{total_batch}({batch_id * 100 // self.progressBar.maximum()}%)"
+        progress_str = f"搜索进度: {batch_id}/{total_batch}({batch_id * 100 // total_batch}%)"
         remain_time_str = self.get_remain_time_str(batch_id, total_batch, start_time, current_time)
         self.barLabel.setText(progress_str + "  " + remain_time_str)
 
@@ -76,14 +76,14 @@ class UserLayout(QVBoxLayout):
         cost_time_str = self.get_format_time_str(current_time - start_time)
         if batch_id <= 0:
             leave_time_str = "?"
-            speed_str = "?batch/s"
+            speed_str = "?seed/s"
         else:
             leave_time_str = self.get_format_time_str((current_time-start_time)/batch_id*(total_batch-batch_id))
             speed = batch_id / (current_time - start_time)
             if speed >= 1:
-                speed_str = f"{speed:.2f}batch/s"
+                speed_str = f"{speed:.2f}seed/s"
             else:
-                speed_str = f"{1/speed:.2f}s/batch"
+                speed_str = f"{1/speed:.2f}s/seed"
 
         return f"[{cost_time_str}<{leave_time_str}, {speed_str}]"
 
