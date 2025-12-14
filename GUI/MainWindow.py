@@ -39,7 +39,7 @@ from logger import log
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
-from .Compoents import UserLayout, SeedManager, ImportSeedInfo
+from .Compoents import UserLayout, ImportSeedInfo
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 from .Compoents.about_interface import AboutInterface
@@ -48,7 +48,7 @@ from .seed_viewer.MainInterface import ViewerInterface
 from .tutorial import TutorialInterface
 from .setting_interface import SettingInterface
 from GUI.dsp_icons import AppIcons
-
+from CApi import SeedManager
 
 import math
 
@@ -186,8 +186,8 @@ class MainWindow(FluentWindow):
         self.label_star_num = BodyLabel("恒星数:")
         self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64, default_value=32, empty_invisible=False)
         self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
-        self.label_batch_size = BodyLabel("批处理大小:")
-        self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
+        # self.label_batch_size = BodyLabel("批处理大小:")
+        # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         self.label_thread_num = BodyLabel("进程数:")
         self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
         self.button_start = PushButton("开始搜索")
@@ -218,8 +218,8 @@ class MainWindow(FluentWindow):
         self.star_to_label = BodyLabel("至")
         self.topLayout.addWidget(self.star_to_label)
         self.topLayout.addWidget(self.input_star_num_end)
-        self.topLayout.addWidget(self.label_batch_size)
-        self.topLayout.addWidget(self.input_batch_size)
+        # self.topLayout.addWidget(self.label_batch_size)
+        # self.topLayout.addWidget(self.input_batch_size)
         self.topLayout.addWidget(self.label_thread_num)
         self.topLayout.addWidget(self.input_thread_num)
 

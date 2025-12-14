@@ -1,5 +1,5 @@
 from qfluentwidgets import BodyLabel
-from .seed_manager import SeedManager
+from CApi import SeedManager
 
 class ImportSeedInfo(BodyLabel):
     def __init__(self, seed_manager: SeedManager):

@@ -78,7 +78,7 @@ class GUIConfig(BaseModel):
     start_star_num: int = 32
     end_star_num: int = 64
     max_thread: int = cpu_count()
-    batch_size: int = 128
+    # batch_size: int = 128
     ui_scale_factor: float = 1.0
     galaxy_condition: GalaxyCondition = GalaxyCondition()
     save_name: str = "seed"

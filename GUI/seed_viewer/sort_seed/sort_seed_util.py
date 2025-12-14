@@ -17,8 +17,3 @@ def get_value_function(maintype:str, subtype: str):
         return handle_star_sort(subtype)
     elif maintype == "自定义":
         return handle_custom_sort(subtype)
-
-def get_seed_value(seed_id, star_num, value_func, quick):
-    galaxy_data = get_galaxy_data_c(seed_id, star_num, quick)
-    value = value_func(galaxy_data)
-    return value

@@ -2,8 +2,9 @@ from PySide6.QtCore import QThread, Signal
 from CApi import *
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-from .sort_seed_util import get_seed_value, get_value_function
+from .sort_seed_util import get_value_function
 from config import cfg
+from time import sleep
 
 from logger import log
 from typing import TYPE_CHECKING
@@ -33,28 +34,37 @@ class SortThread(QThread):
     def run(self):
         try:
             self.running = True
-            is_quick_sort = self.quick_sort_switch.isChecked()
-            seed_list_len = len(self.seed_list)
             self.label_text.emit("正在生成任务...")
+
+            finish_num, task_num = 0, len(self.seed_list)
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
-            futures = []
-            with ProcessPoolExecutor(max_workers = cpu_count()) as executor:
-                for seed in self.seed_list:
-                    futures.append(executor.submit(get_seed_value, seed[0], seed[1], value_func, is_quick_sort))
 
+            get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked())
+            seed_index_dict = {}
+            for index, (seed_id, star_num, _) in enumerate(self.seed_list):
+                seed_index_dict[(seed_id, star_num)] = index
+                get_data_manager.add_task(seed_id, star_num)
+
+                if self.end_flag:
+                    get_data_manager.shutdown()
+                    break
+            else:
+                self.label_text.emit(f"0/{task_num}(0%)")
+                while finish_num < task_num:
                     if self.end_flag:
-                        executor.shutdown(cancel_futures=True)
+                        get_data_manager.shutdown()
                         break
 
-                self.label_text.emit(f"0/{seed_list_len}(0%)")
-                for index, future in enumerate(futures):
-                    self.seed_list[index][2] = future.result()
-                    if index % max(1, seed_list_len // 1000) == 0:
-                        self.label_text.emit(f"{index+1}/{seed_list_len}({round((index+1)/seed_list_len*100)}%)")
-
-                    if self.end_flag:
-                        executor.shutdown(cancel_futures=True)
-                        break
+                    results = get_data_manager.get_results()
+                    if len(results) > 0:
+                        for galaxy_data in results:
+                            value = value_func(galaxy_data)
+                            index = seed_index_dict[(galaxy_data.seed, galaxy_data.star_num)]
+                            self.seed_list[index][2] = value
+                        finish_num += len(results)
+                        self.label_text.emit(f"{finish_num}/{task_num}({round(finish_num/task_num*100)}%)")
+                    else:
+                        sleep(0.05)
 
             if self.end_flag:
                 self.label_text.emit("排序已取消")
