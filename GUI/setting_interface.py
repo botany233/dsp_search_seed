@@ -49,8 +49,7 @@ class BaseBox(MessageBoxBase):
         hit_widget = self.childAt(event.position().toPoint())
         if hit_widget is self.windowMask:
             self.pressedMask = True
-        if hit_widget:
-            hit_widget.setFocus()
+        self.focusWidget().clearFocus() if self.focusWidget() else None
         return super().mousePressEvent(event)
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
         hit_widget = self.childAt(event.position().toPoint())
