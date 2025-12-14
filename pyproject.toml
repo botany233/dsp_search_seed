@@ -12,6 +12,7 @@ dependencies = [
     "pyside6==6.9.3",
     "pyside6-fluent-widgets>=1.9.2",
     "requests>=2.32.5",
+    "tqdm>=4.67.1",
 ]
 
 [dependency-groups]
