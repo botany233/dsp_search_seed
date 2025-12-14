@@ -157,6 +157,7 @@ class MainWindow(FluentWindow):
             if self._waiting_thread_finish(self.viewerInterface.sort_thread):
                 e.ignore()
                 return
+        self.viewerInterface.get_data_manager.shutdown()
         return super().closeEvent(e)
 
     def __init__layout__(self):
@@ -188,8 +189,8 @@ class MainWindow(FluentWindow):
         self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
         # self.label_batch_size = BodyLabel("批处理大小:")
         # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
-        self.label_thread_num = BodyLabel("进程数:")
-        self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
+        # self.label_thread_num = BodyLabel("进程数:")
+        # self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
 
@@ -220,8 +221,8 @@ class MainWindow(FluentWindow):
         self.topLayout.addWidget(self.input_star_num_end)
         # self.topLayout.addWidget(self.label_batch_size)
         # self.topLayout.addWidget(self.input_batch_size)
-        self.topLayout.addWidget(self.label_thread_num)
-        self.topLayout.addWidget(self.input_thread_num)
+        # self.topLayout.addWidget(self.label_thread_num)
+        # self.topLayout.addWidget(self.input_thread_num)
 
         self.middleLayout.addWidget(self.tree_view)
 

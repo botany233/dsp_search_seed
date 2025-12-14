@@ -10,11 +10,11 @@ from CApi import *
 def main():
     do_init_c()
     set_local_size_c(cfg.config.local_size)
-    if not set_device_id_c(cfg.config.device_id):
-        print("Set device id failed! Roll back to cpu!")
-        set_device_id_c(-1)
+    # if not set_device_id_c(cfg.config.device_id):
+    #     print("Set device id failed! Roll back to cpu!")
+    #     set_device_id_c(-1)
     cfg.config.local_size = get_local_size_c()
-    cfg.config.device_id = get_device_id_c()
+    # cfg.config.device_id = get_device_id_c()
     scale_factor = cfg.config.ui_scale_factor
     if scale_factor != 1.0:
         os.environ["QT_SCALE_FACTOR"] = str(scale_factor)

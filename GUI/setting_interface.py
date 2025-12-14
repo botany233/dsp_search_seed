@@ -14,6 +14,7 @@ from qfluentwidgets import (
     LineEdit,
     getFont,
 )
+from .Compoents import DeviceComboBox, LocalSizeComboBox
 from multiprocessing import cpu_count
 from typing import Literal
 from config import cfg
@@ -25,42 +26,36 @@ class SettingInterface(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.mainLayout = QHBoxLayout(self)
-        self.__init_left()
-        self.__init_right()
-        # self.mainLayout.setStretch(0, 1)
-        # self.mainLayout.setStretch(1, 2)
+        self.mainLayout = QVBoxLayout(self)
+        self.mainLayout.setContentsMargins(10, 10, 10, 10)
 
-    def __init_left(self):
-        self.leftWidget = QWidget()
-        # self.leftWidget.setFixedWidth(263)
-        self.mainLayout.addWidget(self.leftWidget)
-        self.leftLayout = QGridLayout(self.leftWidget)
-        self.leftLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.addWidget(TitleLabel("基础设置"))
 
-        self.leftLayout.addWidget(TitleLabel("基础设置"))
-        widgets = [
+        basicSettingWidget = QWidget()
+        self.mainLayout.addWidget(basicSettingWidget)
+        self.basicSettingLayout = QGridLayout(basicSettingWidget)
+
+        basicSettingwidgets = [
             BodyLabel("最大线程数:"),
             LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
         ]
-        for index, widget in enumerate(widgets):
-            self.leftLayout.addWidget(widget, index//2+1, index%2)
+        for index, widget in enumerate(basicSettingwidgets):
+            self.basicSettingLayout.addWidget(widget, index//2+1, index%2)
 
-    def __init_right(self):
-        self.rightWidget = QWidget()
-        self.mainLayout.addWidget(self.rightWidget)
-        self.rightLayout = QGridLayout(self.rightWidget)
-        self.rightLayout.setContentsMargins(0, 0, 0, 0)
+        self.mainLayout.addWidget(TitleLabel("GPU设置"))
 
-        self.rightLayout.addWidget(TitleLabel("GPU设置"))
-        widgets = [
+        GPUSettingWidget = QWidget()
+        self.mainLayout.addWidget(GPUSettingWidget)
+        self.GPUSettingLayout = QGridLayout(GPUSettingWidget)
+
+        GPUSettingwidgets = [
             BodyLabel("工作组大小："),
-            LimitLineEdit("local_size", min_value=32, max_value=1024, default_value=256, empty_invisible=False),
+            LocalSizeComboBox(),
             BodyLabel("设备id："),
-            LimitLineEdit("device_id", min_value=-1, max_value=1024, default_value=-1, empty_invisible=False),
+            DeviceComboBox(),
         ]
-        for index, widget in enumerate(widgets):
-            self.rightLayout.addWidget(widget, index//2+1, index%2)
+        for index, widget in enumerate(GPUSettingwidgets):
+            self.GPUSettingLayout.addWidget(widget, index//2+1, index%2)
 
 # class BiggerBodyLabel(BodyLabel):
 #     def getFont(self):

@@ -85,7 +85,7 @@ class GUIConfig(BaseModel):
     search_mode: int = 0  # 0: 范围搜索, 1: 二次搜索
     quick_check: bool = False
     local_size: int = 256
-    device_id: int = -1
+    device_name: str = "cpu"
 
 if __name__ == "__main__":
     # cfg = GUIConfig()
