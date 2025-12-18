@@ -189,7 +189,7 @@ class GPUSettingFrame(BaseSettingFrame):
 
     def _gpu_device_changed(self, index):
         set_device_id_c(index)
-        if get_support_double_c():
+        if get_support_double_c() or index == -1:
             self.warningLabel.setHidden(True)
         else:
             self.warningLabel.setHidden(False)
