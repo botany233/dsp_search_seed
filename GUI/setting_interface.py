@@ -6,6 +6,9 @@ from qfluentwidgets import (
     BodyLabel,
     isDarkTheme,
     SmoothScrollArea,
+    ToolTipFilter,
+    PixmapLabel,
+    FluentIcon
 )
 from typing import Literal
 from config import cfg
@@ -15,7 +18,7 @@ from .Compoents import LimitLineEdit
 from multiprocessing import cpu_count
 
 from GUI.Compoents import AutoFixedConfigComboBox, ConfigSwitchButton
-from CApi import get_device_info_c, set_device_id_c
+from CApi import get_device_info_c, set_device_id_c, get_support_double_c
 
 class BaseSettingFrame(QFrame):
     def __init__(self, title: str = "Base Setting", parent=None):
@@ -51,8 +54,12 @@ class BaseSettingItemFrame(QFrame):
 
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(15, 0, 15, 0)
+        self.labelLayout = QHBoxLayout()
+        self.labelLayout.setContentsMargins(0, 0, 0, 0)
+        self.labelLayout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         self.label = BodyLabel(title)
-        self.mainLayout.addWidget(self.label)
+        self.labelLayout.addWidget(self.label)
+        self.mainLayout.addLayout(self.labelLayout)
 
         self.setMinimumHeight(40)
         self.mainLayout.addStretch()
@@ -163,18 +170,29 @@ class GPUSettingFrame(BaseSettingFrame):
             cfg_key="device_name",
             type_input="str",
         )
+
+        self.warningLabel = PixmapLabel()
+        self.gpuDeviceSetting.labelLayout.addWidget(self.warningLabel)
+        self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
+        self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行")
+        self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))
+
         if cfg.config.device_name == "cpu":
             self.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
             self.gpuDeviceSetting.comboBox.setText("不使用GPU")
-        set_device_id_c(self.gpuDeviceSetting.comboBox.currentIndex())
+        self._gpu_device_changed(self.gpuDeviceSetting.comboBox.currentIndex())
 
         self.gpuDeviceSetting.comboBox.currentIndexChanged.connect(self._gpu_device_changed)
 
         self.mainLayout.addWidget(self.localSizeSetting)
         self.mainLayout.addWidget(self.gpuDeviceSetting)
-    
+
     def _gpu_device_changed(self, index):
         set_device_id_c(index)
+        if get_support_double_c():
+            self.warningLabel.setHidden(True)
+        else:
+            self.warningLabel.setHidden(False)
 
     def resizeEvent(self, event: QResizeEvent) -> None:
         width = self.width()
@@ -212,6 +230,7 @@ class SettingInterface(SmoothScrollArea):
         if not checked:
             self.GPUSetting.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
             self.GPUSetting.gpuDeviceSetting.comboBox.setText("不使用GPU")
+            self.GPUSetting.warningLabel.setHidden(True)
             set_device_id_c(-1)
             cfg.config.device_name = "cpu"
             cfg.save()
