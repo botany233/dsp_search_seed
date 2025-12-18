@@ -3,8 +3,15 @@ from config import cfg
 
 
 class ConfigSwitchButton(SwitchButton):
+    def setHideText(self, hide: bool) -> None:
+        if hide:
+            self.label.hide()
+        else:
+            self.label.show()
     def set_config(self, config_key: str, config_obj=None) -> None:
         self.config_key = config_key
+        if config_obj is None:
+            config_obj = cfg.config
         self.config_obj = config_obj
         qss = """
         QLabel{font-size:12px;}"""
