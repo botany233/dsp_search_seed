@@ -68,8 +68,8 @@ if __name__ == "__main__":
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 99999)
-    star_nums = (64, 64)
+    seeds = (0, 49999)
+    star_nums = (32, 64)
     batch_size = 256
     max_thread = 20
     device_id = 0
@@ -95,8 +95,9 @@ if __name__ == "__main__":
     flag = perf_counter()
     check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, galaxy_condition, bool(quick), max_thread)
     check_batch_manager.run()
+    sleep(0.1)
     while check_batch_manager.is_running():
-        sleep(0.01)
+        sleep(0.1)
     result = check_batch_manager.get_results()
     result = sorted(result, key=lambda x: x.seed_id * 33 + x.star_num)
     if record_seed:

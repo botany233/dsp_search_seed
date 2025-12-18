@@ -4,7 +4,7 @@ from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
 from .sort_seed_util import get_value_function
 from config import cfg
-from time import sleep
+from time import sleep, perf_counter
 
 from logger import log
 from typing import TYPE_CHECKING
@@ -39,7 +39,7 @@ class SortThread(QThread):
             finish_num, task_num = 0, len(self.seed_list)
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
 
-            get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked())
+            get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
             seed_index_dict = {}
             for index, (seed_id, star_num, _) in enumerate(self.seed_list):
                 seed_index_dict[(seed_id, star_num)] = index
@@ -63,8 +63,9 @@ class SortThread(QThread):
                             self.seed_list[index][2] = value
                         finish_num += len(results)
                         self.label_text.emit(f"{finish_num}/{task_num}({round(finish_num/task_num*100)}%)")
+                        sleep(0.01)
                     else:
-                        sleep(0.05)
+                        sleep(0.1)
 
             if self.end_flag:
                 self.label_text.emit("排序已取消")

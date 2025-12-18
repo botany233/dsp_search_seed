@@ -37,7 +37,7 @@ class SettingInterface(QFrame):
 
         basicSettingwidgets = [
             BodyLabel("最大线程数:"),
-            LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
+            LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False),
         ]
         for index, widget in enumerate(basicSettingwidgets):
             self.basicSettingLayout.addWidget(widget, index//2+1, index%2)

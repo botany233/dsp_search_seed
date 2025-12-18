@@ -34,18 +34,16 @@ class SearchThread(QThread):
             save_name = gui_cfg.save_name + ".csv"
             max_thread = gui_cfg.max_thread
             quick = gui_cfg.quick_check
-            device_id = gui_cfg.device_id
-            local_size = gui_cfg.local_size
 
             if gui_cfg.search_mode == 0:
                 seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
                 star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
 
                 if not self.end_flag:
-                    self.range_search(galaxy_condition, seeds, star_nums, max_thread, save_name, quick, device_id, local_size)
+                    self.range_search(galaxy_condition, seeds, star_nums, max_thread, save_name, quick)
             else:
                 if not self.end_flag:
-                    self.precise_search(galaxy_condition, max_thread, save_name, quick, device_id, local_size)
+                    self.precise_search(galaxy_condition, max_thread, save_name, quick)
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -58,16 +56,14 @@ class SearchThread(QThread):
                 galaxy_condition: dict,
                 max_thread: int,
                 save_name: str,
-                quick: bool,
-                device_id: int,
-                local_size: int) -> None:
+                quick: bool) -> None:
         start_time = perf_counter()
         start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         task_num = self.seed_manager.get_seeds_count()
-        SearchMessages.search_progress_info.emit(0, task_num, 0, "-1, -1", start_time, perf_counter())
+        SearchMessages.new_find_seed.emit(0, -1, -1)
+        SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
 
-        init_process(device_id, local_size)
         check_precise_manager = CheckPreciseManager(
             self.seed_manager, galaxy_condition, quick, min(max_thread, cpu_count())
         )
@@ -75,25 +71,22 @@ class SearchThread(QThread):
 
         result_num = 0
         while check_precise_manager.is_running():
-            new_result_num = check_precise_manager.get_result_num()
-            if new_result_num > result_num:
+            if (new_result_num := check_precise_manager.get_result_num()) > result_num:
                 result_num = new_result_num
                 last_result = check_precise_manager.get_last_result()
-                SearchMessages.search_progress_info.emit(
-                    check_precise_manager.get_task_progress(),
-                    task_num,
-                    result_num,
-                    f"{last_result.seed_id}, {last_result.star_num}",
-                    start_time,
-                    perf_counter()
-                )
+                SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
+            SearchMessages.search_progress_info.emit(check_precise_manager.get_task_progress(), task_num, perf_counter()-start_time)
 
             if self.end_flag:
                 check_precise_manager.shutdown()
                 break
-            sleep(0.05)
+            sleep(0.1)
         else:
-            SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
+            result_num = check_precise_manager.get_result_num()
+            last_result = check_precise_manager.get_last_result()
+            SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
+            SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
+
         with open(save_name, "a", encoding="utf-8") as f:
             f.write(f"#search seed time {start_date_time}\n")
             results = check_precise_manager.get_results()
@@ -106,16 +99,14 @@ class SearchThread(QThread):
                star_nums: tuple[int, int],
                max_thread: int,
                save_name: str,
-               quick: bool,
-               device_id: int,
-               local_size: int) -> None:
+               quick: bool) -> None:
         start_time = perf_counter()
         start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         task_num = (seeds[1] - seeds[0] + 1) * (star_nums[1] - star_nums[0] + 1)
-        SearchMessages.search_progress_info.emit(0, task_num, 0, "-1, -1", start_time, perf_counter())
+        SearchMessages.new_find_seed.emit(0, -1, -1)
+        SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
 
-        init_process(device_id, local_size)
         check_batch_manager = CheckBatchManager(
             seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1,
             galaxy_condition, quick, min(max_thread, cpu_count())
@@ -123,25 +114,21 @@ class SearchThread(QThread):
         check_batch_manager.run()
         result_num = 0
         while check_batch_manager.is_running():
-            new_result_num = check_batch_manager.get_result_num()
-            if new_result_num > result_num:
+            if (new_result_num := check_batch_manager.get_result_num()) > result_num:
                 result_num = new_result_num
                 last_result = check_batch_manager.get_last_result()
-                SearchMessages.search_progress_info.emit(
-                    check_batch_manager.get_task_progress(),
-                    task_num,
-                    result_num,
-                    f"{last_result.seed_id}, {last_result.star_num}",
-                    start_time,
-                    perf_counter()
-                )
+                SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
+            SearchMessages.search_progress_info.emit(check_batch_manager.get_task_progress(), task_num, perf_counter()-start_time)
 
             if self.end_flag:
                 check_batch_manager.shutdown()
                 break
-            sleep(0.05)
+            sleep(0.1)
         else:
-            SearchMessages.searchEndNormal.emit(perf_counter() - start_time)
+            result_num = check_batch_manager.get_result_num()
+            last_result = check_batch_manager.get_last_result()
+            SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
+            SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
 
         with open(save_name, "a", encoding="utf-8") as f:
             f.write(f"#search seed time {start_date_time}\n")

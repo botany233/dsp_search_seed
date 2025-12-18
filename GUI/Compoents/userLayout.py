@@ -55,33 +55,37 @@ class UserLayout(QVBoxLayout):
         self.setContentsMargins(7, 0, 7, 7)
 
         SearchMessages.search_progress_info.connect(self._update_progress)
-        SearchMessages.searchEndNormal.connect(self._on_search_finish)
+        SearchMessages.new_find_seed.connect(self._update_last_seed)
 
     def _update_output_filename(self, filename: str):
         cfg.config.save_name = "seed" if filename == "" else filename
 
-    def _on_search_finish(self, use_time: float):
-        self.barLabel.setText(f"搜索完成！用时{self.get_format_time_str(use_time)}")
-        self.progressBar.setValue(self.progressBar.maximum())
+    def _update_last_seed(self, total_seed_num: int, last_seed_id: int, last_star_num: int):
+        self.seedInfoLabel.setText(f"累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed_id}, {last_star_num}")
 
-    def _update_progress(self, batch_id: int, total_batch: int, total_seed_num: int, last_seed: str, start_time: float, current_time: float):
-        self.seedInfoLabel.setText(f"累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed}")
-        self.progressBar.setValue(batch_id)
+    def _update_progress(self, finish_task: int, total_task: int, use_time: float):
+        if finish_task < total_task:
+            self.progressBar.setValue(finish_task)
 
-        progress_str = f"搜索进度: {batch_id}/{total_batch}({batch_id * 100 // total_batch}%)"
-        remain_time_str = self.get_remain_time_str(batch_id, total_batch, start_time, current_time)
-        self.barLabel.setText(progress_str + "  " + remain_time_str)
+            progress_str = f"搜索进度: {finish_task}/{total_task}({finish_task * 100 // total_task}%)"
+            remain_time_str = self.get_remain_time_str(finish_task, total_task, use_time)
+            self.barLabel.setText(progress_str + "  " + remain_time_str)
+        elif finish_task == total_task:
+            self.progressBar.setValue(self.progressBar.maximum())
+            self.barLabel.setText(f"搜索完成！用时{self.get_format_time_str(use_time)}")
+        else:
+            raise ValueError(f"finish_task={finish_task}不能大于total_task={total_task}！")
 
-    def get_remain_time_str(self, batch_id: int, total_batch: int, start_time: float, current_time: float) -> str:
-        cost_time_str = self.get_format_time_str(current_time - start_time)
+    def get_remain_time_str(self, batch_id: int, total_batch: int, use_time: float) -> str:
+        cost_time_str = self.get_format_time_str(use_time)
         if batch_id <= 0:
             leave_time_str = "?"
             speed_str = "?seed/s"
         else:
-            leave_time_str = self.get_format_time_str((current_time-start_time)/batch_id*(total_batch-batch_id))
-            speed = batch_id / (current_time - start_time)
+            leave_time_str = self.get_format_time_str(use_time/batch_id*(total_batch-batch_id))
+            speed = batch_id / use_time
             if speed >= 1:
-                speed_str = f"{speed:.2f}seed/s"
+                speed_str = f"{speed:.1f}seed/s"
             else:
                 speed_str = f"{1/speed:.2f}s/seed"
 

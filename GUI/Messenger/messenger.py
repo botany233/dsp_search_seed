@@ -5,7 +5,7 @@ class SortTreeSignal(QObject):
 
 
 class SearchSignal(QObject):
-    search_progress_info = Signal(int, int, int, str, float, float)#batch_id, total_batch, seed_num, last_seed, start_time, current_time
+    search_progress_info = Signal(int, int, float)#batch_id, total_batch, use_time
     """
     Args:
         batch_id: int - 当前处理的批次ID
@@ -15,5 +15,5 @@ class SearchSignal(QObject):
         start_time: float - 搜索开始时间戳
         current_time: float - 当前时间戳
     """
-    searchEndNormal = Signal(float)#use_time
     searchEnd = Signal()
+    new_find_seed = Signal(int, int, int)#total_seed_num, last_seed_id, last_star_num

@@ -326,15 +326,17 @@ class MainWindow(FluentWindow):
         if self.search_thread.isRunning():
             log.info("搜索线程已在运行中，请勿重复点击开始按钮")
             return
+        if cfg.config.search_mode == 1 and self.seed_manager.get_seeds_count() == 0:
+            log.info("当前无可搜索种子，请先导入种子文件或修改搜索范围")
+            return
 
         seeds = (cfg.config.start_seed, cfg.config.end_seed)
-        batch_size = cfg.config.batch_size
-        self.userLayout.seeds = seeds
-        self.userLayout.batch_size = batch_size
+        star_nums = (cfg.config.start_star_num, cfg.config.end_star_num)
+        # self.userLayout.seeds = seeds
 
         log.info("开始搜索")
         self.button_start.setEnabled(False)
-        self.userLayout.progressBar.setMaximum(math.ceil((seeds[1]-seeds[0]+1)/batch_size))
+        self.userLayout.progressBar.setMaximum((seeds[1]-seeds[0]+1)*(star_nums[1]-star_nums[0]+1))
         self.userLayout.seedInfoLabel.setText("")
         log.debug(self.userLayout.progressBar.maximum())
         self.search_thread.start()
