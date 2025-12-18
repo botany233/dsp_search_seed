@@ -35,100 +35,19 @@ class BaseSettingFrame(QFrame):
 
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setContentsMargins(0, 15, 0, 15)
+        self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        self.mainLayout.addWidget(TitleLabel("基础设置"))
+        self.titleLabel = TitleLabel(title)
+        self.titleLabel.setContentsMargins(15, 0, 15, 0)
+        self.mainLayout.addWidget(self.titleLabel)
+        self.mainLayout.setAlignment(self.titleLabel, Qt.AlignmentFlag.AlignTop)
+        self.mainLayout.addSpacing(10)
 
-        basicSettingWidget = QWidget()
-        self.mainLayout.addWidget(basicSettingWidget)
-        self.basicSettingLayout = QGridLayout(basicSettingWidget)
-
-        basicSettingwidgets = [
-            BodyLabel("最大线程数:"),
-            LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False),
-        ]
-        for index, widget in enumerate(basicSettingwidgets):
-            self.basicSettingLayout.addWidget(widget, index//2+1, index%2)
-
-        self.mainLayout.addWidget(TitleLabel("GPU设置"))
-
-        GPUSettingWidget = QWidget()
-        self.mainLayout.addWidget(GPUSettingWidget)
-        self.GPUSettingLayout = QGridLayout(GPUSettingWidget)
-
-        GPUSettingwidgets = [
-            BodyLabel("工作组大小："),
-            LocalSizeComboBox(),
-            BodyLabel("设备id："),
-            DeviceComboBox(),
-        ]
-        for index, widget in enumerate(GPUSettingwidgets):
-            self.GPUSettingLayout.addWidget(widget, index//2+1, index%2)
-
-# class BiggerBodyLabel(BodyLabel):
-#     def getFont(self):
-#         return getFont(18)
-
-# class BaseBox(MessageBoxBase):
-#     def __init__(self, title: str = "Base Box", parent=None):
-#         super().__init__(parent)
-#         # self.yesButton.setText("保存")
-#         self.yesButton.setHidden(True)
-#         self.cancelButton.setText("返回")
-
-#         self.titleLabel = BiggerBodyLabel(title)
-#         self.viewLayout.addWidget(self.titleLabel)
-    
-#         self.mainWidget = QFrame()
-#         self.viewLayout.addWidget(self.mainWidget)
-
-#         self.mainLayout = QVBoxLayout()
-#         self.mainLayout.setContentsMargins(0,15,0,0)
-#         self.mainLayout.setAlignment(Qt.AlignmentFlag.AlignTop)
-#         self.mainWidget.setLayout(self.mainLayout)
-        
-#         self.mainWidget.setMinimumWidth(300)
-#         self.pressedMask = False
-    
-#     def mousePressEvent(self, event: QMouseEvent) -> None:
-#         hit_widget = self.childAt(event.position().toPoint())
-#         if hit_widget is self.windowMask:
-#             self.pressedMask = True
-#         self.focusWidget().clearFocus() if self.focusWidget() else None
-#         return super().mousePressEvent(event)
-#     def mouseReleaseEvent(self, event: QMouseEvent) -> None:
-#         hit_widget = self.childAt(event.position().toPoint())
-#         if hit_widget is self.windowMask and self.pressedMask:
-#             self.cancelButton.click()
-#         self.pressedMask = False
-#         return super().mouseReleaseEvent(event)
-
-
-# class BaseSettingFrame(QFrame):
-#     def __init__(self, title: str = "Base Setting", parent=None):
-#         super().__init__(parent)
-
-#         lt_qss = """BaseSettingFrame{border: 1px solid #ededed; border-radius: 8px;}"""
-#         dk_qss = """BaseSettingFrame{border: 1px solid #2B2B2B; border-radius: 8px;}"""
-#         if isDarkTheme():
-#             self.setStyleSheet(dk_qss)
-#         else:
-#             self.setStyleSheet(lt_qss)
-
-#         self.mainLayout = QVBoxLayout(self)
-#         self.mainLayout.setContentsMargins(0, 15, 0, 15)
-
-#         self.titleLabel = TitleLabel(title)
-#         self.titleLabel.setContentsMargins(15, 0, 15, 0)
-#         self.mainLayout.addWidget(self.titleLabel)
-#         self.mainLayout.setAlignment(self.titleLabel, Qt.AlignmentFlag.AlignTop)
-#         self.mainLayout.addSpacing(10)
-#         self.setMinimumHeight(50)
-
-# class BaseSettingItemFrame(QFrame):
-#     def __init__(self, title: str = "Setting Item", parent=None, cfg_obj=None, cfg_key: str = ""):
-#         super().__init__(parent)
-#         self.cfg_obj = cfg_obj
-#         self.cfg_key = cfg_key
+class BaseSettingItemFrame(QFrame):
+    def __init__(self, title: str = "Setting Item", parent=None, cfg_obj=None, cfg_key: str = ""):
+        super().__init__(parent)
+        self.cfg_obj = cfg_obj
+        self.cfg_key = cfg_key
 
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(15, 0, 15, 0)
