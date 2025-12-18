@@ -303,8 +303,8 @@ kernel void GenerateTerrain1(
 	global const float* vertices,
 	float planet_radius,
 	global const short* perm_1,
-	global const short* permMod12_1,
 	global const short* perm_2,
+	global const short* permMod12_1,
 	global const short* permMod12_2,
 	global unsigned short* heightData
 ) {
