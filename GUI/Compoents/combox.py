@@ -155,6 +155,7 @@ class AutoFixedComboBox(ComboBox):
         max_width += 45
         if max_width >= self.maximumWidth():
             max_width = self.maximumWidth()
+        self.setMinimumWidth(int(max_width))
 
     def _on_currentIndexChanged(self, index: int):
         if self.config_key is not None:
