@@ -112,6 +112,7 @@ class SearchThread(QThread):
             galaxy_condition, quick, min(max_thread, cpu_count())
         )
         check_batch_manager.run()
+
         result_num = 0
         while check_batch_manager.is_running():
             if (new_result_num := check_batch_manager.get_result_num()) > result_num:

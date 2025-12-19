@@ -654,7 +654,7 @@ kernel void GenerateTerrain3(
 	double num17 = Levelize2_1arg_double(num15);
 	if(num17 > 0.0)
 	{
-		num17 = Levelize2_1arg_double(num11);
+		num17 = Levelize2_1arg_double(num15);
 		num17 = Lerp_double(Levelize4_1arg_double(num17),num17,local_custom[1]);
 	}
 	double b = ((num17 <= 0.0) ? (lerp(-1.0,0.0,num17 + 1.0)) : ((num17 <= 1.0) ? (lerp(0.0,0.3,num17) + num13 * 0.1) : ((num17 > 2.0) ? (lerp(1.2,2.0,num17 - 2.0) + num13 * 0.12) : (lerp(0.3,1.2,num17 - 1.0) + num13 * 0.12))));

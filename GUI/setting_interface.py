@@ -18,7 +18,7 @@ from .Compoents import LimitLineEdit
 from multiprocessing import cpu_count
 
 from GUI.Compoents import AutoFixedConfigComboBox, ConfigSwitchButton
-from CApi import get_device_info_c, set_device_id_c, get_support_double_c
+from CApi import get_device_info_c, set_device_id_c, get_support_double_c, get_device_id_c
 
 class BaseSettingFrame(QFrame):
     def __init__(self, title: str = "Base Setting", parent=None):
@@ -189,7 +189,7 @@ class GPUSettingFrame(BaseSettingFrame):
 
     def _gpu_device_changed(self, index):
         set_device_id_c(index)
-        if get_support_double_c() or index == -1:
+        if get_support_double_c() or get_device_id_c() < 0:
             self.warningLabel.setHidden(True)
         else:
             self.warningLabel.setHidden(False)
