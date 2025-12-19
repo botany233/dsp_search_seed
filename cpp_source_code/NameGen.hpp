@@ -1,4 +1,5 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
+// Modified by https://github.com/botany233 on 2025.12
 #pragma once
 
 #include "defines.hpp"
@@ -171,7 +172,7 @@ struct NameGen_t
     const char* black_hole_name_formats[2]{ "DSR J%02d%02d+%02d", "DSR J%02d%02d-%02d" };
     int black_hole_name_formatsLength = 2;
 
-    std::set<std::string> starnames;
+    //std::set<std::string> starnames;
 
     std::string RandomName(int seed)
     {
@@ -201,7 +202,7 @@ struct NameGen_t
         return text;
     }
 
-    std::string RandomStarName(int seed, StarData starData)
+    std::string RandomStarName(int seed,const StarData& starData,std::set<std::string>& starnames)
     {
         DotNet35Random dotNet35Random(seed);
         for (int i = 0; i < 256; i++)
@@ -215,7 +216,7 @@ struct NameGen_t
         return "XStar";
     }
 
-    std::string _RandomStarName(int seed, StarData starData)
+    std::string _RandomStarName(int seed,const StarData& starData)
     {
         DotNet35Random dotNet35Random(seed);
         int seed2 = dotNet35Random.Next();

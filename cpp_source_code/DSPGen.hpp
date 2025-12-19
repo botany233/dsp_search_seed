@@ -17,6 +17,8 @@ public:
 	std::vector<StarData> stars;
     int habitableCount;
 	int birthPlanetId;
+	std::set<std::string> starnames;
+
 public:
     void CreateGalaxy(int galaxySeed, int starCount, int fast)
     {
@@ -28,7 +30,7 @@ public:
         this->stars.resize(tempPoses);
         this->habitableCount = 0;
         this->fast = fast;
-        NameGen.starnames.clear();
+        //NameGen.starnames.clear();
 
         float num1 = (float)dotNet35Random.NextDouble();
         float num2 = (float)dotNet35Random.NextDouble();
@@ -1077,7 +1079,7 @@ public:
             star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
         star.uPosition = star.position * 2400000.0;
         if(!fast)
-            star.name = NameGen.RandomStarName(seed1, star);
+            star.name = NameGen.RandomStarName(seed1, star, starnames);
         star.overrideName = "";
     }
 
@@ -1135,7 +1137,7 @@ public:
             birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
         birthStar.uPosition = VectorLF3::zero();
         if (!fast)
-            birthStar.name = NameGen.RandomStarName(seed1, birthStar);
+            birthStar.name = NameGen.RandomStarName(seed1, birthStar, starnames);
         birthStar.overrideName = "";
         return birthStar;
     }

@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "check_batch.hpp"
 #include "check_seed.hpp"
 #include "data_struct.hpp"
 #include "PlanetRawData.hpp"
@@ -99,11 +100,6 @@ vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& s
 	return result;
 }
 
-GalaxyStruct get_galaxy_data_c(int seed,int star_num,bool quick)
-{
-	return get_galaxy_data(seed,star_num,quick);
-}
-
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
@@ -127,6 +123,10 @@ vector<string> check_precise_c(const vector<int>& seed_vector,const vector<int>&
 }
 
 PYBIND11_MODULE(search_seed,m) {
+	py::class_<SeedStruct>(m,"Seed")
+		.def(py::init<>())
+		.def_readwrite("seed_id",&SeedStruct::seed_id)
+		.def_readwrite("star_num",&SeedStruct::star_num);
 	py::class_<PlanetCondition>(m,"PlanetCondition")
 		.def(py::init<>())
 		.def_readwrite("satisfy_num",&PlanetCondition::satisfy_num)
@@ -194,6 +194,39 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("veins_point",&GalaxyStruct::veins_point)
 		.def_readwrite("gas_veins",&GalaxyStruct::gas_veins)
 		.def_readwrite("liquid",&GalaxyStruct::liquid);
+	py::class_<SeedManager>(m,"SeedManager")
+		.def(py::init<>())
+		.def("add_seed",&SeedManager::add_seed)
+		.def("del_seed",&SeedManager::del_seed)
+		.def("clear",&SeedManager::clear)
+		.def("reset_index",&SeedManager::reset_index)
+		.def("get_seeds",&SeedManager::get_seeds)
+		.def("get_seeds_count",&SeedManager::get_seeds_count);
+	py::class_<GetDataManager>(m,"GetDataManager")
+		.def(py::init<int,bool,int>())
+		.def("add_task",&GetDataManager::add_task)
+		.def("shutdown",&GetDataManager::shutdown)
+		.def("get_results",&GetDataManager::get_results);
+	py::class_<CheckPreciseManager>(m,"CheckPreciseManager")
+		.def(py::init<SeedManager&,const py::dict &,bool,int>())
+		.def("run",&CheckPreciseManager::run)
+		.def("is_running",&CheckPreciseManager::is_running)
+		.def("shutdown",&CheckPreciseManager::shutdown)
+		.def("get_task_num",&CheckPreciseManager::get_task_num)
+		.def("get_task_progress",&CheckPreciseManager::get_task_progress)
+		.def("get_result_num",&CheckPreciseManager::get_result_num)
+		.def("get_last_result",&CheckPreciseManager::get_last_result)
+		.def("get_results",&CheckPreciseManager::get_results);
+	py::class_<CheckBatchManager>(m,"CheckBatchManager")
+		.def(py::init<int,int,int,int,const py::dict&,bool,int>())
+		.def("run", &CheckBatchManager::run)
+		.def("is_running",&CheckBatchManager::is_running)
+		.def("shutdown", &CheckBatchManager::shutdown)
+		.def("get_task_num",&CheckBatchManager::get_task_num)
+		.def("get_task_progress",&CheckBatchManager::get_task_progress)
+		.def("get_result_num",&CheckBatchManager::get_result_num)
+		.def("get_last_result", &CheckBatchManager::get_last_result)
+		.def("get_results", &CheckBatchManager::get_results);
 	m.def("do_init_c",&do_init);
 	m.def("set_device_id_c",&set_device_id_c,py::arg("device_id"));
 	m.def("get_device_id_c",&get_device_id_c);
@@ -202,7 +235,7 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("get_device_info_c",&get_device_info_c);
 	m.def("get_support_double_c",&get_support_double_c);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
-	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("star_num"),py::arg("quick"));
+	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed_id"),py::arg("star_num"),py::arg("quick"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("quick"));
 	m.def("check_precise_c",&check_precise_c,py::arg("seed_vector"),py::arg("star_num_vector"),py::arg("galaxy_condition"),py::arg("quick"));
 }

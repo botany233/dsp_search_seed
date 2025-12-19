@@ -5,6 +5,13 @@
 
 using namespace std;
 
+struct SeedStruct {
+	int seed_id;
+	int star_num;
+	SeedStruct(): seed_id(0),star_num(0) {}
+	SeedStruct(int seed_id,int star_num): seed_id(seed_id),star_num(star_num) {}
+};
+
 struct PlanetIndexStruct {
 	int star_index;
 	int planet_index;

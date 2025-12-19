@@ -33,19 +33,20 @@ public:
 	static int device_id;
 	static std::vector<cl::Device> devices;
 	static std::vector<std::string> devices_info;
+	static cl::Context context;
 	static cl::CommandQueue queue;
 	static cl::Program program;
 	static cl::Buffer vertices_buffer;
-	static cl::Buffer custom_buffer;
-	static cl::Buffer perm_buffer_1;
-	static cl::Buffer perm_buffer_2;
-	static cl::Buffer perm_buffer_3;
-	static cl::Buffer perm_buffer_4;
-	static cl::Buffer permMod12_buffer_1;
-	static cl::Buffer permMod12_buffer_2;
-	static cl::Buffer permMod12_buffer_3;
-	static cl::Buffer permMod12_buffer_4;
-	static cl::Buffer heightData_buffer;
+	//static cl::Buffer custom_buffer;
+	//static cl::Buffer perm_buffer_1;
+	//static cl::Buffer perm_buffer_2;
+	//static cl::Buffer perm_buffer_3;
+	//static cl::Buffer perm_buffer_4;
+	//static cl::Buffer permMod12_buffer_1;
+	//static cl::Buffer permMod12_buffer_2;
+	//static cl::Buffer permMod12_buffer_3;
+	//static cl::Buffer permMod12_buffer_4;
+	//static cl::Buffer heightData_buffer;
 	//static cl::Buffer debugData_buffer;
 
 	static void do_init()
@@ -109,7 +110,7 @@ public:
 		}
 
 		// 创建上下文和命令队列
-		cl::Context context(device);
+		context = cl::Context(device);
 		queue = cl::CommandQueue(context,device);
 
 		// 创建程序
@@ -140,16 +141,16 @@ public:
 		}
 		
 		vertices_buffer = cl::Buffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(float) * vertices.size(),vertices.data());
-		custom_buffer = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(float) * 512);
-		perm_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		perm_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		perm_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		perm_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		permMod12_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		permMod12_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		permMod12_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		permMod12_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		heightData_buffer = cl::Buffer(context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+		//custom_buffer = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(float) * 512);
+		//perm_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//perm_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//perm_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//perm_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//permMod12_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//permMod12_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//permMod12_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//permMod12_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+		//heightData_buffer = cl::Buffer(context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
 		//debugData_buffer = cl::Buffer(context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 
 		SUPPORT_GPU = true;
@@ -546,8 +547,10 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain0");
 
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,sizeof(float),&planet.radius);
-			kernel.setArg(1,OpenCLManager::heightData_buffer);
+			kernel.setArg(1,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -558,7 +561,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		}
 		else {
@@ -598,18 +601,19 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(4,OpenCLManager::perm_buffer_2);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -620,7 +624,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		}
 		else {
@@ -671,21 +675,22 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
+			float custom[4] = {planet.radius,num,num2,num3};
+
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
-			float custom[4] = {planet.radius, num, num2, num3};
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 4,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -696,7 +701,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -745,22 +750,23 @@ public:
 		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-			//kernel.setArg(7,OpenCLManager::debugData_buffer);
-
 			float custom[2] = {planet.radius,modX};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 2,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
+			//kernel.setArg(7,OpenCLManager::debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -774,7 +780,7 @@ public:
 			//OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::debugData_buffer,CL_TRUE,0,
 			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -803,7 +809,7 @@ public:
 				num17 = Maths::Levelize2(num15);
 				if(num17 > 0.0)
 				{
-					num17 = Maths::Levelize2(num11);
+					num17 = Maths::Levelize2(num15);
 					num17 = Lerp(Maths::Levelize4(num17),num17,modX);
 				}
 				double b = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
@@ -851,14 +857,6 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
 			float custom[401];
 			custom[0] = planet.radius;
 
@@ -877,11 +875,20 @@ public:
 				custom[i+1] = dotNet35Random.NextDouble() * 0.4 + 0.20000000298023224;
 			}
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 401,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -892,7 +899,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < 80; i++)
@@ -969,18 +976,19 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
 
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -991,7 +999,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -1056,18 +1064,19 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1078,7 +1087,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -1153,18 +1162,19 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
 
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1175,7 +1185,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -1505,17 +1515,18 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(4,OpenCLManager::heightData_buffer);
-
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 5,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,permMod12_buffer_1);
+			kernel.setArg(4,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1526,7 +1537,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -1585,21 +1596,22 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
 			float custom[3] = {planet.radius,modX,modY};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 3,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1610,7 +1622,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -1691,18 +1703,6 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::perm_buffer_3);
-			kernel.setArg(5,OpenCLManager::perm_buffer_4);
-			kernel.setArg(6,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(7,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(8,OpenCLManager::permMod12_buffer_3);
-			kernel.setArg(9,OpenCLManager::permMod12_buffer_4);
-			kernel.setArg(10,OpenCLManager::heightData_buffer);
-
 			float custom[61];
 			custom[0] = planet.radius;
 
@@ -1727,15 +1727,28 @@ public:
 				custom[i+51] = Remap(0.0,1.0,1.0,2.0,dotNet35Random.NextDouble());
 			}
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 61,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_4,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_4,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,perm_buffer_3);
+			kernel.setArg(5,perm_buffer_4);
+			kernel.setArg(6,permMod12_buffer_1);
+			kernel.setArg(7,permMod12_buffer_2);
+			kernel.setArg(8,permMod12_buffer_3);
+			kernel.setArg(9,permMod12_buffer_4);
+			kernel.setArg(10,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1746,7 +1759,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < 10; i++)
@@ -1875,25 +1888,26 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::perm_buffer_3);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(6,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(7,OpenCLManager::permMod12_buffer_3);
-			kernel.setArg(8,OpenCLManager::heightData_buffer);
-
 			float custom[5] = {planet.radius,num4,num5,num6,modY};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 5,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,perm_buffer_3);
+			kernel.setArg(5,permMod12_buffer_1);
+			kernel.setArg(6,permMod12_buffer_2);
+			kernel.setArg(7,permMod12_buffer_3);
+			kernel.setArg(8,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -1904,7 +1918,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -2288,21 +2302,22 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(5,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(6,OpenCLManager::heightData_buffer);
-
 			float custom[3] = {planet.radius,num,modY};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 3,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,permMod12_buffer_1);
+			kernel.setArg(5,permMod12_buffer_2);
+			kernel.setArg(6,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -2313,7 +2328,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -2687,17 +2702,18 @@ public:
 		if(OpenCLManager::SUPPORT_GPU) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,OpenCLManager::custom_buffer);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(4,OpenCLManager::heightData_buffer);
-
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::custom_buffer,CL_TRUE,0,sizeof(float) * 5,custom);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
+			kernel.setArg(0,OpenCLManager::vertices_buffer);
+			kernel.setArg(1,custom_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,permMod12_buffer_1);
+			kernel.setArg(4,heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -2708,7 +2724,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
@@ -3084,27 +3100,28 @@ public:
 		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain14");
 
+			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
+			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,OpenCLManager::perm_buffer_1);
-			kernel.setArg(3,OpenCLManager::perm_buffer_2);
-			kernel.setArg(4,OpenCLManager::perm_buffer_3);
-			kernel.setArg(5,OpenCLManager::perm_buffer_4);
-			kernel.setArg(6,OpenCLManager::permMod12_buffer_1);
-			kernel.setArg(7,OpenCLManager::permMod12_buffer_2);
-			kernel.setArg(8,OpenCLManager::permMod12_buffer_3);
-			kernel.setArg(9,OpenCLManager::permMod12_buffer_4);
-			kernel.setArg(10,OpenCLManager::heightData_buffer);
+			kernel.setArg(2,perm_buffer_1);
+			kernel.setArg(3,perm_buffer_2);
+			kernel.setArg(4,perm_buffer_3);
+			kernel.setArg(5,perm_buffer_4);
+			kernel.setArg(6,permMod12_buffer_1);
+			kernel.setArg(7,permMod12_buffer_2);
+			kernel.setArg(8,permMod12_buffer_3);
+			kernel.setArg(9,permMod12_buffer_4);
+			kernel.setArg(10,heightData_buffer);
 			//kernel.setArg(11,OpenCLManager::debugData_buffer);
-
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::perm_buffer_4,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_1,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_2,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_3,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			OpenCLManager::queue.enqueueWriteBuffer(OpenCLManager::permMod12_buffer_4,CL_TRUE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -3115,7 +3132,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::heightData_buffer,CL_TRUE,0,
+			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			//OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::debugData_buffer,CL_TRUE,0,
 			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
