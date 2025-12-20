@@ -1,6 +1,6 @@
 from qfluentwidgets import SwitchButton, setFont
 from config import cfg
-
+from logger import log
 
 class ConfigSwitchButton(SwitchButton):
     def setHideText(self, hide: bool) -> None:
@@ -29,4 +29,5 @@ class ConfigSwitchButton(SwitchButton):
                 setattr(cfg.config, self.config_key, (checked))
             cfg.save()
         except Exception as e:
-            print(f"设置配置项 {self.config_key} 失败: {e}")
+            msg = f"设置配置项 {self.config_obj}.{self.config_key} 失败: {e}" if self.config_obj is not None else f"设置配置项 {self.config_key} 失败: {e}"
+            log.error(msg)
