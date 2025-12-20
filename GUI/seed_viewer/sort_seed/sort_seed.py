@@ -34,7 +34,6 @@ class SortThread(QThread):
     def run(self):
         try:
             self.running = True
-            flag = perf_counter()
             self.label_text.emit("正在生成任务...")
 
             finish_num, task_num = 0, len(self.seed_list)
@@ -67,7 +66,6 @@ class SortThread(QThread):
                         sleep(0.01)
                     else:
                         sleep(0.1)
-            print(f"排序完成，用时{perf_counter() - flag:.2f}s")
 
             if self.end_flag:
                 self.label_text.emit("排序已取消")
