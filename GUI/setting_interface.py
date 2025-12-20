@@ -164,22 +164,40 @@ class GPUSettingFrame(BaseSettingFrame):
             cfg_key="local_size",
         )
         devices_info = get_device_info_c()
-        self.gpuDeviceSetting = ComboBoxSettingItemFrame(
-            devices_info,
-            "GPU设备",
-            cfg_key="device_name",
-            type_input="str",
-        )
+        if devices_info:
+            self.gpuDeviceSetting = ComboBoxSettingItemFrame(
+                devices_info,
+                "GPU设备",
+                cfg_key="device_name",
+                type_input="str",
+            )
+        else:
+            self.gpuDeviceSetting = ComboBoxSettingItemFrame(
+                ["无可用GPU设备"],
+                "GPU设备",
+                cfg_key="device_name",
+                type_input="str",
+            )
 
         self.warningLabel = PixmapLabel()
         self.gpuDeviceSetting.labelLayout.addWidget(self.warningLabel)
         self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
-        self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行")
+        if devices_info:
+            self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行")
+        else:
+            self.warningLabel.setToolTip("无可用GPU，或所有GPU均不支持OpenCL，无法使用GPU加速")
         self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))
 
-        if cfg.config.device_name == "cpu":
+        if cfg.config.device_name == "cpu" and devices_info:
             self.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
             self.gpuDeviceSetting.comboBox.setText("不使用GPU")
+        elif not devices_info:
+            self.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
+            self.gpuDeviceSetting.comboBox.setText("无可用GPU设备")
+            self.gpuDeviceSetting.comboBox.setEnabled(False)
+            cfg.config.device_name = "cpu"
+            cfg.save()
+
         self._gpu_device_changed(self.gpuDeviceSetting.comboBox.currentIndex())
 
         self.gpuDeviceSetting.comboBox.currentIndexChanged.connect(self._gpu_device_changed)
@@ -188,6 +206,10 @@ class GPUSettingFrame(BaseSettingFrame):
         self.mainLayout.addWidget(self.gpuDeviceSetting)
 
     def _gpu_device_changed(self, index):
+        if self.gpuDeviceSetting.comboBox.text() == "无可用GPU设备":
+            set_device_id_c(-1)
+            self.warningLabel.setHidden(False)
+            return
         set_device_id_c(index)
         if get_support_double_c() or get_device_id_c() < 0:
             self.warningLabel.setHidden(True)
@@ -219,6 +241,12 @@ class SettingInterface(SmoothScrollArea):
         self.mainLayout.addLayout(self.rightLayout)
 
         self.enableTransparentBackground()
+
+        if self.GPUSetting.gpuDeviceSetting.comboBox.text() == "无可用GPU设备":
+            self.normalSetting.useGpuSetting.switchButton.setChecked(0)
+            self.normalSetting.useGpuSetting.switchButton.setEnabled(False)
+            cfg.config.use_gpu = False
+            cfg.save()
 
         self.GPUSetting.gpuDeviceSetting.comboBox.currentIndexChanged.connect(self._on_gpu_device_changed)
         self.normalSetting.useGpuSetting.switchButton.checkedChanged.connect(self._on_use_gpu_changed)
