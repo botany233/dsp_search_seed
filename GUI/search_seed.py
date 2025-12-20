@@ -87,10 +87,14 @@ class SearchThread(QThread):
             SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
             SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
 
+        results = check_precise_manager.get_results()
+        results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
+        if results:
+            last_result = results[-1]
+            SearchMessages.new_find_seed.emit(len(results), last_result.seed_id, last_result.star_num)
+
         with open(save_name, "a", encoding="utf-8") as f:
             f.write(f"#search seed time {start_date_time}\n")
-            results = check_precise_manager.get_results()
-            results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
             f.writelines(map(lambda x: f"{x.seed_id}, {x.star_num}\n", results))
 
     def range_search(self,
@@ -131,8 +135,12 @@ class SearchThread(QThread):
             SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
             SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
 
+        results = check_batch_manager.get_results()
+        results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
+        if results:
+            last_result = results[-1]
+            SearchMessages.new_find_seed.emit(len(results), last_result.seed_id, last_result.star_num)
+
         with open(save_name, "a", encoding="utf-8") as f:
             f.write(f"#search seed time {start_date_time}\n")
-            results = check_batch_manager.get_results()
-            results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
             f.writelines(map(lambda x: f"{x.seed_id}, {x.star_num}\n", results))
