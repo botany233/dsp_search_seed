@@ -27,7 +27,7 @@
 | 独显(RX 9070) | 0 | 0 | 0 | 0 | 0 | 0 | -->
 
 <table style="width:100%; border-collapse: collapse;">
-  <tr style="background-color:#f2f2f2;">
+  <tr class="table-header">
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">性能表格(seed/s)</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">3蓝巨-快速模式</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">3蓝巨-标准模式</th>
@@ -45,7 +45,7 @@
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27778</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.12</td>
   </tr>
-  <tr style="background-color:#f9f9f9;">
+  <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
@@ -73,7 +73,7 @@
 - 标准/快速模式性能：见下表，恒星数均为64
 
 <table style="width:100%; border-collapse: collapse;">
-  <tr style="background-color:#f2f2f2;">
+  <tr class="table-header">
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">性能表格(seed/s)</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">快速模式</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">标准模式</th>
@@ -83,7 +83,7 @@
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8159</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.13</td>
   </tr>
-  <tr style="background-color:#f9f9f9;">
+  <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8159</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.75</td>

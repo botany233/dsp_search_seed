@@ -1,5 +1,5 @@
 import os
-from qfluentwidgets import TextBrowser, setCustomStyleSheet
+from qfluentwidgets import TextBrowser, setCustomStyleSheet, isDarkTheme, qconfig
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QFileDialog
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QFont
@@ -25,7 +25,14 @@ class TutorialInterface(QFrame):
         qss = """TextBrowser{background:transparent}TextBrowser:hover{background:transparent}"""
         setCustomStyleSheet(self.text_browser,qss,qss)
         self.main_layout.addWidget(self.text_browser)
-        self.load_markdown_file("assets/tutorial.md")
+        
+        self.file_path = "assets/tutorial.md"
+        self.load_markdown_file(self.file_path)
+        
+        qconfig.themeChanged.connect(self.on_theme_changed)
+
+    def on_theme_changed(self):
+        self.load_markdown_file(self.file_path)
 
     def load_markdown_file(self, file_path):
         try:
@@ -45,12 +52,21 @@ class TutorialInterface(QFrame):
 
             self.text_browser.setSearchPaths([base_dir])
 
+            header_bg_color = "#2d2d2d" if isDarkTheme() else "#f2f2f2"
+            zebra_bg_color = "#333333" if isDarkTheme() else "#f9f9f9"
+
             styled_html = f"""
             <style>
                 img {{
                     max-width: 100% !important;
                     height: auto !important;
                     object-fit: contain;
+                }}
+                .table-header {{
+                    background-color: {header_bg_color};
+                }}
+                .zebra-row {{
+                    background-color: {zebra_bg_color};
                 }}
             </style>
             {html_content}
