@@ -21,26 +21,29 @@ uint16_t get_has_veins(const int *veins,const int *veins_point) {
 	return has_veins;
 }
 
-GalaxyStruct get_galaxy_data(int seed,int star_num,bool quick)
+GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 {
-	GalaxyStruct galaxy_data;
+	GalaxyData galaxy_data;
 	UniverseGen g;
 	g.CreateGalaxy(seed,star_num,0);
 	galaxy_data.seed = seed;
 	galaxy_data.star_num = star_num;
-	for(StarData star : g.stars)
+	for(StarClass star : g.stars)
 	{
-		StarStruct star_data;
+		StarData star_data;
 		star_data.name = star.name;
 		star_data.type = star.typeString();
 		star_data.type_id = star.typeId();
 		star_data.seed = star.seed;
-		star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
+		star_data.pos[0] = star.uPosition.x;
+		star_data.pos[1] = star.uPosition.y;
+		star_data.pos[2] = star.uPosition.z;
 		star_data.dyson_lumino = star.dysonLumino();
 		star_data.dyson_radius = star.dysonRadius * 2;
-		for(PlanetData planet : star.planets)
+		star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
+		for(PlanetClass planet : star.planets)
 		{
-			PlanetStruct planet_data;
+			PlanetData planet_data;
 			planet_data.name = planet.name;
 			planet_data.type = planet.display_name;
 			planet_data.type_id = planet.typeId();
@@ -126,7 +129,7 @@ GalaxyStruct get_galaxy_data(int seed,int star_num,bool quick)
 	return galaxy_data;
 }
 
-void generate_real_veins(UniverseGen& g,StarData& star,PlanetData& planet,PlanetStructSimple& planet_data)
+void generate_real_veins(UniverseGen& g,StarClass& star,PlanetClass& planet,PlanetDataSimple& planet_data)
 {
 	memset(planet_data.veins_group,0,sizeof(planet_data.veins_group));
 	memset(planet_data.veins_point,0,sizeof(planet_data.veins_point));
@@ -136,7 +139,7 @@ void generate_real_veins(UniverseGen& g,StarData& star,PlanetData& planet,Planet
 	planet_data.is_real_veins = true;
 }
 
-bool check_pc_veins(const PlanetConditionSimple& planet_condition_simple,const PlanetStructSimple& planet_data)
+bool check_pc_veins(const PlanetConditionSimple& planet_condition_simple,const PlanetDataSimple& planet_data)
 {
 	for(int i=0;i<14;i++) {
 		if(planet_condition_simple.veins_point[i] > planet_data.veins_point[i] || planet_condition_simple.veins_group[i] > planet_data.veins_group[i]) {
@@ -146,7 +149,7 @@ bool check_pc_veins(const PlanetConditionSimple& planet_condition_simple,const P
 	return true;
 }
 
-bool check_sc_veins(const StarStructSimple& star_data)
+bool check_sc_veins(const StarDataSimple& star_data)
 {
 	for(int i=0;i<14;i++) {
 		if(star_data.veins_group[i] > 0 || star_data.veins_point[i] > 0) {
@@ -156,7 +159,7 @@ bool check_sc_veins(const StarStructSimple& star_data)
 	return true;
 }
 
-bool check_gc_veins(const GalaxyStructSimple& galaxy_data)
+bool check_gc_veins(const GalaxyDataSimple& galaxy_data)
 {
 	for(int i=0;i<14;i++) {
 		if(galaxy_data.veins_group[i] > 0 || galaxy_data.veins_point[i] > 0) {
@@ -166,17 +169,17 @@ bool check_gc_veins(const GalaxyStructSimple& galaxy_data)
 	return true;
 }
 
-bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition,int check_level)
+bool check_seed_level_3(UniverseGen& g,GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	GalaxyConditionSimple galaxy_condition_simple = init_galaxy_condition_struct(galaxy_condition);
 	get_galaxy_condition_struct(galaxy_data,galaxy_condition,galaxy_condition_simple);
 	for(const PlanetConditionSimple& planet_condition_simple: galaxy_condition_simple.planets) {
 		int satisfy_num = planet_condition_simple.satisfy_num;
 		for(const PlanetIndexStruct& pi_struct: planet_condition_simple.planet_indexes) {
-			PlanetStructSimple& planet_data = galaxy_data.stars[pi_struct.star_index].planets[pi_struct.planet_index];
+			PlanetDataSimple& planet_data = galaxy_data.stars[pi_struct.star_index].planets[pi_struct.planet_index];
 			if(!planet_data.is_real_veins) {
-				StarData& star = g.stars[pi_struct.star_index];
-				PlanetData& planet = star.planets[pi_struct.planet_index];
+				StarClass& star = g.stars[pi_struct.star_index];
+				PlanetClass& planet = star.planets[pi_struct.planet_index];
 				generate_real_veins(g,star,planet,planet_data);
 			}
 			if(check_pc_veins(planet_condition_simple,planet_data)) {
@@ -192,17 +195,17 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 		int star_satisfy_num = star_condition_simple.satisfy_num;
 		for(const StarIndexStruct& si_struct: star_condition_simple.star_indexes) {
 			int star_index = si_struct.star_index;
-			StarStructSimple& star_data = galaxy_data.stars[star_index];
+			StarDataSimple& star_data = galaxy_data.stars[star_index];
 			if(star_condition_simple.planets.size() > 0) {
 				bool satisfy_flag = false;
 				for(int pc_index=0;pc_index<star_condition_simple.planets.size();pc_index++) {
 					const PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
 					int planet_satisfy_num = planet_condition_simple.satisfy_num;
 					for(int planet_index: si_struct.satisfy_planets[pc_index]) {
-						PlanetStructSimple& planet_data = star_data.planets[planet_index];
+						PlanetDataSimple& planet_data = star_data.planets[planet_index];
 						if(!planet_data.is_real_veins) {
-							StarData& star = g.stars[star_index];
-							PlanetData& planet = star.planets[planet_index];
+							StarClass& star = g.stars[star_index];
+							PlanetClass& planet = star.planets[planet_index];
 							generate_real_veins(g,star,planet,planet_data);
 						}
 						if(check_pc_veins(planet_condition_simple,planet_data)) {
@@ -222,7 +225,7 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 			if(star_condition_simple.need_veins) {
 				copy_n(star_condition_simple.veins_group,14,star_data.veins_group);
 				copy_n(star_condition_simple.veins_point,14,star_data.veins_point);
-				for(const PlanetStructSimple& planet_data: star_data.planets) {
+				for(const PlanetDataSimple& planet_data: star_data.planets) {
 					if(planet_data.is_real_veins && (star_condition_simple.need_veins & planet_data.has_veins)) {
 						for(int i=0;i<14;i++) {
 							star_data.veins_group[i] -= planet_data.veins_group[i];
@@ -232,10 +235,10 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 				}
 				if(!check_sc_veins(star_data)) {
 					bool star_satisfy_flag = false;
-					for(PlanetStructSimple& planet_data: star_data.planets) {
+					for(PlanetDataSimple& planet_data: star_data.planets) {
 						if(!planet_data.is_real_veins && (get_has_veins(star_data.veins_group,star_data.veins_point) & planet_data.has_veins)) {
-							StarData& star = g.stars[star_index];
-							PlanetData& planet = star.planets[planet_data.index];
+							StarClass& star = g.stars[star_index];
+							PlanetClass& planet = star.planets[planet_data.index];
 							generate_real_veins(g,star,planet,planet_data);
 							for(int i=0;i<14;i++) {
 								star_data.veins_group[i] -= planet_data.veins_group[i];
@@ -264,8 +267,8 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 	if(galaxy_condition_simple.need_veins) {
 		copy_n(galaxy_condition_simple.veins_group,14,galaxy_data.veins_group);
 		copy_n(galaxy_condition_simple.veins_point,14,galaxy_data.veins_point);
-		for(const StarStructSimple& star_data: galaxy_data.stars) {
-			for(const PlanetStructSimple& planet_data: star_data.planets) {
+		for(const StarDataSimple& star_data: galaxy_data.stars) {
+			for(const PlanetDataSimple& planet_data: star_data.planets) {
 				if(planet_data.is_real_veins && (galaxy_condition_simple.need_veins & planet_data.has_veins)) {
 					for(int i=0;i<14;i++) {
 						galaxy_data.veins_group[i] -= planet_data.veins_group[i];
@@ -276,11 +279,11 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 		}
 		if(!check_gc_veins(galaxy_data)) {
 			bool galaxy_satisfy_flag = false;
-			for(StarStructSimple& star_data: galaxy_data.stars) {
-				for(PlanetStructSimple& planet_data: star_data.planets) {
+			for(StarDataSimple& star_data: galaxy_data.stars) {
+				for(PlanetDataSimple& planet_data: star_data.planets) {
 					if(!planet_data.is_real_veins && (get_has_veins(galaxy_data.veins_group,galaxy_data.veins_point) & planet_data.has_veins)) {
-						StarData& star = g.stars[star_data.index];
-						PlanetData& planet = star.planets[planet_data.index];
+						StarClass& star = g.stars[star_data.index];
+						PlanetClass& planet = star.planets[planet_data.index];
 						generate_real_veins(g,star,planet,planet_data);
 						for(int i=0;i<14;i++) {
 							galaxy_data.veins_group[i] -= planet_data.veins_group[i];
@@ -301,16 +304,16 @@ bool check_seed_level_3(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 	return true;
 }
 
-bool check_seed_level_2(UniverseGen& g,GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition,int check_level)
+bool check_seed_level_2(UniverseGen& g,GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	for(int star_index=0;star_index<g.starCount;star_index++)
 	{
-		StarData& star = g.stars[star_index];
-		StarStructSimple& star_data = galaxy_data.stars[star_index];
+		StarClass& star = g.stars[star_index];
+		StarDataSimple& star_data = galaxy_data.stars[star_index];
 		for(int planet_index=0;planet_index<star.planetCount;planet_index++)
 		{
-			PlanetData& planet = star.planets[planet_index];
-			PlanetStructSimple& planet_data = star_data.planets[planet_index];
+			PlanetClass& planet = star.planets[planet_index];
+			PlanetDataSimple& planet_data = star_data.planets[planet_index];
 			g.MyGenerateVeins(star,planet,planet_data.veins_group,planet_data.veins_point);
 			planet_data.has_veins = get_has_veins(planet_data.veins_group,planet_data.veins_point);
 			for(int i=0;i<14;i++)
@@ -335,19 +338,19 @@ bool check_seed_level_2(UniverseGen& g,GalaxyStructSimple& galaxy_data,const Gal
 
 bool check_seed_level_1(int seed,int star_num,const GalaxyCondition& galaxy_condition,int check_level)
 {
-	GalaxyStructSimple galaxy_data;
+	GalaxyDataSimple galaxy_data;
 	UniverseGen g;
 	g.CreateGalaxy(seed,star_num,1);
-	for(StarData star : g.stars)
+	for(StarClass star : g.stars)
 	{
-		StarStructSimple star_data;
+		StarDataSimple star_data;
 		star_data.type = star.typeId();
 		star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
 		star_data.dyson_lumino = star.dysonLumino();
 		star_data.index = star.index;
-		for(PlanetData planet : star.planets)
+		for(PlanetClass planet : star.planets)
 		{
-			PlanetStructSimple planet_data;
+			PlanetDataSimple planet_data;
 			planet_data.type = planet.typeId();
 			planet_data.singularity = planet.GetPlanetSingularityMask();
 			planet_data.index = planet.index;

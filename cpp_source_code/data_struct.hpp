@@ -77,7 +77,7 @@ struct GalaxyCondition {
 	vector<PlanetCondition> planets = vector<PlanetCondition>();
 };
 
-struct PlanetStructSimple {
+struct PlanetDataSimple {
 	uint8_t type;
 	uint8_t singularity;
 	uint8_t liquid;
@@ -89,23 +89,23 @@ struct PlanetStructSimple {
 	int veins_point[14]{0};
 };
 
-struct StarStructSimple {
+struct StarDataSimple {
 	uint8_t type;
 	float distance;
 	float dyson_lumino;
-	vector<PlanetStructSimple> planets;
+	vector<PlanetDataSimple> planets;
 	uint8_t index;
 	int veins_group[14]{0};
 	int veins_point[14]{0};
 };
 
-struct GalaxyStructSimple {
-	vector<StarStructSimple> stars;
+struct GalaxyDataSimple {
+	vector<StarDataSimple> stars;
 	int veins_group[14]{0};
 	int veins_point[14]{0};
 };
 
-struct PlanetStruct {
+struct PlanetData {
 	string name;
 	string type;
 	int type_id;
@@ -123,25 +123,26 @@ struct PlanetStruct {
 	vector<float> gas_veins = vector<float>(3,0);
 };
 
-struct StarStruct {
+struct StarData {
 	string name;
 	string type;
 	int type_id;
 	int seed;
-	float distance;
 	float dyson_lumino;
 	float dyson_radius;
-	vector<PlanetStruct> planets;
+	float distance;
+	vector<double> pos = vector<double>(3,0);
+	vector<PlanetData> planets;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
 	vector<int> liquid = vector<int>(3,0);
 };
 
-struct GalaxyStruct {
+struct GalaxyData {
 	int seed;
 	int star_num;
-	vector<StarStruct> stars;
+	vector<StarData> stars;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);

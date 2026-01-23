@@ -20,9 +20,10 @@ class StarData:
     type: str
     type_id: int
     seed: int
-    distance: float
     dyson_lumino: float
     dyson_radius: float
+    distance: float
+    pos: list[float]
     planets: list[PlanetData]
     veins_group: list[int]
     veins_point: list[int]

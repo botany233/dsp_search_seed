@@ -202,7 +202,7 @@ struct NameGen_t
         return text;
     }
 
-    std::string RandomStarName(int seed,const StarData& starData,std::set<std::string>& starnames)
+    std::string RandomStarName(int seed,const StarClass& starData,std::set<std::string>& starnames)
     {
         DotNet35Random dotNet35Random(seed);
         for (int i = 0; i < 256; i++)
@@ -216,7 +216,7 @@ struct NameGen_t
         return "XStar";
     }
 
-    std::string _RandomStarName(int seed,const StarData& starData)
+    std::string _RandomStarName(int seed,const StarClass& starData)
     {
         DotNet35Random dotNet35Random(seed);
         int seed2 = dotNet35Random.Next();

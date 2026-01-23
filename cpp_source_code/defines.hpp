@@ -124,7 +124,7 @@ const int planet_theme_to_type[25] = {
 	22,18,19,20,21
 };
 
-class PlanetData
+class PlanetClass
 {
 public:
     int seed;
@@ -165,7 +165,7 @@ public:
     int theme;
     int algoId;
     int style;
-    PlanetData* orbitAroundPlanet = NULL;
+    PlanetClass* orbitAroundPlanet = NULL;
     std::vector<int> gasItems;
     std::vector<float> gasSpeeds;
 	std::string display_name;
@@ -226,7 +226,7 @@ public:
 	}
 };
 
-class StarData {
+class StarClass {
 public:
     int seed;
     int index;
@@ -258,7 +258,7 @@ public:
     float level;
     float resourceCoef = 1.0f;
 
-    std::vector< PlanetData> planets;
+    std::vector< PlanetClass> planets;
 
     inline float physicsRadius() {
         return radius * 1200;

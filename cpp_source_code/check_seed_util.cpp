@@ -7,7 +7,7 @@
 using namespace nlohmann;
 using namespace std;
 
-bool check_planet(const PlanetStructSimple& planet_data,const PlanetCondition& planet_condition)
+bool check_planet(const PlanetDataSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
@@ -27,7 +27,7 @@ bool check_planet(const PlanetStructSimple& planet_data,const PlanetCondition& p
 	return true;
 }
 
-bool check_star(const StarStructSimple& star_data,const StarCondition& star_condition)
+bool check_star(const StarDataSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type)
 		return false;
@@ -38,7 +38,7 @@ bool check_star(const StarStructSimple& star_data,const StarCondition& star_cond
 	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetStructSimple& planet_data: star_data.planets)
+		for(const PlanetDataSimple& planet_data: star_data.planets)
 		{
 			if(check_planet(planet_data,planet_condition))
 			{
@@ -59,11 +59,11 @@ bool check_star(const StarStructSimple& star_data,const StarCondition& star_cond
 	return true;
 }
 
-bool check_galaxy(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+bool check_galaxy(const GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
 		int left_satisfy_num = star_condition.satisfy_num;
-		for(const StarStructSimple& star_data: galaxy_data.stars)
+		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
 			if(check_star(star_data,star_condition))
 			{
@@ -78,9 +78,9 @@ bool check_galaxy(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& g
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const StarStructSimple& star_data: galaxy_data.stars)
+		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
-			for(const PlanetStructSimple& planet_data: star_data.planets)
+			for(const PlanetDataSimple& planet_data: star_data.planets)
 			{
 				if(check_planet(planet_data,planet_condition))
 				{
@@ -103,7 +103,7 @@ bool check_galaxy(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& g
 	return true;
 }
 
-bool check_planet_quick(const PlanetStructSimple& planet_data,const PlanetCondition& planet_condition)
+bool check_planet_quick(const PlanetDataSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
@@ -117,7 +117,7 @@ bool check_planet_quick(const PlanetStructSimple& planet_data,const PlanetCondit
 	return true;
 }
 
-bool check_star_quick(const StarStructSimple& star_data,const StarCondition& star_condition)
+bool check_star_quick(const StarDataSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type)
 		return false;
@@ -128,7 +128,7 @@ bool check_star_quick(const StarStructSimple& star_data,const StarCondition& sta
 	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetStructSimple& planet_data: star_data.planets)
+		for(const PlanetDataSimple& planet_data: star_data.planets)
 		{
 			if(check_planet_quick(planet_data,planet_condition))
 			{
@@ -143,11 +143,11 @@ bool check_star_quick(const StarStructSimple& star_data,const StarCondition& sta
 	return true;
 }
 
-bool check_galaxy_quick(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+bool check_galaxy_quick(const GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
 		int left_satisfy_num = star_condition.satisfy_num;
-		for(const StarStructSimple& star_data: galaxy_data.stars)
+		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
 			if(check_star_quick(star_data,star_condition))
 			{
@@ -162,9 +162,9 @@ bool check_galaxy_quick(const GalaxyStructSimple& galaxy_data,const GalaxyCondit
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const StarStructSimple& star_data: galaxy_data.stars)
+		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
-			for(const PlanetStructSimple& planet_data: star_data.planets)
+			for(const PlanetDataSimple& planet_data: star_data.planets)
 			{
 				if(check_planet_quick(planet_data,planet_condition))
 				{
@@ -212,12 +212,12 @@ void del_empty_galaxy_condition(GalaxyConditionSimple& galaxy_condition) {
 	}
 }
 
-void get_galaxy_condition_struct(const GalaxyStructSimple& galaxy_data,const GalaxyCondition& galaxy_condition,GalaxyConditionSimple& galaxy_condition_simple)
+void get_galaxy_condition_struct(const GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition,GalaxyConditionSimple& galaxy_condition_simple)
 {
 	for(int sc_index=0;sc_index<galaxy_condition.stars.size();sc_index++) {
 		const StarCondition& star_condition = galaxy_condition.stars[sc_index];
 		StarConditionSimple& star_condition_simple = galaxy_condition_simple.stars[sc_index];
-		for(const StarStructSimple& star_data: galaxy_data.stars) {
+		for(const StarDataSimple& star_data: galaxy_data.stars) {
 			if(check_star(star_data,star_condition)) {
 				StarIndexStruct star_index_struct = StarIndexStruct();
 				star_index_struct.star_index = star_data.index;
@@ -225,7 +225,7 @@ void get_galaxy_condition_struct(const GalaxyStructSimple& galaxy_data,const Gal
 					const PlanetCondition& planet_condition = star_condition.planets[pc_index];
 					PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
 					vector<int> temp_vector = vector<int>();
-					for(const PlanetStructSimple& planet_data: star_data.planets) {
+					for(const PlanetDataSimple& planet_data: star_data.planets) {
 						if(check_planet(planet_data,planet_condition)) {
 							temp_vector.push_back(planet_data.index);
 						}
@@ -239,8 +239,8 @@ void get_galaxy_condition_struct(const GalaxyStructSimple& galaxy_data,const Gal
 	for(int pc_index=0;pc_index<galaxy_condition.planets.size();pc_index++) {
 		const PlanetCondition& planet_condition = galaxy_condition.planets[pc_index];
 		PlanetConditionSimple& planet_condition_struct = galaxy_condition_simple.planets[pc_index];
-		for(const StarStructSimple& star_data: galaxy_data.stars) {
-			for(const PlanetStructSimple& planet_data: star_data.planets) {
+		for(const StarDataSimple& star_data: galaxy_data.stars) {
+			for(const PlanetDataSimple& planet_data: star_data.planets) {
 				if(check_planet(planet_data,planet_condition)) {
 					PlanetIndexStruct planet_index_struct = PlanetIndexStruct();
 					planet_index_struct.star_index = star_data.index;

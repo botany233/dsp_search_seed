@@ -14,7 +14,7 @@ public:
 	int seed;
 	int starCount;
     int fast;
-	std::vector<StarData> stars;
+	std::vector<StarClass> stars;
     int habitableCount;
 	int birthPlanetId;
 	std::set<std::string> starnames;
@@ -77,7 +77,7 @@ public:
             CreateStarPlanets(stars[index]);
     }
 
-    void MyGenerateVeins(StarData& star, PlanetData& planet,int* array1,int* array2)
+    void MyGenerateVeins(StarClass& star, PlanetClass& planet,int* array1,int* array2)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
         DotNet35Random dotNet35Random1(planet.seed);
@@ -189,8 +189,8 @@ public:
     }
     
     void SetPlanetTheme(
-        StarData& star,
-        PlanetData& planet,
+        StarClass& star,
+        PlanetClass& planet,
         double rand1,
         double rand2,
         double rand3,
@@ -303,8 +303,8 @@ public:
     }
     
 
-    PlanetData CreatePlanet(
-        StarData& star,
+    PlanetClass CreatePlanet(
+        StarClass& star,
         int index,
         int orbitAround,
         int orbitIndex,
@@ -313,7 +313,7 @@ public:
         int info_seed,
         int gen_seed)
     {
-        PlanetData& planet = star.planets[index];
+        PlanetClass& planet = star.planets[index];
         DotNet35Random dotNet35Random(info_seed);
         planet.index = index;
         planet.seed = gen_seed;
@@ -518,7 +518,7 @@ public:
         return planet;
     }
 
-    void CreateStarPlanets(StarData& star)
+    void CreateStarPlanets(StarClass& star)
     {
         DotNet35Random dotNet35Random1(star.seed);
         dotNet35Random1.Next();
@@ -884,7 +884,7 @@ public:
     {
         return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
     }
-    void SetStarAge(StarData& star, float age, double rn, double rt)
+    void SetStarAge(StarClass& star, float age, double rn, double rt)
     {
         float num1 = (float)(rn * 0.1 + 0.95);
         float num2 = (float)(rt * 0.4 + 0.8);
@@ -960,7 +960,7 @@ public:
         EStarType needtype,
         ESpectrType needSpectr)
     {
-        StarData& star = stars[id - 1];
+        StarClass& star = stars[id - 1];
         star.index = id - 1;
         star.level = starCount <= 1 ? 0.0f : (float)star.index / (float)(starCount - 1);
         star.id = id;
@@ -1083,9 +1083,9 @@ public:
         star.overrideName = "";
     }
 
-    StarData CreateBirthStar(int index,int seed)
+    StarClass CreateBirthStar(int index,int seed)
     {
-        StarData& birthStar = stars[index];
+        StarClass& birthStar = stars[index];
         birthStar.index = 0;
         birthStar.level = 0.0f;
         birthStar.id = 1;

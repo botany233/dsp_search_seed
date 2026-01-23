@@ -189,9 +189,9 @@ public:
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
-	virtual void GenerateTerrain(PlanetData& planet, double modX, double modY) = 0;
+	virtual void GenerateTerrain(PlanetClass& planet, double modX, double modY) = 0;
 
-	virtual void GenerateVeins(StarData& star, PlanetData& planet, int birthPlanetId, int* veins,int* res) {
+	virtual void GenerateVeins(StarClass& star, PlanetClass& planet, int birthPlanetId, int* veins,int* res) {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -540,7 +540,7 @@ public:
 class PlanetAlgorithm0: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet, double modX, double modY) override
+	void GenerateTerrain(PlanetClass& planet, double modX, double modY) override
 	{
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
@@ -572,7 +572,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
 		//do nothing
 	}
 };
@@ -580,7 +580,7 @@ public:
 class PlanetAlgorithm1: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override
 	{
 		double num = 0.01;
 		double num2 = 0.012;
@@ -654,7 +654,7 @@ public:
 class PlanetAlgorithm2: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override
 	{
 		modX = (3.0 - modX - modX) * modX * modX;
 		double num = 0.0035;
@@ -735,7 +735,7 @@ private:
 		return a + (b - a) * t;
 	}
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -842,7 +842,7 @@ private:
 	double heights[80] = {};
 
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -965,7 +965,7 @@ public:
 class PlanetAlgorithm5: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
@@ -1053,7 +1053,7 @@ public:
 class PlanetAlgorithm6: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
@@ -1142,7 +1142,7 @@ public:
 class PlanetAlgorithm7: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.008;
 		double num2 = 0.01;
 		double num3 = 0.01;
@@ -1211,7 +1211,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -1505,7 +1505,7 @@ public:
 class PlanetAlgorithm8: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.002 * modX;
 		double num2 = 0.002 * modX * modX * 6.66667;
 		double num3 = 0.002 * modX;
@@ -1576,7 +1576,7 @@ public:
 class PlanetAlgorithm9: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.01;
 		double num2 = 0.012;
 		double num3 = 0.01;
@@ -1684,7 +1684,7 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -1869,7 +1869,7 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -1946,7 +1946,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -2288,7 +2288,7 @@ private:
 		return Math.Pow(1.0 - t,3.0) + Math.Pow(1.0 - t,2.0) * 3.0 * t;
 	}
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 1.1 * modX;
 		double num2 = 0.2;
 		double num3 = 8.0;
@@ -2360,7 +2360,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -2692,7 +2692,7 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007 * modX;
 		double num2 = 0.007 * modX;
 		double num3 = 0.007 * modX;
@@ -2754,7 +2754,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarData& star,PlanetData& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -3081,7 +3081,7 @@ public:
 class PlanetAlgorithm14: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetData& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;

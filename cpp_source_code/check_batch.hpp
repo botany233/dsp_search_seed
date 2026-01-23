@@ -34,7 +34,7 @@ protected:
 
 	mutex result_mtx;
 	condition_variable on_result_clear;
-	vector<GalaxyStruct> result{};
+	vector<GalaxyData> result{};
 
 	void search_func() {
 		while(true) {
@@ -48,7 +48,7 @@ protected:
 			tasks.pop();
 			task_lck.unlock();
 
-			GalaxyStruct galaxy_data = get_galaxy_data(current_task.seed_id,current_task.star_num,quick);
+			GalaxyData galaxy_data = get_galaxy_data(current_task.seed_id,current_task.star_num,quick);
 			unique_lock<mutex> lck(result_mtx);
 			on_result_clear.wait(lck,[this]() { return result.size() < max_cache || stop.load(); });
 			result.push_back(galaxy_data);
@@ -89,8 +89,8 @@ public:
 		//search_threads.clear();
 	}
 
-	vector<GalaxyStruct> get_results() {
-		vector<GalaxyStruct> return_result;
+	vector<GalaxyData> get_results() {
+		vector<GalaxyData> return_result;
 		{
 			lock_guard<mutex> lck(result_mtx);
 			return_result = move(result);
@@ -256,7 +256,7 @@ protected:
 
 	void search_func() {
 		while(true) {
-			int current_task_id = task_id.fetch_add(1);
+			size_t current_task_id = task_id.fetch_add(1);
 			if(current_task_id >= task_num || stop.load()) {
 				break;
 			}
