@@ -1,5 +1,4 @@
 from CApi import *
-import inspect
 import json
 
 if __name__ == "__main__":

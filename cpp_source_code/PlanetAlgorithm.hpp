@@ -13,8 +13,10 @@
 #include "defines.hpp"
 #include "LDB.hpp"
 #include "util.hpp"
+#include "Maths.hpp"
 #include "Vector3.hpp"
 #include "Vector4.hpp"
+#include "DotNet35Random.hpp"
 #include "const_value.hpp"
 #include "SimplexNoise.hpp"
 #include "RandomTable.hpp"
@@ -200,7 +202,7 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& data = planet.data;
+		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -343,34 +345,34 @@ public:
 			}
 		}
 		bool flag = birthPlanetId == planet.id;
-		//if(flag)
-		//{
-		//	planet.GenBirthPoints(data,birthSeed);
-		//}
+		if(flag)
+		{
+			planet.GenBirthPoints(rawData,birthSeed);
+		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
-		//if(flag)
-		//{
-		//	birthPoint = planet.birthPoint;
-		//	birthPoint.Normalize();
-		//	birthPoint *= 0.75f;
-		//}
-		//else
-		//{
-		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.Normalize();
-		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
-		//}
-		//if(flag)
-		//{
-		//	veinVectorTypes[0] = EVeinType::Iron;
-		//	veinVectors[0] = planet.birthResourcePoint0;
-		//	veinVectorTypes[1] = EVeinType::Copper;
-		//	veinVectors[1] = planet.birthResourcePoint1;
-		//	veinVectorCount = 2;
-		//}
+		if(flag)
+		{
+			birthPoint = planet.birthPoint;
+			birthPoint.Normalize();
+			birthPoint *= 0.75f;
+		}
+		else
+		{
+			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.Normalize();
+			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		}
+		if(flag)
+		{
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectors[0] = planet.birthResourcePoint0;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectors[1] = planet.birthResourcePoint1;
+			veinVectorCount = 2;
+		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -398,7 +400,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = data.QueryHeight(target_pos);
+					float target_height = rawData.QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f))
 					{
 						continue;
@@ -517,7 +519,7 @@ public:
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = data.QueryHeight(vein_pos);
+				float num29 = rawData.QueryHeight(vein_pos);
 				//if(planet.id == 201)
 				//{
 				//	cout << "real_pos: " << vein_pos.x << " " << vein_pos.y << " " << vein_pos.z << ", height: " << num29 << endl;

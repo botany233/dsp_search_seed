@@ -4,7 +4,12 @@
 #include <vector>
 #include <string>
 #include <cstdint>
-#include "util.hpp"
+
+#include "Maths.hpp"
+#include "Vector2.hpp"
+#include "Vector3.hpp"
+#include "DotNet35Random.hpp"
+#include "quaternion.hpp"
 #include "PlanetRawData.hpp"
 
 enum ESpectrType {
@@ -124,6 +129,24 @@ const int planet_theme_to_type[25] = {
 	22,18,19,20,21
 };
 
+class Pose {
+public:
+	Vector3 position;
+	Quaternion rotation;
+	// 构造函数
+	Pose() {
+		position = Vector3();
+		rotation = Quaternion();
+	};
+
+	Pose(Vector3 position,Quaternion rotation) {
+		this->position = position;
+		this->rotation = rotation;
+	};
+};
+
+class StarClass;
+
 class PlanetClass
 {
 public:
@@ -170,6 +193,34 @@ public:
     std::vector<float> gasSpeeds;
 	std::string display_name;
 	PlanetRawData data;
+	Quaternion runtimeOrbitRotation;
+	Quaternion runtimeSystemRotation;
+	Vector3 birthPoint;
+	Vector3 birthResourcePoint0;
+	Vector3 birthResourcePoint1;
+	StarClass* star = NULL;
+
+	void GenBirthPoints(const PlanetRawData& rawData,int _birthSeed);
+
+	Pose PredictPose(double time)
+	{
+		double num = time / orbitalPeriod + (double)orbitPhase / 360.0;
+		int num2 = (int)(num + 0.1);
+		num -= (double)num2;
+		num *= Math.PI * 2.0;
+		double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
+		int num4 = (int)(num3 + 0.1);
+		num3 = (num3 - (double)num4) * 360.0;
+		Vector3 position = Maths::QRotate(runtimeOrbitRotation, Vector3((float)Math.Cos(num) * orbitRadius, 0.0f, (float)Math.Sin(num) * orbitRadius));
+		if(orbitAroundPlanet != NULL)
+		{
+			Pose pose = orbitAroundPlanet->PredictPose(time);
+			position.x += pose.position.x;
+			position.y += pose.position.y;
+			position.z += pose.position.z;
+		}
+		return Pose(position, runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
+	}
 
     inline float realRadius() {
         return radius * scale;
@@ -268,7 +319,6 @@ public:
         return Mathf.Round((float)Math.Pow(luminosity, 0.33000001311302185) * 1000.0f) / 1000.0f;
     }
 
-
     inline std::string typeString()
     {
         std::string text = "";
@@ -350,3 +400,66 @@ public:
 			return 16;
 	}
 };
+
+inline void PlanetClass::GenBirthPoints(const PlanetRawData& rawData,int _birthSeed)
+{
+	DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
+	Pose pose = PredictPose(85.0);
+	Vector3 vector = Maths::QInvRotateLF(pose.rotation,star->uPosition - pose.position * 40000.0);
+	vector.Normalize();
+	Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
+	Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
+	int i = 0;
+	int num;
+	for(num = 256; i < num; i++)
+	{
+		float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+		float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+		Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
+		vector2.Normalize();
+		birthPoint = vector2 * (realRadius() + 0.2f + 1.45f);
+		normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
+		normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
+		bool flag = false;
+		for(int j = 0; j < 10; j++)
+		{
+			float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+			float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+			Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
+			Vector2 vector4 = -vector3;
+			float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+			float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+			vector4.x += num4;
+			vector4.y += num5;
+			Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
+			Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
+			birthResourcePoint0 = Vector3::Normalize(normalized3);
+			birthResourcePoint1 = Vector3::Normalize(normalized4);
+			float num6 = realRadius() + 0.2f;
+			if(rawData.QueryHeight(vector2) > num6 && rawData.QueryHeight(normalized3) > num6 && rawData.QueryHeight(normalized4) > num6)
+			{
+				Vector3 vpos = normalized3 + normalized * 0.03f;
+				Vector3 vpos2 = normalized3 - normalized * 0.03f;
+				Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
+				Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
+				Vector3 vpos5 = normalized4 + normalized * 0.03f;
+				Vector3 vpos6 = normalized4 - normalized * 0.03f;
+				Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
+				Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
+				if(rawData.QueryHeight(vpos) > num6 && rawData.QueryHeight(vpos2) > num6 && rawData.QueryHeight(vpos3) > num6 && rawData.QueryHeight(vpos4) > num6 && rawData.QueryHeight(vpos5) > num6 && rawData.QueryHeight(vpos6) > num6 && rawData.QueryHeight(vpos7) > num6 && rawData.QueryHeight(vpos8) > num6)
+				{
+					flag = true;
+					break;
+				}
+			}
+		}
+		if(flag)
+		{
+			break;
+		}
+	}
+	if(i >= num)
+	{
+		birthPoint = Vector3(0.0f,realRadius() + 5.0f,0.0f);
+	}
+}

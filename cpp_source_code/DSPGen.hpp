@@ -7,6 +7,10 @@
 #include "LDB.hpp"
 #include "util.hpp"
 #include "NameGen.hpp"
+#include "quaternion.hpp"
+#include "Vector3.hpp"
+#include "VectorLF3.hpp"
+#include "DotNet35Random.hpp"
 
 class UniverseGen
 {
@@ -322,6 +326,7 @@ public:
         planet.orbitIndex = orbitIndex;
         planet.number = number;
         planet.id = star.id * 100 + index + 1;
+		planet.star = &star;
 
         int num1 = 0;
         for (int index1 = 0; index1 < star.index; ++index1)
@@ -452,6 +457,12 @@ public:
             planet.rotationPeriod = -planet.rotationPeriod;
             planet.singularity |= EPlanetSingularity::ClockwiseRotate;
         }
+		planet.runtimeOrbitRotation = Quaternion::AngleAxis(planet.orbitLongitude,Vector3::up()) * Quaternion::AngleAxis(planet.orbitInclination,Vector3::forward());
+		if(planet.orbitAroundPlanet != NULL)
+		{
+			planet.runtimeOrbitRotation = planet.orbitAroundPlanet->runtimeOrbitRotation * planet.runtimeOrbitRotation;
+		}
+		planet.runtimeSystemRotation = planet.runtimeOrbitRotation * Quaternion::AngleAxis(planet.obliquity,Vector3::forward());
         float habitableRadius = star.habitableRadius;
         if (gasGiant)
         {

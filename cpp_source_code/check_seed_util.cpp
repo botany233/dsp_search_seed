@@ -1,10 +1,9 @@
-#include "json.hpp"
-#include "data_struct.hpp"
 #include <array>
 #include <cstdint>
 #include <iostream>
 
-using namespace nlohmann;
+#include "data_struct.hpp"
+
 using namespace std;
 
 bool check_planet(const PlanetDataSimple& planet_data,const PlanetCondition& planet_condition)

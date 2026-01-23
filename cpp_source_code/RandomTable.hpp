@@ -1,6 +1,7 @@
 #pragma once
 #include <vector>
 #include "util.hpp"
+#include "VectorLF3.hpp"
 #include "SystemRandom.hpp"
 
 class RandomTable

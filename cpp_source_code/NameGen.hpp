@@ -2,11 +2,12 @@
 // Modified by https://github.com/botany233 on 2025.12
 #pragma once
 
+#include <cstdarg>
+#include <set>
+
 #include "defines.hpp"
 #include "util.hpp"
 #include <string.h>
-#include <cstdarg>
-#include <set>
 
 const std::string vformat(const char* const zcFormat, ...) {
     va_list vaArgs;

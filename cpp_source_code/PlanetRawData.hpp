@@ -75,7 +75,7 @@ public:
 		return num2 + num3 * INDEXMAP_PRECISION + num * INDEXMAP_FACE_STRIDE + corner * INDEXMAP_CORNER_STRIDE;
 	};
 
-	float QueryHeight(Vector3 vpos)
+	float QueryHeight(Vector3 vpos) const
 	{
 		vpos.Normalize();
 		int num = PositionHash(vpos);

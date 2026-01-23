@@ -1,8 +1,9 @@
 #pragma once
-#include "util.hpp"
+
 #include <cstdint>
-//#include <cmath>
 #include <immintrin.h>
+
+#include "DotNet35Random.hpp"
 
 using namespace std;
 
