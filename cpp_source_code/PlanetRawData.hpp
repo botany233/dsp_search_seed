@@ -17,7 +17,6 @@ class PlanetRawData
 public:
 	std::vector<unsigned short> heightData;
 	//std::vector<float> debugData;
-	//unsigned short heightData[DATALENGTH] = {0};
 	static Vector3 vertices[161604];
 	static int indexMap[60000];
 	

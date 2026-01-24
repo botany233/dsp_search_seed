@@ -1,0 +1,13 @@
+{
+    "name": "testpybind",
+    "version": "1.0.0",
+    "description": "WoW!",
+    "dependencies": [
+        {
+            "name": "glm"
+        },
+        {
+            "name": "opencl"
+        }
+    ]
+}

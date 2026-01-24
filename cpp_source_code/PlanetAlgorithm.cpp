@@ -34,8 +34,8 @@ std::unique_ptr<PlanetAlgorithm> PlanetAlgorithmManager(int algoId)
 		return std::make_unique<PlanetAlgorithm12>();
 	case 13:
 		return std::make_unique<PlanetAlgorithm13>();
-	case 14:
-		return std::make_unique<PlanetAlgorithm14>();
+	//case 14:
+	//	return std::make_unique<PlanetAlgorithm14>();
 	default:
 		return std::make_unique<PlanetAlgorithm0>();
 	}

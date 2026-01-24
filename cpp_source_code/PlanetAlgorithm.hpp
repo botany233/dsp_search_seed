@@ -600,7 +600,8 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num11);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		//data.debugData.resize(DATALENGTH);
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
 			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
@@ -608,6 +609,7 @@ public:
 			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
 			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
@@ -616,6 +618,7 @@ public:
 			kernel.setArg(4,permMod12_buffer_1);
 			kernel.setArg(5,permMod12_buffer_2);
 			kernel.setArg(6,heightData_buffer);
+			//kernel.setArg(7,debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
@@ -628,6 +631,8 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			//OpenCLManager::queue.enqueueReadBuffer(debugData_buffer,CL_TRUE,0,
+			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
 		}
 		else {
 			for(int i = 0; i < DATALENGTH; i++) {
@@ -3080,140 +3085,140 @@ public:
 	};
 };
 
-class PlanetAlgorithm14: public PlanetAlgorithm
-{
-public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
-		double num = 0.007;
-		double num2 = 0.007;
-		double num3 = 0.007;
-		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
-		int num4 = dotNet35Random.Next();
-		int num5 = dotNet35Random.Next();
-		int num6 = dotNet35Random.Next();
-		int num7 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num4);
-		SimplexNoise simplexNoise2 = SimplexNoise(num5);
-		SimplexNoise simplexNoise3 = SimplexNoise(num6);
-		SimplexNoise simplexNoise4 = SimplexNoise(num7);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain14");
-
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
-
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,perm_buffer_3);
-			kernel.setArg(5,perm_buffer_4);
-			kernel.setArg(6,permMod12_buffer_1);
-			kernel.setArg(7,permMod12_buffer_2);
-			kernel.setArg(8,permMod12_buffer_3);
-			kernel.setArg(9,permMod12_buffer_4);
-			kernel.setArg(10,heightData_buffer);
-			//kernel.setArg(11,OpenCLManager::debugData_buffer);
-
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
-
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
-			//OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::debugData_buffer,CL_TRUE,0,
-			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num8 = data.vertices[i].x * planet.radius;
-				double num9 = data.vertices[i].y * planet.radius;
-				double num10 = data.vertices[i].z * planet.radius;
-				double num11 = Maths::Levelize(num8 * 0.007 / 2.0);
-				double num12 = Maths::Levelize(num9 * 0.007 / 2.0);
-				double num13 = Maths::Levelize(num10 * 0.007 / 2.0);
-				num11 += simplexNoise3.Noise(num8 * 0.05,num9 * 0.05,num10 * 0.05) * 0.04;
-				num12 += simplexNoise3.Noise(num9 * 0.05,num10 * 0.05,num8 * 0.05) * 0.04;
-				num13 += simplexNoise3.Noise(num10 * 0.05,num8 * 0.05,num9 * 0.05) * 0.04;
-				double num14 = Math.Abs(simplexNoise4.Noise(num11,num12,num13));
-				double num15 = (0.12 - num14) * 10.0;
-				num15 = ((!(num15 > 0.0)) ? 0.0 : ((num15 > 1.0) ? 1.0 : num15));
-				num15 *= num15;
-				double num16 = (simplexNoise3.Noise3DFBM(num9 * 0.005,num10 * 0.005,num8 * 0.005,4) + 0.22) * 5.0;
-				num16 = ((!(num16 > 0.0)) ? 0.0 : ((num16 > 1.0) ? 1.0 : num16));
-				Math.Abs(simplexNoise4.Noise3DFBM(num11 * 1.5,num12 * 1.5,num13 * 1.5,2));
-				num8 += Math.Sin(num9 * 0.15) * 3.0;
-				num9 += Math.Sin(num10 * 0.15) * 3.0;
-				num10 += Math.Sin(num8 * 0.15) * 3.0;
-				double num17 = 0.0;
-				double num18 = 0.0;
-				double num19 = simplexNoise.Noise3DFBM(num8 * num * 1.0,num9 * num2 * 1.1,num10 * num3 * 1.0,6,0.5,1.8);
-				double num20 = simplexNoise2.Noise3DFBM(num8 * num * 1.3 + 0.5,num9 * num2 * 2.8 + 0.2,num10 * num3 * 1.3 + 0.7,3) * 2.0;
-				double num21 = simplexNoise2.Noise3DFBM(num8 * num * 6.0,num9 * num2 * 12.0,num10 * num3 * 6.0,2) * 2.0;
-				double num22 = simplexNoise2.Noise3DFBM(num8 * num * 0.8,num9 * num2 * 0.8,num10 * num3 * 0.8,2) * 2.0;
-				double num23 = num19 * 2.0 + 0.92;
-				double num24 = num20 * (double)Mathf.Abs((float)num22 + 0.5f);
-				num23 += (double)Mathf.Clamp01((float)(num24 - 0.35) * 1.0f);
-				if(num23 < 0.0)
-				{
-					num23 = 0.0;
-				}
-				double num25 = num23;
-				num25 = Maths::Levelize2(num23);
-				if(num25 > 0.0)
-				{
-					num25 = Maths::Levelize2(num23);
-					num25 = Maths::Levelize4(num25);
-				}
-				double num26 = ((!(num25 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num25 + 1.0f)) : ((!(num25 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num25) + num21 * 0.1) : ((num25 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num25 - 2.0f) + num21 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num25 - 1.0f) + num21 * 0.12))));
-				if(num23 < 0.0)
-				{
-					num23 *= 2.0;
-				}
-				if(num23 < 1.0)
-				{
-					num23 = Maths::Levelize(num23);
-				}
-				num17 -= num15 * 1.2 * num16;
-				//data.debugData[i] = (float)(num25 <= 0.0) + (float)(num25 <= 1.0) + (float)(num25 > 2.0);
-				if(num17 >= 0.0)
-				{
-					num17 = num26;
-				}
-				num17 -= 0.1;
-				num18 = Mathf.Abs((float)num23);
-				double x = Mathf.Clamp01((float)((0.0 - num17 + 2.0) / 2.5));
-				x = Math.Pow(x,10.0);
-				num18 = (1.0 - x) * num18 + x * 2.0;
-				num18 = ((!(num18 > 0.0)) ? 0.0 : ((num18 > 2.0) ? 2.0 : num18));
-				num18 += ((num18 > 1.8) ? ((0.0 - num21) * 0.8) : (num21 * 0.2)) * (1.0 - x);
-				double num27 = -0.3 - num17;
-				if(num27 > 0.0)
-				{
-					double num28 = simplexNoise2.Noise(num8 * 0.16,num9 * 0.16,num10 * 0.16) - 1.0;
-					num27 = ((num27 > 1.0) ? 1.0 : num27);
-					num27 = (3.0 - num27 - num27) * num27 * num27;
-					num17 = -0.3 - num27 * 10.0 + num27 * num27 * num27 * num27 * num28 * 0.5;
-				}
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num17 + 0.2) * 100.0);
-			}
-		}
-	}
-};
+//class PlanetAlgorithm14: public PlanetAlgorithm
+//{
+//public:
+//	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+//		double num = 0.007;
+//		double num2 = 0.007;
+//		double num3 = 0.007;
+//		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
+//		int num4 = dotNet35Random.Next();
+//		int num5 = dotNet35Random.Next();
+//		int num6 = dotNet35Random.Next();
+//		int num7 = dotNet35Random.Next();
+//		SimplexNoise simplexNoise = SimplexNoise(num4);
+//		SimplexNoise simplexNoise2 = SimplexNoise(num5);
+//		SimplexNoise simplexNoise3 = SimplexNoise(num6);
+//		SimplexNoise simplexNoise4 = SimplexNoise(num7);
+//		PlanetRawData& data = planet.data;
+//		data.heightData.resize(DATALENGTH);
+//		//data.debugData.resize(DATALENGTH);
+//		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
+//			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain14");
+//
+//			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+//			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+//			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+//			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
+//			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+//			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+//			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+//			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+//			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+//
+//			kernel.setArg(0,OpenCLManager::vertices_buffer);
+//			kernel.setArg(1,sizeof(float),&planet.radius);
+//			kernel.setArg(2,perm_buffer_1);
+//			kernel.setArg(3,perm_buffer_2);
+//			kernel.setArg(4,perm_buffer_3);
+//			kernel.setArg(5,perm_buffer_4);
+//			kernel.setArg(6,permMod12_buffer_1);
+//			kernel.setArg(7,permMod12_buffer_2);
+//			kernel.setArg(8,permMod12_buffer_3);
+//			kernel.setArg(9,permMod12_buffer_4);
+//			kernel.setArg(10,heightData_buffer);
+//			//kernel.setArg(11,OpenCLManager::debugData_buffer);
+//
+//			int local_size = OpenCLManager::local_size;
+//			int global_size = (int)ceil(161604.0/local_size) * local_size;
+//			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+//			OpenCLManager::queue.finish();
+//			if(err != CL_SUCCESS){
+//				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+//				throw std::runtime_error("Kernel execution failed");
+//			}
+//
+//			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+//						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+//			//OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::debugData_buffer,CL_TRUE,0,
+//			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
+//		} else {
+//			for(int i = 0; i < DATALENGTH; i++)
+//			{
+//				double num8 = data.vertices[i].x * planet.radius;
+//				double num9 = data.vertices[i].y * planet.radius;
+//				double num10 = data.vertices[i].z * planet.radius;
+//				double num11 = Maths::Levelize(num8 * 0.007 / 2.0);
+//				double num12 = Maths::Levelize(num9 * 0.007 / 2.0);
+//				double num13 = Maths::Levelize(num10 * 0.007 / 2.0);
+//				num11 += simplexNoise3.Noise(num8 * 0.05,num9 * 0.05,num10 * 0.05) * 0.04;
+//				num12 += simplexNoise3.Noise(num9 * 0.05,num10 * 0.05,num8 * 0.05) * 0.04;
+//				num13 += simplexNoise3.Noise(num10 * 0.05,num8 * 0.05,num9 * 0.05) * 0.04;
+//				double num14 = Math.Abs(simplexNoise4.Noise(num11,num12,num13));
+//				double num15 = (0.12 - num14) * 10.0;
+//				num15 = ((!(num15 > 0.0)) ? 0.0 : ((num15 > 1.0) ? 1.0 : num15));
+//				num15 *= num15;
+//				double num16 = (simplexNoise3.Noise3DFBM(num9 * 0.005,num10 * 0.005,num8 * 0.005,4) + 0.22) * 5.0;
+//				num16 = ((!(num16 > 0.0)) ? 0.0 : ((num16 > 1.0) ? 1.0 : num16));
+//				Math.Abs(simplexNoise4.Noise3DFBM(num11 * 1.5,num12 * 1.5,num13 * 1.5,2));
+//				num8 += Math.Sin(num9 * 0.15) * 3.0;
+//				num9 += Math.Sin(num10 * 0.15) * 3.0;
+//				num10 += Math.Sin(num8 * 0.15) * 3.0;
+//				double num17 = 0.0;
+//				double num18 = 0.0;
+//				double num19 = simplexNoise.Noise3DFBM(num8 * num * 1.0,num9 * num2 * 1.1,num10 * num3 * 1.0,6,0.5,1.8);
+//				double num20 = simplexNoise2.Noise3DFBM(num8 * num * 1.3 + 0.5,num9 * num2 * 2.8 + 0.2,num10 * num3 * 1.3 + 0.7,3) * 2.0;
+//				double num21 = simplexNoise2.Noise3DFBM(num8 * num * 6.0,num9 * num2 * 12.0,num10 * num3 * 6.0,2) * 2.0;
+//				double num22 = simplexNoise2.Noise3DFBM(num8 * num * 0.8,num9 * num2 * 0.8,num10 * num3 * 0.8,2) * 2.0;
+//				double num23 = num19 * 2.0 + 0.92;
+//				double num24 = num20 * (double)Mathf.Abs((float)num22 + 0.5f);
+//				num23 += (double)Mathf.Clamp01((float)(num24 - 0.35) * 1.0f);
+//				if(num23 < 0.0)
+//				{
+//					num23 = 0.0;
+//				}
+//				double num25 = num23;
+//				num25 = Maths::Levelize2(num23);
+//				if(num25 > 0.0)
+//				{
+//					num25 = Maths::Levelize2(num23);
+//					num25 = Maths::Levelize4(num25);
+//				}
+//				double num26 = ((!(num25 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num25 + 1.0f)) : ((!(num25 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num25) + num21 * 0.1) : ((num25 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num25 - 2.0f) + num21 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num25 - 1.0f) + num21 * 0.12))));
+//				if(num23 < 0.0)
+//				{
+//					num23 *= 2.0;
+//				}
+//				if(num23 < 1.0)
+//				{
+//					num23 = Maths::Levelize(num23);
+//				}
+//				num17 -= num15 * 1.2 * num16;
+//				//data.debugData[i] = (float)(num25 <= 0.0) + (float)(num25 <= 1.0) + (float)(num25 > 2.0);
+//				if(num17 >= 0.0)
+//				{
+//					num17 = num26;
+//				}
+//				num17 -= 0.1;
+//				num18 = Mathf.Abs((float)num23);
+//				double x = Mathf.Clamp01((float)((0.0 - num17 + 2.0) / 2.5));
+//				x = Math.Pow(x,10.0);
+//				num18 = (1.0 - x) * num18 + x * 2.0;
+//				num18 = ((!(num18 > 0.0)) ? 0.0 : ((num18 > 2.0) ? 2.0 : num18));
+//				num18 += ((num18 > 1.8) ? ((0.0 - num21) * 0.8) : (num21 * 0.2)) * (1.0 - x);
+//				double num27 = -0.3 - num17;
+//				if(num27 > 0.0)
+//				{
+//					double num28 = simplexNoise2.Noise(num8 * 0.16,num9 * 0.16,num10 * 0.16) - 1.0;
+//					num27 = ((num27 > 1.0) ? 1.0 : num27);
+//					num27 = (3.0 - num27 - num27) * num27 * num27;
+//					num17 = -0.3 - num27 * 10.0 + num27 * num27 * num27 * num27 * num28 * 0.5;
+//				}
+//				data.heightData[i] = (unsigned short)(((double)planet.radius + num17 + 0.2) * 100.0);
+//			}
+//		}
+//	}
+//};
 
 std::unique_ptr<PlanetAlgorithm> PlanetAlgorithmManager(int algoId);

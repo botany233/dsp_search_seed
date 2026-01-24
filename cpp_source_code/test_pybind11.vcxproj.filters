@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="check_seed_util.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="python_api.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="check_seed_util.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="check_seed.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetRawData.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetAlgorithm.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetAlgorithm.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="condition_to_struct.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="check_batch.hpp">
+      <Filter>头文件</Filter>
+    </ClCompile>
+    <ClCompile Include="static_value.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="defines.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DSPGen.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="NameGen.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="util.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LDB.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="check_seed.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="python_api.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="data_struct.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SimplexNoise.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="const_value.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector3.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="RandomTable.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemRandom.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector4.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="condition_to_struct.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="seed_manager.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="quaternion.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="VectorLF3.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Vector2.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="DotNet35Random.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Maths.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="vcpkg.json" />
+    <None Include="assets\indexMap.data">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="assets\vertices.data">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="assets\generate_terrain.cl">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="assets\generate_terrain_double.cl">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+</Project>
