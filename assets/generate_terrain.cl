@@ -1,10 +1,10 @@
 __constant float F3 = 1.0f / 3.0f;
 __constant float G3 = 1.0f / 6.0f;
 __constant float MATHF_PI = 3.1415927f;
-__constant float3 grad3[12] = {
-    (float3)( 1,  1,  0), (float3)(-1,  1,  0), (float3)( 1, -1,  0), (float3)(-1, -1,  0),
-    (float3)( 1,  0,  1), (float3)(-1,  0,  1), (float3)( 1,  0, -1), (float3)(-1,  0, -1),
-    (float3)( 0,  1,  1), (float3)( 0, -1,  1), (float3)( 0,  1, -1), (float3)( 0, -1, -1)
+__constant float grad3[12][3] = {
+	{ 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+	{ 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+	{ 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1}
 };
 
 float Noise(float xin,float yin,float zin,local const short* perm,local const short* permMod12) {
@@ -47,32 +47,8 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	int num31 = permMod12[num27 + num12 + perm[num28 + num13 + perm[num29 + num14]]];
 	int num32 = permMod12[num27 + num15 + perm[num28 + num16 + perm[num29 + num17]]];
 	int num33 = permMod12[num27 + 1 + perm[num28 + 1 + perm[num29 + 1]]];
-	
-	//����������
-	//float4 x_vec = (float4)(num9, num18, num21, num24);
-	//float4 y_vec = (float4)(num10, num19, num22, num25);
-	//float4 z_vec = (float4)(num11, num20, num23, num26);
 
-	//float4 t_vec = x_vec * x_vec + y_vec * y_vec + z_vec * z_vec;
-	//float4 att_vec = (float4)(0.6f) - t_vec;
-
-	//float4 grad_x = (float4)(grad3[num30].x, grad3[num31].x, grad3[num32].x, grad3[num33].x);
-	//float4 grad_y = (float4)(grad3[num30].y, grad3[num31].y, grad3[num32].y, grad3[num33].y);
-	//float4 grad_z = (float4)(grad3[num30].z, grad3[num31].z, grad3[num32].z, grad3[num33].z);
-
-	//float4 dot_vec = grad_x * x_vec + grad_y * y_vec + grad_z * z_vec;
-
-	//float4 att_sq = att_vec * att_vec;
-	//float4 att_quad = att_sq * att_sq;
-
-	//float4 result_vec = att_quad * dot_vec;
-
-	//float4 mask = select((float4)(0.0f), result_vec, att_vec < 0.0f);
-	//float total_ = mask.x + mask.y + mask.z + mask.w;
-
-	//������������֤���������
-	float3 vec1 = (float3)(num9,num10,num11);
-	float num34 = 0.6f - dot(vec1, vec1);
+	float num34 = 0.6f - num9 * num9 - num10 * num10 - num11 * num11;
 	float num35;
 	if(num34 < 0.0f)
 	{
@@ -80,10 +56,9 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	} else
 	{
 		num34 *= num34;
-		num35 = num34 * num34 * dot(grad3[num30],vec1);
+		num35 = num34 * num34 * (grad3[num30][0]*num9 + grad3[num30][1]*num10 + grad3[num30][2]*num11);
 	}
-	float3 vec2 = (float3)(num18,num19,num20);
-	float num36 = 0.6f - dot(vec2, vec2);
+	float num36 = 0.6f - num18 * num18 - num19 * num19 - num20 * num20;
 	float num37;
 	if(num36 < 0.0f)
 	{
@@ -91,10 +66,9 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	} else
 	{
 		num36 *= num36;
-		num37 = num36 * num36 * dot(grad3[num31],vec2);
+		num37 = num36 * num36 * (grad3[num31][0]*num18 + grad3[num31][1]*num19 + grad3[num31][2]*num20);
 	}
-	float3 vec3 = (float3)(num21,num22,num23);
-	float num38 = 0.6f - dot(vec3, vec3);
+	float num38 = 0.6f - num21 * num21 - num22 * num22 - num23 * num23;
 	float num39;
 	if(num38 < 0.0f)
 	{
@@ -102,10 +76,9 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	} else
 	{
 		num38 *= num38;
-		num39 = num38 * num38 * dot(grad3[num32],vec3);
+		num39 = num38 * num38 * (grad3[num32][0]*num21 + grad3[num32][1]*num22 + grad3[num32][2]*num23);
 	}
-	float3 vec4 = (float3)(num24,num25,num26);
-	float num40 = 0.6f - dot(vec4, vec4);
+	float num40 = 0.6f - num24 * num24 - num25 * num25 - num26 * num26;
 	float num41;
 	if(num40 < 0.0f)
 	{
@@ -113,15 +86,9 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	} else
 	{
 		num40 *= num40;
-		num41 = num40 * num40 * dot(grad3[num33],vec4);
+		num41 = num40 * num40 * (grad3[num33][0]*num24 + grad3[num33][1]*num25 + grad3[num33][2]*num26);
 	}
 	float total = num35 + num37 + num39 + num41;
-
-	//float4 diff = fabs(att_vec - (float4)(num34, num36, num38, num40));
-	//if(max(max(diff.x, diff.y), max(diff.z, diff.w)) < 0.1f) {
-	//	printf("%f %f %f %f | %f %f %f %f\n", att_vec.x, att_vec.y, att_vec.z, att_vec.w, num40, num38, num36, num34);
-	//}
-
 	return 32.696434f * total;
 }
 

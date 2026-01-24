@@ -1,10 +1,10 @@
 __constant double F3 = 1.0 / 3.0;
 __constant double G3 = 1.0 / 6.0;
 __constant float MATHF_PI = 3.1415927f;
-__constant double3 grad3[12] = {
-    (double3)( 1,  1,  0), (double3)(-1,  1,  0), (double3)( 1, -1,  0), (double3)(-1, -1,  0),
-    (double3)( 1,  0,  1), (double3)(-1,  0,  1), (double3)( 1,  0, -1), (double3)(-1,  0, -1),
-    (double3)( 0,  1,  1), (double3)( 0, -1,  1), (double3)( 0,  1, -1), (double3)( 0, -1, -1)
+__constant double grad3[12][3] = {
+    { 1,  1,  0}, {-1,  1,  0}, { 1, -1,  0}, {-1, -1,  0},
+    { 1,  0,  1}, {-1,  0,  1}, { 1,  0, -1}, {-1,  0, -1},
+    { 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1}
 };
 
 double Noise(double xin,double yin,double zin,local const short* perm,local const short* permMod12) {
@@ -49,9 +49,8 @@ double Noise(double xin,double yin,double zin,local const short* perm,local cons
 	int num31 = permMod12[num27 + num12 + perm[num28 + num13 + perm[num29 + num14]]];
 	int num32 = permMod12[num27 + num15 + perm[num28 + num16 + perm[num29 + num17]]];
 	int num33 = permMod12[num27 + 1 + perm[num28 + 1 + perm[num29 + 1]]];
-	
-	double3 vec1 = (double3)(num9,num10,num11);
-	double num34 = 0.6 - dot(vec1, vec1);
+
+	double num34 = 0.6 - num9 * num9 - num10 * num10 - num11 * num11;
 	double num35;
 	if(num34 < 0.0)
 	{
@@ -59,10 +58,9 @@ double Noise(double xin,double yin,double zin,local const short* perm,local cons
 	} else
 	{
 		num34 *= num34;
-		num35 = num34 * num34 * dot(grad3[num30],vec1);
+		num35 = num34 * num34 * (grad3[num30][0]*num9 + grad3[num30][1]*num10 + grad3[num30][2]*num11);
 	}
-	double3 vec2 = (double3)(num18,num19,num20);
-	double num36 = 0.6 - dot(vec2, vec2);
+	double num36 = 0.6 - num18 * num18 - num19 * num19 - num20 * num20;
 	double num37;
 	if(num36 < 0.0)
 	{
@@ -70,10 +68,9 @@ double Noise(double xin,double yin,double zin,local const short* perm,local cons
 	} else
 	{
 		num36 *= num36;
-		num37 = num36 * num36 * dot(grad3[num31],vec2);
+		num37 = num36 * num36 * (grad3[num31][0]*num18 + grad3[num31][1]*num19 + grad3[num31][2]*num20);
 	}
-	double3 vec3 = (double3)(num21,num22,num23);
-	double num38 = 0.6 - dot(vec3, vec3);
+	double num38 = 0.6 - num21 * num21 - num22 * num22 - num23 * num23;
 	double num39;
 	if(num38 < 0.0)
 	{
@@ -81,10 +78,9 @@ double Noise(double xin,double yin,double zin,local const short* perm,local cons
 	} else
 	{
 		num38 *= num38;
-		num39 = num38 * num38 * dot(grad3[num32],vec3);
+		num39 = num38 * num38 * (grad3[num32][0]*num21 + grad3[num32][1]*num22 + grad3[num32][2]*num23);
 	}
-	double3 vec4 = (double3)(num24,num25,num26);
-	double num40 = 0.6 - dot(vec4, vec4);
+	double num40 = 0.6 - num24 * num24 - num25 * num25 - num26 * num26;
 	double num41;
 	if(num40 < 0.0)
 	{
@@ -92,8 +88,9 @@ double Noise(double xin,double yin,double zin,local const short* perm,local cons
 	} else
 	{
 		num40 *= num40;
-		num41 = num40 * num40 * dot(grad3[num33],vec4);
+		num41 = num40 * num40 * (grad3[num33][0]*num24 + grad3[num33][1]*num25 + grad3[num33][2]*num26);
 	}
+
 	double total = num35 + num37 + num39 + num41;
 	return 32.696434 * total;
 }
@@ -280,7 +277,7 @@ kernel void GenerateTerrain1(
 	global const short* permMod12_1,
 	global const short* permMod12_2,
 	global unsigned short* heightData
-	//global float* debugData
+	// global float* debugData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
@@ -317,7 +314,7 @@ kernel void GenerateTerrain1(
 	double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
 	double num22 = ((num21 > 0.0) ? Levelize3_2arg(num21,0.7) : Levelize2_2arg(num21,0.5));
 	heightData[gid] = (unsigned short)((local_planet_radius + num22 + 0.2) * 100.0);
-	//debugData[gid] = num20;
+	// debugData[gid] = (float)Noise(num12 * 0.01,num13 * 0.012,num14 * 0.01,localPerm_1,localPermMod12_1);
 }
 
 kernel void GenerateTerrain2(
