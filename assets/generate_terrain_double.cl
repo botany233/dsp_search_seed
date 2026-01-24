@@ -514,6 +514,7 @@ kernel void GenerateTerrain1(
 	global const short* permMod12_1,
 	global const short* permMod12_2,
 	global unsigned short* heightData
+	//global float* debugData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
@@ -540,16 +541,17 @@ kernel void GenerateTerrain1(
 		return;
 	}
 	int index = gid * 3;
-	float num12 = vertices[index] * local_planet_radius;
-	float num13 = vertices[index+1] * local_planet_radius;
-	float num14 = vertices[index+2] * local_planet_radius;
-	float num17 = Noise3DFBM_4arg(num12 * 0.01f,num13 * 0.012f,num14 * 0.01f,6,localPerm_1,localPermMod12_1) * 3.0f - 0.2f;
-	float num18 = Noise3DFBM_4arg(num12 * 0.0025f,num13 * 0.0025f,num14 * 0.0025f,3,localPerm_2,localPermMod12_2) * 3.0f * 0.9f + 0.5f;
-	float num19 = ((num18 > 0.0f) ? (num18 * 0.5f) : num18);
-	float num20 = num17 + num19;
-	float num21 = ((num20 > 0.0f) ? (num20 * 0.5f) : (num20 * 1.6f));
-	float num22 = ((num21 > 0.0f) ? Levelize3_2arg(num21,0.7f) : Levelize2_2arg(num21,0.5f));
-	heightData[gid] = (unsigned short)((local_planet_radius + num22 + 0.2f) * 100.0f);
+	double num12 = vertices[index] * local_planet_radius;
+	double num13 = vertices[index+1] * local_planet_radius;
+	double num14 = vertices[index+2] * local_planet_radius;
+	double num17 = Noise3DFBM_4arg_double(num12 * 0.01,num13 * 0.012,num14 * 0.01,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
+	double num18 = Noise3DFBM_4arg_double(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
+	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
+	double num20 = num17 + num19;
+	double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
+	double num22 = ((num21 > 0.0) ? Levelize3_2arg_double(num21,0.7) : Levelize2_2arg_double(num21,0.5));
+	heightData[gid] = (unsigned short)((local_planet_radius + num22 + 0.2) * 100.0);
+	//debugData[gid] = num20;
 }
 
 kernel void GenerateTerrain2(
