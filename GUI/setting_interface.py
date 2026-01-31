@@ -210,7 +210,7 @@ class GPUSettingFrame(BaseSettingFrame):
         self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
         self.warningLabel.setFixedSize(16, 16)
         if devices_info:
-            self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行")
+            self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行，其余算法将存在一定误差")
         else:
             self.warningLabel.setToolTip("无可用GPU，或所有GPU均不支持OpenCL，无法使用GPU加速")
         self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))

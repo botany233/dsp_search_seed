@@ -50,18 +50,18 @@
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27027</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1613</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">467</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27778</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.78</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.56</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37736</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27027</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">3226</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1266</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27778</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.94</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">3.85</td>
   </tr>
 </table>
 
@@ -86,12 +86,12 @@
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8159</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.75</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.53</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8159</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">5.16</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">3.87</td>
   </tr>
 </table>
 
