@@ -1,4 +1,4 @@
-from PySide6.QtGui import QResizeEvent
+from PySide6.QtGui import QResizeEvent, QColor
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout
 from PySide6.QtCore import Qt
 from qfluentwidgets import (
@@ -151,9 +151,35 @@ class NormalSettingFrame(BaseSettingFrame):
             cfg_key="use_gpu",
         )
 
+        self.warningLabel = PixmapLabel()
+        self.threadNumSetting.labelLayout.addWidget(self.warningLabel)
+        self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
+        self.warningLabel.setFixedSize(16, 16)
+        self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))
+        self.warningLabel.setToolTip("当前设置的线程数≥CPU线程数，搜索时UI界面可能会卡顿")
+
         self.mainLayout.addWidget(self.threadNumSetting)
         self.mainLayout.addWidget(self.useGpuSetting)
 
+        self.threadNumSetting.line.editingFinished.connect(self._warning_thread_count)
+        self._warning_thread_count()
+
+    def _warning_thread_count(self):
+        max_threads = cpu_count()
+        try:
+            count = int(self.threadNumSetting.line.text())
+        except ValueError:
+            count = 32
+            pass
+        
+        if count >= max_threads:
+            self.threadNumSetting.label.setTextColor(QColor(255, 0, 0), QColor(255, 0,  0))
+            self.warningLabel.setHidden(False)
+        else:
+            self.threadNumSetting.label.setTextColor(QColor(0, 0, 0), QColor(255, 255, 255))
+            self.warningLabel.setHidden(True)
+            
+        
 class GPUSettingFrame(BaseSettingFrame):
     def __init__(self, title: str = "GPU设置", parent=None):
         super().__init__(title, parent)
@@ -182,6 +208,7 @@ class GPUSettingFrame(BaseSettingFrame):
         self.warningLabel = PixmapLabel()
         self.gpuDeviceSetting.labelLayout.addWidget(self.warningLabel)
         self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
+        self.warningLabel.setFixedSize(16, 16)
         if devices_info:
             self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行")
         else:
