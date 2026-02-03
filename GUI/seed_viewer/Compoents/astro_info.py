@@ -199,8 +199,8 @@ class StarInfo(InfoBase):
 
 
         other_label = CaptionLabel(f'''\
-戴森球半径：{data.dyson_radius*40000:.0f}m
-戴森球光度：{data.dyson_lumino:.2f}L
+戴森球半径：{data.dyson_radius:.0f}m
+戴森球光度：{data.dyson_lumino:.3f}L
 距离：{data.distance:.2f}LY''')
         self.main_layout.addWidget(other_label)
 

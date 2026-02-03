@@ -7,7 +7,7 @@ class PlanetData:
     seed: int
     lumino: float
     wind: float
-    radius: float
+    radius: float #AU
     liquid: int
     is_gas: bool
     dsp_level: int
@@ -21,8 +21,8 @@ class StarData:
     type_id: int
     seed: int
     dyson_lumino: float
-    dyson_radius: float
-    distance: float
+    dyson_radius: float #m
+    distance: float #LY
     pos: list[float]
     planets: list[PlanetData]
     veins_group: list[int]
