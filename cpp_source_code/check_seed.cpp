@@ -139,6 +139,16 @@ void generate_real_veins(UniverseGen& g,StarClass& star,PlanetClass& planet,Plan
 	planet_data.is_real_veins = true;
 }
 
+bool check_mc_veins(const MoonConditionSimple& moon_condition_simple,const PlanetDataSimple& moon_data)
+{
+	for(int i=0;i<14;i++) {
+		if(moon_condition_simple.veins_point[i] > moon_data.veins_point[i] || moon_condition_simple.veins_group[i] > moon_data.veins_group[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
 bool check_pc_veins(const PlanetConditionSimple& planet_condition_simple,const PlanetDataSimple& planet_data)
 {
 	for(int i=0;i<14;i++) {
@@ -169,6 +179,26 @@ bool check_gc_veins(const GalaxyDataSimple& galaxy_data)
 	return true;
 }
 
+bool check_moon_level_3_item(UniverseGen& g, StarClass& star, StarDataSimple& star_data, int moon_index, const MoonConditionSimple& moon_cond_simple)
+{
+    PlanetDataSimple& moon_data = star_data.planets[moon_index];
+    PlanetClass& moon = star.planets[moon_index];
+
+    if (moon_cond_simple.need_veins) {
+        if (!moon_data.is_real_veins) {
+            generate_real_veins(g, star, moon, moon_data);
+        }
+
+        if ((moon_cond_simple.need_veins & moon_data.has_veins) != moon_cond_simple.need_veins)
+            return false;
+
+        if (!check_mc_veins(moon_cond_simple, moon_data)) 
+			return false;
+    }
+
+    return true;
+}
+
 bool check_seed_level_3(UniverseGen& g,GalaxyDataSimple& galaxy_data,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	GalaxyConditionSimple galaxy_condition_simple = init_galaxy_condition_struct(galaxy_condition);
@@ -176,6 +206,7 @@ bool check_seed_level_3(UniverseGen& g,GalaxyDataSimple& galaxy_data,const Galax
 	for(const PlanetConditionSimple& planet_condition_simple: galaxy_condition_simple.planets) {
 		int satisfy_num = planet_condition_simple.satisfy_num;
 		for(const PlanetIndexStruct& pi_struct: planet_condition_simple.planet_indexes) {
+			StarDataSimple& star_data = galaxy_data.stars[pi_struct.star_index];
 			PlanetDataSimple& planet_data = galaxy_data.stars[pi_struct.star_index].planets[pi_struct.planet_index];
 			if(!planet_data.is_real_veins) {
 				StarClass& star = g.stars[pi_struct.star_index];
@@ -183,9 +214,32 @@ bool check_seed_level_3(UniverseGen& g,GalaxyDataSimple& galaxy_data,const Galax
 				generate_real_veins(g,star,planet,planet_data);
 			}
 			if(check_pc_veins(planet_condition_simple,planet_data)) {
-				satisfy_num -= 1;
-				if(!satisfy_num)
-					break;
+				bool moons_all_satisfied = true;
+                if (!planet_condition_simple.moons.empty()) {
+					// 获取恒星引用，以便生成卫星矿脉
+                    StarClass& star = g.stars[pi_struct.star_index];
+                    for (const MoonConditionSimple& moon_cond_simple : planet_condition_simple.moons) {
+                        int moon_satisfy_num = moon_cond_simple.satisfy_num;
+                        // 遍历该行星拥有的所有卫星索引
+                        for (int moon_idx : planet_data.moon_indexes) {
+                            if (check_moon_level_3_item(g, star, star_data, moon_idx, moon_cond_simple)) {
+                                moon_satisfy_num--;
+                                if (moon_satisfy_num <= 0) break;
+                            }
+                        }
+                        // 如果某个卫星条件没有满足，则整个行星判定失败
+                        if (moon_satisfy_num > 0) {
+                            moons_all_satisfied = false;
+                            break;
+                        }
+                    }
+                }
+                // 只有行星自身合格 & 所有卫星条件都合格，才算找到一个
+                if (moons_all_satisfied) {
+                    satisfy_num -= 1;
+				    if(!satisfy_num)
+					    break;
+                }
 			}
 		}
 		if(satisfy_num)
@@ -209,9 +263,28 @@ bool check_seed_level_3(UniverseGen& g,GalaxyDataSimple& galaxy_data,const Galax
 							generate_real_veins(g,star,planet,planet_data);
 						}
 						if(check_pc_veins(planet_condition_simple,planet_data)) {
-							planet_satisfy_num -= 1;
-							if(!planet_satisfy_num)
-								break;
+							bool moons_all_satisfied = true;
+							if (!planet_condition_simple.moons.empty()) {
+								StarClass& star = g.stars[star_index];
+								for (const MoonConditionSimple& moon_cond_simple : planet_condition_simple.moons) {
+									int moon_satisfy_num = moon_cond_simple.satisfy_num;
+									for (int moon_idx : planet_data.moon_indexes) {
+										if (check_moon_level_3_item(g, star, star_data, moon_idx, moon_cond_simple)) {
+											moon_satisfy_num--;
+											if (moon_satisfy_num <= 0) break;
+										}
+									}
+									if (moon_satisfy_num > 0) {
+										moons_all_satisfied = false;
+										break;
+									}
+								}
+							}
+							if (moons_all_satisfied) {
+								planet_satisfy_num -= 1;
+								if(!planet_satisfy_num)
+									break;
+							}
 						}
 					}
 					if(!planet_satisfy_num) {
@@ -354,6 +427,7 @@ bool check_seed_level_1(int seed,int star_num,const GalaxyCondition& galaxy_cond
 			planet_data.type = planet.typeId();
 			planet_data.singularity = planet.GetPlanetSingularityMask();
 			planet_data.index = planet.index;
+			planet_data.moon_indexes.clear(); 
 			if(star.dysonRadius > planet.maxorbitRadius * 0.6770833f)
 				planet_data.dsp_level = 2;
 			else if((1.083333f-planet.get_ion_enhance())*planet.maxorbitRadius <= 1.6f * star.dysonRadius)
@@ -367,6 +441,14 @@ bool check_seed_level_1(int seed,int star_num,const GalaxyCondition& galaxy_cond
 			else
 				planet_data.liquid = 0;//无
 			star_data.planets.push_back(planet_data);
+			int current_idx = star_data.planets.size() - 1;
+			if (planet.orbitAroundPlanet != nullptr)
+			{
+                int parent_idx = planet.orbitAroundPlanet->index;
+                if (parent_idx >= 0 && parent_idx < star_data.planets.size()) {
+                    star_data.planets[parent_idx].moon_indexes.push_back(current_idx);
+                }
+            }
 		}
 		galaxy_data.stars.push_back(star_data);
 	}

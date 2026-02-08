@@ -22,11 +22,19 @@ struct StarIndexStruct {
 	vector<vector<int>> satisfy_planets;
 };
 
+struct MoonConditionSimple {
+	uint16_t need_veins = 0;
+	uint16_t satisfy_num;
+	int veins_group[14]{0};
+	int veins_point[14]{0};
+};
+
 struct PlanetConditionSimple {
 	uint16_t need_veins = 0;
 	uint16_t satisfy_num;
 	int veins_group[14]{0};
 	int veins_point[14]{0};
+	vector<MoonConditionSimple> moons = vector<MoonConditionSimple>(); 
 	vector<PlanetIndexStruct> planet_indexes = vector<PlanetIndexStruct>();
 };
 
@@ -47,6 +55,17 @@ struct GalaxyConditionSimple {
 	vector<PlanetConditionSimple> planets = vector<PlanetConditionSimple>();
 };
 
+struct MoonCondition {
+	uint8_t satisfy_num = 1;
+	uint8_t dsp_level = 0;
+	uint8_t type = 0;
+	uint8_t liquid = 0;
+	uint8_t singularity = 0;
+	uint16_t need_veins = 0;
+	vector<int> veins_group = vector<int>(14,0);
+	vector<int> veins_point = vector<int>(14,0);
+};
+
 struct PlanetCondition {
 	uint8_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
@@ -56,6 +75,7 @@ struct PlanetCondition {
 	uint16_t need_veins = 0;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
+	vector<MoonCondition> moons = vector<MoonCondition>();
 };
 
 struct StarCondition {
@@ -87,6 +107,7 @@ struct PlanetDataSimple {
 	uint16_t has_veins = 0;
 	int veins_group[14]{0};
 	int veins_point[14]{0};
+	vector<int> moon_indexes; 
 };
 
 struct StarDataSimple {

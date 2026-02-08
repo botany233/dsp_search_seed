@@ -6,8 +6,30 @@
 
 using namespace std;
 
-bool check_planet(const PlanetDataSimple& planet_data,const PlanetCondition& planet_condition)
+bool check_moon(const PlanetDataSimple& moon_data, const MoonCondition& moon_condition)
 {
+	if(moon_condition.dsp_level > moon_data.dsp_level)
+		return false;
+	if(moon_condition.type && moon_condition.type != moon_data.type &&
+		!(moon_condition.type == 23 && moon_data.type == 22))
+		return false;
+	if((moon_condition.liquid & moon_data.liquid) != moon_condition.liquid)
+		return false;
+	if((moon_condition.singularity & moon_data.singularity) != moon_condition.singularity)
+		return false;
+	if(moon_condition.need_veins) {
+		for(int i = 0; i < 14; i++) {
+			if(moon_condition.veins_group[i] > moon_data.veins_group[i] || 
+               moon_condition.veins_point[i] > moon_data.veins_point[i])
+				return false;
+		}
+	}
+	return true;
+}
+
+bool check_planet(const StarDataSimple& star_data, int planet_index, const PlanetCondition& planet_condition)
+{
+	const PlanetDataSimple& planet_data = star_data.planets[planet_index];
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
 	if(planet_condition.type && planet_condition.type != planet_data.type &&
@@ -23,6 +45,18 @@ bool check_planet(const PlanetDataSimple& planet_data,const PlanetCondition& pla
 				return false;
 		}
 	}
+	if (!planet_condition.moons.empty()) {
+        for (const MoonCondition& moon_cond : planet_condition.moons) {
+            int left_satisfy_num = moon_cond.satisfy_num;
+            for (int m_idx : planet_data.moon_indexes) {
+                if (check_moon(star_data.planets[m_idx], moon_cond)) {
+                    left_satisfy_num--;
+                    if (left_satisfy_num <= 0) break;
+                }
+            }
+            if (left_satisfy_num > 0) return false;
+        }
+    }
 	return true;
 }
 
@@ -37,9 +71,8 @@ bool check_star(const StarDataSimple& star_data,const StarCondition& star_condit
 	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetDataSimple& planet_data: star_data.planets)
-		{
-			if(check_planet(planet_data,planet_condition))
+		for(int i = 0; i < star_data.planets.size(); i++) {
+			if(check_planet(star_data, i, planet_condition))
 			{
 				left_satisfy_num -= 1;
 				if(!left_satisfy_num)
@@ -79,9 +112,9 @@ bool check_galaxy(const GalaxyDataSimple& galaxy_data,const GalaxyCondition& gal
 		int left_satisfy_num = planet_condition.satisfy_num;
 		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
-			for(const PlanetDataSimple& planet_data: star_data.planets)
+			for(int i = 0; i < star_data.planets.size(); ++i)
 			{
-				if(check_planet(planet_data,planet_condition))
+				if(check_planet(star_data, i, planet_condition))
 				{
 					left_satisfy_num -= 1;
 					if(!left_satisfy_num)
@@ -102,8 +135,24 @@ bool check_galaxy(const GalaxyDataSimple& galaxy_data,const GalaxyCondition& gal
 	return true;
 }
 
-bool check_planet_quick(const PlanetDataSimple& planet_data,const PlanetCondition& planet_condition)
+bool check_moon_quick(const PlanetDataSimple& moon_data, const MoonCondition& moon_condition)
 {
+	if(moon_condition.dsp_level > moon_data.dsp_level)
+		return false;
+	if(moon_condition.type && moon_condition.type != moon_data.type &&
+		!(moon_condition.type == 23 && moon_data.type == 22))
+		return false;
+	if((moon_condition.liquid & moon_data.liquid) != moon_condition.liquid)
+		return false;
+	if((moon_condition.singularity & moon_data.singularity) != moon_condition.singularity)
+		return false;
+	return true;
+}
+
+bool check_planet_quick(const StarDataSimple& star_data, int planet_index, const PlanetCondition& planet_condition)
+{
+    const PlanetDataSimple& planet_data = star_data.planets[planet_index];
+
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
 	if(planet_condition.type && planet_condition.type != planet_data.type &&
@@ -113,6 +162,22 @@ bool check_planet_quick(const PlanetDataSimple& planet_data,const PlanetConditio
 		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
 		return false;
+
+    if (!planet_condition.moons.empty()) {
+        for (const MoonCondition& moon_cond : planet_condition.moons) {
+            int left_satisfy_num = moon_cond.satisfy_num;
+            for (int moon_idx : planet_data.moon_indexes) {
+                const PlanetDataSimple& moon_data = star_data.planets[moon_idx];
+                if (check_moon_quick(moon_data, moon_cond)) {
+                    left_satisfy_num -= 1;
+                    if (!left_satisfy_num) break;
+                }
+            }
+            if (left_satisfy_num > 0)
+                return false;
+        }
+    }
+
 	return true;
 }
 
@@ -127,9 +192,9 @@ bool check_star_quick(const StarDataSimple& star_data,const StarCondition& star_
 	for(const PlanetCondition& planet_condition: star_condition.planets)
 	{
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetDataSimple& planet_data: star_data.planets)
+		for(int i = 0; i < star_data.planets.size(); ++i)
 		{
-			if(check_planet_quick(planet_data,planet_condition))
+			if(check_planet_quick(star_data, i, planet_condition))
 			{
 				left_satisfy_num -= 1;
 				if(!left_satisfy_num)
@@ -163,9 +228,9 @@ bool check_galaxy_quick(const GalaxyDataSimple& galaxy_data,const GalaxyConditio
 		int left_satisfy_num = planet_condition.satisfy_num;
 		for(const StarDataSimple& star_data: galaxy_data.stars)
 		{
-			for(const PlanetDataSimple& planet_data: star_data.planets)
+			for(int i = 0; i < star_data.planets.size(); ++i)
 			{
-				if(check_planet_quick(planet_data,planet_condition))
+				if(check_planet_quick(star_data, i, planet_condition))
 				{
 					left_satisfy_num -= 1;
 					if(!left_satisfy_num)
@@ -180,10 +245,18 @@ bool check_galaxy_quick(const GalaxyDataSimple& galaxy_data,const GalaxyConditio
 	return true;
 }
 
+bool planet_and_moons_no_veins(const PlanetConditionSimple& pc) {
+    if (pc.need_veins) return false;
+    for (const auto& moon : pc.moons) {
+        if (moon.need_veins) return false;
+    }
+    return true;
+}
+
 void del_empty_galaxy_condition(GalaxyConditionSimple& galaxy_condition) {
 	int index1 = 0;
 	while(index1 < galaxy_condition.planets.size()) {
-		if(galaxy_condition.planets[index1].need_veins) {
+		if(!planet_and_moons_no_veins(galaxy_condition.planets[index1])) {
 			index1++;
 		} else {
 			galaxy_condition.planets.erase(galaxy_condition.planets.begin() + index1);
@@ -194,7 +267,7 @@ void del_empty_galaxy_condition(GalaxyConditionSimple& galaxy_condition) {
 		StarConditionSimple& star_condition = galaxy_condition.stars[index2];
 		int index3 = 0;
 		while(index3 < star_condition.planets.size()) {
-			if(star_condition.planets[index3].need_veins) {
+			if(!planet_and_moons_no_veins(star_condition.planets[index3])) {
 				index3++;
 			} else {
 				star_condition.planets.erase(star_condition.planets.begin() + index3);
@@ -225,7 +298,7 @@ void get_galaxy_condition_struct(const GalaxyDataSimple& galaxy_data,const Galax
 					PlanetConditionSimple& planet_condition_simple = star_condition_simple.planets[pc_index];
 					vector<int> temp_vector = vector<int>();
 					for(const PlanetDataSimple& planet_data: star_data.planets) {
-						if(check_planet(planet_data,planet_condition)) {
+						if(check_planet(star_data, planet_data.index, planet_condition)) {
 							temp_vector.push_back(planet_data.index);
 						}
 					}
@@ -240,7 +313,7 @@ void get_galaxy_condition_struct(const GalaxyDataSimple& galaxy_data,const Galax
 		PlanetConditionSimple& planet_condition_struct = galaxy_condition_simple.planets[pc_index];
 		for(const StarDataSimple& star_data: galaxy_data.stars) {
 			for(const PlanetDataSimple& planet_data: star_data.planets) {
-				if(check_planet(planet_data,planet_condition)) {
+				if(check_planet(star_data, planet_data.index, planet_condition)) {
 					PlanetIndexStruct planet_index_struct = PlanetIndexStruct();
 					planet_index_struct.star_index = star_data.index;
 					planet_index_struct.planet_index = planet_data.index;
@@ -250,6 +323,20 @@ void get_galaxy_condition_struct(const GalaxyDataSimple& galaxy_data,const Galax
 		}
 	}
 	del_empty_galaxy_condition(galaxy_condition_simple);
+}
+
+MoonConditionSimple init_moon_condition_simple(const MoonCondition& moon_condition)
+{
+	MoonConditionSimple moon_condition_simple = MoonConditionSimple();
+	moon_condition_simple.satisfy_num = moon_condition.satisfy_num;
+	if(moon_condition.need_veins) {
+		moon_condition_simple.need_veins = moon_condition.need_veins;
+		for(int i=0;i<14;i++) {
+			moon_condition_simple.veins_group[i] = moon_condition.veins_group[i];
+			moon_condition_simple.veins_point[i] = moon_condition.veins_point[i];
+		}
+	}
+	return moon_condition_simple;
 }
 
 PlanetConditionSimple init_planet_condition_simple(const PlanetCondition& planet_condition)
@@ -262,6 +349,9 @@ PlanetConditionSimple init_planet_condition_simple(const PlanetCondition& planet
 			planet_condition_simple.veins_group[i] = planet_condition.veins_group[i];
 			planet_condition_simple.veins_point[i] = planet_condition.veins_point[i];
 		}
+	}
+	for(const MoonCondition& moon_condition: planet_condition.moons) {
+		planet_condition_simple.moons.push_back(init_moon_condition_simple(moon_condition));
 	}
 	return planet_condition_simple;
 }

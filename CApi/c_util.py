@@ -38,7 +38,19 @@ def change_planet_condition_legal(planet_condition:dict) -> dict:
     planet_condition["veins_group"] = change_veins_legal(planet_condition["veins_group"]) if "veins_group" in planet_condition else [0]*14
     planet_condition["veins_point"] = change_veins_legal(planet_condition["veins_point"]) if "veins_point" in planet_condition else [0]*14
     planet_condition["need_veins"] = get_need_veins(planet_condition)
+    planet_condition["moons"] = [change_moon_condition_legal(moon_condition) for moon_condition in planet_condition.get("moons", [])]
     return planet_condition
+
+def change_moon_condition_legal(moon_condition:dict) -> dict:
+    moon_condition["satisfy_num"] = moon_condition["satisfy_num"] if "satisfy_num" in moon_condition else 1
+    moon_condition["dsp_level"] = dsp_level_c.index(moon_condition["dsp_level"]) + 1 if "dsp_level" in moon_condition else 0
+    moon_condition["type"] = planet_types_c.index(moon_condition["type"]) + 1 if "type" in moon_condition else 0
+    moon_condition["liquid"] = liquid_types_c.index(moon_condition["liquid"]) + 1 if "liquid" in moon_condition else 0
+    moon_condition["singularity"] = change_singularity_legal(moon_condition["singularity"]) if "singularity" in moon_condition else 0
+    moon_condition["veins_group"] = change_veins_legal(moon_condition["veins_group"]) if "veins_group" in moon_condition else [0]*14
+    moon_condition["veins_point"] = change_veins_legal(moon_condition["veins_point"]) if "veins_point" in moon_condition else [0]*14
+    moon_condition["need_veins"] = get_need_veins(moon_condition)
+    return moon_condition
 
 def change_veins_legal(veins:dict) -> list[int]:
     return [veins.get(vein_name, 0) for vein_name in vein_names_c]
