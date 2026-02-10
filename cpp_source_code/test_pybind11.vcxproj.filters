@@ -45,6 +45,9 @@
     <ClCompile Include="static_value.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="astro_class.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="defines.hpp">
@@ -108,6 +111,9 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Maths.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="astro_class.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

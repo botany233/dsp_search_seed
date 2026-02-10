@@ -12,7 +12,7 @@
 #include "VectorLF3.hpp"
 #include "DotNet35Random.hpp"
 
-class UniverseGen
+class GalaxyClass
 {
 public:
 	int seed;
@@ -80,7 +80,7 @@ public:
         for (int index = 0; index < tempPoses; ++index)
             CreateStarPlanets(stars[index]);
     }
-
+	
     void MyGenerateVeins(StarClass& star, PlanetClass& planet,int* array1,int* array2)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
@@ -91,14 +91,14 @@ public:
         dotNet35Random1.Next();
         dotNet35Random1.Next();
         dotNet35Random1.Next();
-
+	
 		float temp[14] = {0};
         
         for (int i = 0; i < themeProto.VeinSpot.size(); i++)
             array1[i] = themeProto.VeinSpot[i];
 		for(int i = 0; i < themeProto.VeinCount.size(); i++)
 			temp[i] = themeProto.VeinCount[i];
-
+	
         float p = 1.0f;
         ESpectrType spectr = star.spectr;
         switch (star.type)
@@ -164,7 +164,7 @@ public:
 			temp[13] = 0.7f;
             break;
         }
-
+	
         for (int index1 = 0; index1 < themeProto.RareVeins.size(); ++index1)
         {
             int rareVein = themeProto.RareVeins[index1];
@@ -189,17 +189,10 @@ public:
 				array1[i] += 1;
 			array2[i] = Mathf.RoundToInt(temp[i]*24.0f) * array1[i];
 		}
-		array2[6] = array1[6];
+		array2[6] = array1[6]; //油井单独处理
     }
     
-    void SetPlanetTheme(
-        StarClass& star,
-        PlanetClass& planet,
-        double rand1,
-        double rand2,
-        double rand3,
-        double rand4,
-        int theme_seed)
+    void SetPlanetTheme(StarClass& star,PlanetClass& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed)
     {
         std::vector <int> tmp_theme;
         std::vector<int>& themeIds = LDB.themeIds;
@@ -306,16 +299,7 @@ public:
         }
     }
     
-
-    PlanetClass CreatePlanet(
-        StarClass& star,
-        int index,
-        int orbitAround,
-        int orbitIndex,
-        int number,
-        bool gasGiant,
-        int info_seed,
-        int gen_seed)
+    PlanetClass CreatePlanet(StarClass& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
     {
         PlanetClass& planet = star.planets[index];
         DotNet35Random dotNet35Random(info_seed);
@@ -326,7 +310,6 @@ public:
         planet.orbitIndex = orbitIndex;
         planet.number = number;
         planet.id = star.id * 100 + index + 1;
-		planet.star = &star;
 
         int num1 = 0;
         for (int index1 = 0; index1 < star.index; ++index1)
@@ -887,14 +870,11 @@ public:
         star.asterBelt2Radius = orbitRadius[index5] * (float)num7 * star.orbitScaler;
     }
 
-    float RandNormal(
-        float averageValue,
-        float standardDeviation,
-        double r1,
-        double r2)
+    float RandNormal(float averageValue,float standardDeviation,double r1,double r2)
     {
         return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
     }
+
     void SetStarAge(StarClass& star, float age, double rn, double rt)
     {
         float num1 = (float)(rn * 0.1 + 0.95);
@@ -964,12 +944,7 @@ public:
         }
     }
 
-    void CreateStar(
-        VectorLF3 pos,
-        int id,
-        int seed,
-        EStarType needtype,
-        ESpectrType needSpectr)
+    void CreateStar(VectorLF3 pos,int id,int seed,EStarType needtype,ESpectrType needSpectr)
     {
         StarClass& star = stars[id - 1];
         star.index = id - 1;
@@ -1152,15 +1127,8 @@ public:
         birthStar.overrideName = "";
         return birthStar;
     }
-    int GenerateTempPoses(
-        std::vector<VectorLF3>& poses,
-        int seed,
-        int targetCount,
-        int iterCount,
-        double minDist,
-        double minStepLen,
-        double maxStepLen,
-        double flatten)
+
+    int GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
     {
 
         std::vector<VectorLF3> tmp_drunk;
@@ -1187,15 +1155,7 @@ public:
         return false;
     }
 
-    void RandomPoses(
-        std::vector<VectorLF3>& tmp_poses,
-        std::vector<VectorLF3>& tmp_drunk,
-        int seed,
-        int maxCount,
-        double minDist,
-        double minStepLen,
-        double maxStepLen,
-        double flatten)
+    void RandomPoses(std::vector<VectorLF3>& tmp_poses,std::vector<VectorLF3>& tmp_drunk,int seed,int maxCount,double minDist,double minStepLen,double maxStepLen,double flatten)
     {
         DotNet35Random dotNet35Random(seed);
         double num1 = dotNet35Random.NextDouble();

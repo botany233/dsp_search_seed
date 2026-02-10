@@ -242,9 +242,9 @@ def get_veins_list(veins: list[int], gas_veins: list[float], liquid: list[int]|i
                 text.append("硫酸：海洋")
         else:
             if liquid[1] > 0:
-                text.append("水：海洋")
+                text.append(f"水：{liquid[1]}")
             if liquid[2] > 0:
-                text.append("硫酸：海洋")
+                text.append(f"硫酸：{liquid[2]}")
 
     if gas_veins[0] > 0:
         text.append(f"氢：{gas_veins[0]:.2f}/s")

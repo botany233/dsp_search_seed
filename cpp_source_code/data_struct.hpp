@@ -12,41 +12,6 @@ struct SeedStruct {
 	SeedStruct(int seed_id,int star_num): seed_id(seed_id),star_num(star_num) {}
 };
 
-struct PlanetIndexStruct {
-	int star_index;
-	int planet_index;
-};
-
-struct StarIndexStruct {
-	int star_index;
-	vector<vector<int>> satisfy_planets;
-};
-
-struct PlanetConditionSimple {
-	uint16_t need_veins = 0;
-	uint16_t satisfy_num;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-	vector<PlanetIndexStruct> planet_indexes = vector<PlanetIndexStruct>();
-};
-
-struct StarConditionSimple {
-	uint16_t need_veins = 0;
-	uint16_t satisfy_num;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-	vector<PlanetConditionSimple> planets = vector<PlanetConditionSimple>();
-	vector<StarIndexStruct> star_indexes = vector<StarIndexStruct>();
-};
-
-struct GalaxyConditionSimple {
-	uint16_t need_veins = 0;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-	vector<StarConditionSimple> stars = vector<StarConditionSimple>();
-	vector<PlanetConditionSimple> planets = vector<PlanetConditionSimple>();
-};
-
 struct PlanetCondition {
 	uint8_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
@@ -75,34 +40,6 @@ struct GalaxyCondition {
 	vector<int> veins_point = vector<int>(14,0);
 	vector<StarCondition> stars = vector<StarCondition>();
 	vector<PlanetCondition> planets = vector<PlanetCondition>();
-};
-
-struct PlanetDataSimple {
-	uint8_t type;
-	uint8_t singularity;
-	uint8_t liquid;
-	uint8_t dsp_level;
-	bool is_real_veins = false;
-	uint8_t index;
-	uint16_t has_veins = 0;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-};
-
-struct StarDataSimple {
-	uint8_t type;
-	float distance;
-	float dyson_lumino;
-	vector<PlanetDataSimple> planets;
-	uint8_t index;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-};
-
-struct GalaxyDataSimple {
-	vector<StarDataSimple> stars;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
 };
 
 struct PlanetData {

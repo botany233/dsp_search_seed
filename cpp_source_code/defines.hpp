@@ -10,7 +10,6 @@
 #include "Vector3.hpp"
 #include "DotNet35Random.hpp"
 #include "quaternion.hpp"
-#include "PlanetRawData.hpp"
 
 enum ESpectrType {
     M = 0,
@@ -55,7 +54,8 @@ enum EPlanetSingularity
     TidalLocked4 = 4,
     LaySide = 8,
     ClockwiseRotate = 0x10,
-    MultipleSatellites = 0x20
+    MultipleSatellites = 0x20,
+	Satellite = 0x40
 };
 
 enum class EPlanetType
@@ -123,7 +123,7 @@ const int themeres[] = {
     0x0000137e,
     0x00002cfe
 };
-const int planet_theme_to_type[25] = {
+const uint8_t planet_theme_to_type[25] = {
 	1,23,23,2,2,3,4,5,6,7,
 	8,9,10,11,12,13,14,15,16,17,
 	22,18,19,20,21
@@ -145,86 +145,144 @@ public:
 	};
 };
 
-class StarClass;
-
 class PlanetClass
 {
 public:
-    int seed;
-    int infoSeed;
-    int id;
-    int index;
-    int orbitAround;
-    int number;
-    int orbitIndex;
-    std::string name;
-    std::string overrideName;
-    float orbitRadius = 1.0f;
+	int seed;
+	int infoSeed;
+	int id;
+	int index;
+	int orbitAround;
+	int number;
+	int orbitIndex;
+	std::string name;
+	std::string overrideName;
+	float orbitRadius = 1.0f;
 	float maxorbitRadius;
-    float orbitInclination;
-    float orbitLongitude;
-    double orbitalPeriod = 3600.0;
-    float orbitPhase;
-    float obliquity;
-    double rotationPeriod = 480.0;
-    float rotationPhase;
-    float radius = 200.0f;
-    float scale = 1.0f;
-    float sunDistance;
-    float habitableBias;
-    float temperatureBias;
-    float ionHeight;
-    float windStrength;
-    float luminosity;
-    float landPercent;
-    double mod_x;
-    double mod_y;
-    float waterHeight;
-    int waterItemId;
-    bool levelized;
-    int iceFlag;
-    EPlanetType type;
-    int singularity;
-    int theme;
-    int algoId;
-    int style;
-    PlanetClass* orbitAroundPlanet = NULL;
-    std::vector<int> gasItems;
-    std::vector<float> gasSpeeds;
+	float orbitInclination;
+	float orbitLongitude;
+	double orbitalPeriod = 3600.0;
+	float orbitPhase;
+	float obliquity;
+	double rotationPeriod = 480.0;
+	float rotationPhase;
+	float radius = 200.0f;
+	float scale = 1.0f;
+	float sunDistance;
+	float habitableBias;
+	float temperatureBias;
+	float ionHeight;
+	float windStrength;
+	float luminosity;
+	float landPercent;
+	double mod_x;
+	double mod_y;
+	float waterHeight;
+	int waterItemId;
+	bool levelized;
+	int iceFlag;
+	EPlanetType type;
+	uint8_t singularity;
+	int theme;
+	int algoId;
+	int style;
+	PlanetClass* orbitAroundPlanet = NULL;
+	std::vector<int> gasItems;
+	std::vector<float> gasSpeeds;
 	std::string display_name;
-	PlanetRawData data;
+	//PlanetRawData data;
 	Quaternion runtimeOrbitRotation;
 	Quaternion runtimeSystemRotation;
 	Vector3 birthPoint;
 	Vector3 birthResourcePoint0;
 	Vector3 birthResourcePoint1;
-	StarClass* star = NULL;
 
-	void GenBirthPoints(const PlanetRawData& rawData,int _birthSeed);
+	//void GenBirthPoints(int _birthSeed,const VectorLF3& star_uPosition)
+	//{
+	//	DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
+	//	Pose pose = PredictPose(85.0);
+	//	Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - pose.position * 40000.0);
+	//	vector.Normalize();
+	//	Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
+	//	Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
+	//	int i = 0;
+	//	int num;
+	//	for(num = 256; i < num; i++)
+	//	{
+	//		float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+	//		float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+	//		Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
+	//		vector2.Normalize();
+	//		birthPoint = vector2 * (realRadius() + 0.2f + 1.45f);
+	//		normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
+	//		normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
+	//		bool flag = false;
+	//		for(int j = 0; j < 10; j++)
+	//		{
+	//			float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+	//			float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+	//			Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
+	//			Vector2 vector4 = -vector3;
+	//			float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+	//			float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+	//			vector4.x += num4;
+	//			vector4.y += num5;
+	//			Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
+	//			Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
+	//			birthResourcePoint0 = Vector3::Normalize(normalized3);
+	//			birthResourcePoint1 = Vector3::Normalize(normalized4);
+	//			float num6 = realRadius() + 0.2f;
+	//			if(data.QueryHeight(vector2) > num6 && data.QueryHeight(normalized3) > num6 && data.QueryHeight(normalized4) > num6)
+	//			{
+	//				Vector3 vpos = normalized3 + normalized * 0.03f;
+	//				Vector3 vpos2 = normalized3 - normalized * 0.03f;
+	//				Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
+	//				Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
+	//				Vector3 vpos5 = normalized4 + normalized * 0.03f;
+	//				Vector3 vpos6 = normalized4 - normalized * 0.03f;
+	//				Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
+	//				Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
+	//				if(data.QueryHeight(vpos) > num6 && data.QueryHeight(vpos2) > num6 && data.QueryHeight(vpos3) > num6 && data.QueryHeight(vpos4) > num6 && data.QueryHeight(vpos5) > num6 && data.QueryHeight(vpos6) > num6 && data.QueryHeight(vpos7) > num6 && data.QueryHeight(vpos8) > num6)
+	//				{
+	//					flag = true;
+	//					break;
+	//				}
+	//			}
+	//		}
+	//		if(flag)
+	//		{
+	//			break;
+	//		}
+	//	}
+	//	if(i >= num)
+	//	{
+	//		birthPoint = Vector3(0.0f,realRadius() + 5.0f,0.0f);
+	//	}
+	//}
 
-	Pose PredictPose(double time)
-	{
-		double num = time / orbitalPeriod + (double)orbitPhase / 360.0;
-		int num2 = (int)(num + 0.1);
-		num -= (double)num2;
-		num *= Math.PI * 2.0;
-		double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
-		int num4 = (int)(num3 + 0.1);
-		num3 = (num3 - (double)num4) * 360.0;
-		Vector3 position = Maths::QRotate(runtimeOrbitRotation, Vector3((float)Math.Cos(num) * orbitRadius, 0.0f, (float)Math.Sin(num) * orbitRadius));
-		if(orbitAroundPlanet != NULL)
-		{
-			Pose pose = orbitAroundPlanet->PredictPose(time);
-			position.x += pose.position.x;
-			position.y += pose.position.y;
-			position.z += pose.position.z;
-		}
-		return Pose(position, runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
+	//Pose PredictPose(double time)
+	//{
+	//	double num = time / orbitalPeriod + (double)orbitPhase / 360.0;
+	//	int num2 = (int)(num + 0.1);
+	//	num -= (double)num2;
+	//	num *= Math.PI * 2.0;
+	//	double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
+	//	int num4 = (int)(num3 + 0.1);
+	//	num3 = (num3 - (double)num4) * 360.0;
+	//	Vector3 position = Maths::QRotate(runtimeOrbitRotation,Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius));
+	//	if(orbitAroundPlanet != NULL)
+	//	{
+	//		Pose pose = orbitAroundPlanet->PredictPose(time);
+	//		position.x += pose.position.x;
+	//		position.y += pose.position.y;
+	//		position.z += pose.position.z;
+	//	}
+	//	return Pose(position,runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
+	//}
+
+	inline float realRadius() {
+		return radius * scale;
 	}
-
-    inline float realRadius() {
-        return radius * scale;
-    }
 
 	int typeId() {
 		return planet_theme_to_type[theme-1];
@@ -236,129 +294,105 @@ public:
 		return sqrt(temp*temp-real_radius*real_radius)/temp;
 	}
 
-    std::vector<std::string> GetPlanetSingularityVector()
-    {
-		std::vector<std::string> singularityVector;
-        if (orbitAround > 0)
-			singularityVector.push_back("卫星");
-        if ((singularity & EPlanetSingularity::TidalLocked) != EPlanetSingularity::None)
-			singularityVector.push_back("潮汐锁定永昼永夜");
-        if ((singularity & EPlanetSingularity::TidalLocked2) != EPlanetSingularity::None)
-			singularityVector.push_back("轨道共振1:2");
-        if ((singularity & EPlanetSingularity::TidalLocked4) != EPlanetSingularity::None)
-			singularityVector.push_back("轨道共振1:4");
-        if ((singularity & EPlanetSingularity::LaySide) != EPlanetSingularity::None)
-			singularityVector.push_back("横躺自转");
-        if ((singularity & EPlanetSingularity::ClockwiseRotate) != EPlanetSingularity::None)
-			singularityVector.push_back("反向自转");
-        if ((singularity & EPlanetSingularity::MultipleSatellites) != EPlanetSingularity::None)
-			singularityVector.push_back("多卫星");
-        return singularityVector;
-    }
-
-	uint8_t GetPlanetSingularityMask()
+	std::vector<std::string> GetPlanetSingularityVector()
 	{
-		uint8_t singularity_mask = 0;
-		if(orbitAround > 0)
-			singularity_mask |= 1;
+		std::vector<std::string> singularityVector;
 		if((singularity & EPlanetSingularity::TidalLocked) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 2;
+			singularityVector.push_back("潮汐锁定永昼永夜");
 		if((singularity & EPlanetSingularity::TidalLocked2) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 3;
+			singularityVector.push_back("轨道共振1:2");
 		if((singularity & EPlanetSingularity::TidalLocked4) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 4;
+			singularityVector.push_back("轨道共振1:4");
 		if((singularity & EPlanetSingularity::LaySide) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 5;
+			singularityVector.push_back("横躺自转");
 		if((singularity & EPlanetSingularity::ClockwiseRotate) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 6;
+			singularityVector.push_back("反向自转");
 		if((singularity & EPlanetSingularity::MultipleSatellites) != EPlanetSingularity::None)
-			singularity_mask |= 1 << 1;
-		return singularity_mask;
+			singularityVector.push_back("多卫星");
+		if((singularity & EPlanetSingularity::Satellite) != EPlanetSingularity::None)
+			singularityVector.push_back("卫星");
+		return singularityVector;
 	}
 };
 
 class StarClass {
 public:
-    int seed;
-    int index;
-    int id;
-    std::string name;
-    std::string overrideName;
-    VectorLF3 position;
-    VectorLF3 uPosition;
-    float mass = 1.0f;
-    float lifetime = 50.0f;
-    float age;
-    EStarType type;
-    float temperature = 8500.0f;
-    ESpectrType spectr;
-    float classFactor;
-    float color;
-    float luminosity = 1.0f;
-    float radius = 1.0f;
-    float acdiskRadius;
-    float habitableRadius = 1.0f;
-    float lightBalanceRadius = 1.0f;
-    float dysonRadius = 10.0f;
-    float orbitScaler = 1.0f;
-    float asterBelt1OrbitIndex;
-    float asterBelt2OrbitIndex;
-    float asterBelt1Radius;
-    float asterBelt2Radius;
-    int planetCount;
-    float level;
-    float resourceCoef = 1.0f;
+	int seed;
+	int index;
+	int id;
+	std::string name;
+	std::string overrideName;
+	VectorLF3 position;
+	VectorLF3 uPosition;
+	float mass = 1.0f;
+	float lifetime = 50.0f;
+	float age;
+	EStarType type;
+	float temperature = 8500.0f;
+	ESpectrType spectr;
+	float classFactor;
+	float color;
+	float luminosity = 1.0f;
+	float radius = 1.0f;
+	float acdiskRadius;
+	float habitableRadius = 1.0f;
+	float lightBalanceRadius = 1.0f;
+	float dysonRadius = 10.0f;
+	float orbitScaler = 1.0f;
+	float asterBelt1OrbitIndex;
+	float asterBelt2OrbitIndex;
+	float asterBelt1Radius;
+	float asterBelt2Radius;
+	int planetCount;
+	float level;
+	float resourceCoef = 1.0f;
 
-    std::vector< PlanetClass> planets;
+	std::vector<PlanetClass> planets;
 
-    inline float physicsRadius() {
-        return radius * 1200;
-    }
+	inline float physicsRadius() {
+		return radius * 1200;
+	}
 
-    inline float dysonLumino() {
-        return Mathf.Round((float)Math.Pow(luminosity, 0.33000001311302185) * 1000.0f) / 1000.0f;
-    }
+	inline float dysonLumino() {
+		return Mathf.Round((float)Math.Pow(luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
+	}
 
-    inline std::string typeString()
-    {
-        std::string text = "";
-        if (type == EStarType::GiantStar)
-        {
-            text = ((spectr <= ESpectrType::K) ? (text + "红巨星") : ((spectr <= ESpectrType::F) ? (text + "黄巨星") : ((spectr != ESpectrType::A) ? (text + "蓝巨星") : (text + "白巨星"))));
-        }
-        else if (type == EStarType::WhiteDwarf)
-        {
-            text += "白矮星";
-        }
-        else if (type == EStarType::NeutronStar)
-        {
-            text += "中子星";
-        }
-        else if (type == EStarType::BlackHole)
-        {
-            text += "黑洞";
-        }
-        else if (type == EStarType::MainSeqStar)
-        {
-            if(spectr == ESpectrType::A)
-                text = text + "A型恒星";
-            else if (spectr == ESpectrType::B)
-                text = text + "B型恒星";
-            else if (spectr == ESpectrType::F)
-                text = text + "F型恒星";
-            else if (spectr == ESpectrType::G)
-                text = text + "G型恒星";
-            else if (spectr == ESpectrType::K)
-                text = text + "K型恒星";
-            else if (spectr == ESpectrType::M)
-                text = text + "M型恒星";
-            else if (spectr == ESpectrType::O)
-                text = text + "O型恒星";
-            else
-                text = text + "X型恒星";
-        }
-        return text;
-    }
+	inline std::string typeString()
+	{
+		std::string text = "";
+		if(type == EStarType::GiantStar)
+		{
+			text = ((spectr <= ESpectrType::K) ? (text + "红巨星") : ((spectr <= ESpectrType::F) ? (text + "黄巨星") : ((spectr != ESpectrType::A) ? (text + "蓝巨星") : (text + "白巨星"))));
+		} else if(type == EStarType::WhiteDwarf)
+		{
+			text += "白矮星";
+		} else if(type == EStarType::NeutronStar)
+		{
+			text += "中子星";
+		} else if(type == EStarType::BlackHole)
+		{
+			text += "黑洞";
+		} else if(type == EStarType::MainSeqStar)
+		{
+			if(spectr == ESpectrType::A)
+				text = text + "A型恒星";
+			else if(spectr == ESpectrType::B)
+				text = text + "B型恒星";
+			else if(spectr == ESpectrType::F)
+				text = text + "F型恒星";
+			else if(spectr == ESpectrType::G)
+				text = text + "G型恒星";
+			else if(spectr == ESpectrType::K)
+				text = text + "K型恒星";
+			else if(spectr == ESpectrType::M)
+				text = text + "M型恒星";
+			else if(spectr == ESpectrType::O)
+				text = text + "O型恒星";
+			else
+				text = text + "X型恒星";
+		}
+		return text;
+	}
 
 	inline int typeId()
 	{
@@ -400,66 +434,3 @@ public:
 			return 16;
 	}
 };
-
-inline void PlanetClass::GenBirthPoints(const PlanetRawData& rawData,int _birthSeed)
-{
-	DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
-	Pose pose = PredictPose(85.0);
-	Vector3 vector = Maths::QInvRotateLF(pose.rotation,star->uPosition - pose.position * 40000.0);
-	vector.Normalize();
-	Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
-	Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
-	int i = 0;
-	int num;
-	for(num = 256; i < num; i++)
-	{
-		float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-		float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-		Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
-		vector2.Normalize();
-		birthPoint = vector2 * (realRadius() + 0.2f + 1.45f);
-		normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
-		normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
-		bool flag = false;
-		for(int j = 0; j < 10; j++)
-		{
-			float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-			float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-			Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
-			Vector2 vector4 = -vector3;
-			float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-			float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-			vector4.x += num4;
-			vector4.y += num5;
-			Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
-			Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
-			birthResourcePoint0 = Vector3::Normalize(normalized3);
-			birthResourcePoint1 = Vector3::Normalize(normalized4);
-			float num6 = realRadius() + 0.2f;
-			if(rawData.QueryHeight(vector2) > num6 && rawData.QueryHeight(normalized3) > num6 && rawData.QueryHeight(normalized4) > num6)
-			{
-				Vector3 vpos = normalized3 + normalized * 0.03f;
-				Vector3 vpos2 = normalized3 - normalized * 0.03f;
-				Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
-				Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
-				Vector3 vpos5 = normalized4 + normalized * 0.03f;
-				Vector3 vpos6 = normalized4 - normalized * 0.03f;
-				Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
-				Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
-				if(rawData.QueryHeight(vpos) > num6 && rawData.QueryHeight(vpos2) > num6 && rawData.QueryHeight(vpos3) > num6 && rawData.QueryHeight(vpos4) > num6 && rawData.QueryHeight(vpos5) > num6 && rawData.QueryHeight(vpos6) > num6 && rawData.QueryHeight(vpos7) > num6 && rawData.QueryHeight(vpos8) > num6)
-				{
-					flag = true;
-					break;
-				}
-			}
-		}
-		if(flag)
-		{
-			break;
-		}
-	}
-	if(i >= num)
-	{
-		birthPoint = Vector3(0.0f,realRadius() + 5.0f,0.0f);
-	}
-}

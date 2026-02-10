@@ -10,8 +10,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 
-#include "defines.hpp"
-#include "LDB.hpp"
+#include "astro_class.hpp"
 #include "util.hpp"
 #include "Maths.hpp"
 #include "Vector3.hpp"
@@ -21,6 +20,8 @@
 #include "SimplexNoise.hpp"
 #include "RandomTable.hpp"
 #include "PlanetRawData.hpp"
+#include "LDB.hpp"
+#include "defines.hpp"
 
 #pragma warning(disable:4267)
 #pragma warning(disable:4244)
@@ -39,17 +40,6 @@ public:
 	static cl::CommandQueue queue;
 	static cl::Program program;
 	static cl::Buffer vertices_buffer;
-	//static cl::Buffer custom_buffer;
-	//static cl::Buffer perm_buffer_1;
-	//static cl::Buffer perm_buffer_2;
-	//static cl::Buffer perm_buffer_3;
-	//static cl::Buffer perm_buffer_4;
-	//static cl::Buffer permMod12_buffer_1;
-	//static cl::Buffer permMod12_buffer_2;
-	//static cl::Buffer permMod12_buffer_3;
-	//static cl::Buffer permMod12_buffer_4;
-	//static cl::Buffer heightData_buffer;
-	//static cl::Buffer debugData_buffer;
 
 	static void do_init()
 	{
@@ -191,9 +181,31 @@ public:
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
-	virtual void GenerateTerrain(PlanetClass& planet, double modX, double modY) = 0;
+	void get_veins(const StarClass& star,const PlanetClass& planet,const int birthPlanetId,int* veins_group,int* veins_point)
+	{
+		StarClassSimple star_simple;
+		star_simple.type = star.type;
+		star_simple.index = star.index;
+		star_simple.spectr = star.spectr;
+		PlanetClassSimple planet_simple;
+		planet_simple.star = &star_simple;
+		planet_simple.id = planet.id;
+		planet_simple.seed = planet.seed;
+		planet_simple.theme = planet.theme;
+		planet_simple.mod_x = planet.mod_x;
+		planet_simple.mod_y = planet.mod_y;
+		planet_simple.radius = planet.radius;
+		this->GenerateTerrain(planet_simple);
+		this->GenerateVeins(planet_simple,birthPlanetId);
+		for(int i=0; i < 14; i++) {
+			veins_group[i] = planet_simple.veins_group[i];
+			veins_point[i] = planet_simple.veins_point[i];
+		}
+	}
 
-	virtual void GenerateVeins(StarClass& star, PlanetClass& planet, int birthPlanetId, int* veins,int* res) {
+	virtual void GenerateTerrain(PlanetClassSimple& planet) = 0;
+
+	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -219,6 +231,7 @@ public:
 			}
 		}
 		float p = 1.0f;
+		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
@@ -347,7 +360,7 @@ public:
 		bool flag = birthPlanetId == planet.id;
 		if(flag)
 		{
-			planet.GenBirthPoints(rawData,birthSeed);
+			planet.GenBirthPoints(birthSeed,star.uPosition);
 		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
@@ -440,7 +453,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			veins[vein_point_type-1]++;
+			planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -526,7 +539,7 @@ public:
 				//}
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
-					res[vein_point_type-1]++;
+					planet.veins_point[vein_point_type-1]++;
 				}
 			}
 		}
@@ -542,7 +555,7 @@ public:
 class PlanetAlgorithm0: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet, double modX, double modY) override
+	void GenerateTerrain(PlanetClassSimple& planet) override
 	{
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
@@ -573,8 +586,8 @@ public:
 			}
 		}
 	}
-
-	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
+	
+	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		//do nothing
 	}
 };
@@ -582,7 +595,7 @@ public:
 class PlanetAlgorithm1: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override
+	void GenerateTerrain(PlanetClassSimple& planet) override
 	{
 		double num = 0.01;
 		double num2 = 0.012;
@@ -661,8 +674,10 @@ public:
 class PlanetAlgorithm2: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override
+	void GenerateTerrain(PlanetClassSimple& planet) override
 	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		modX = (3.0 - modX - modX) * modX * modX;
 		double num = 0.0035;
 		double num2 = 0.025 * modX + 0.0035 * (1.0 - modX);
@@ -742,7 +757,9 @@ private:
 		return a + (b - a) * t;
 	}
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -849,7 +866,8 @@ private:
 	double heights[80] = {};
 
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -972,7 +990,8 @@ public:
 class PlanetAlgorithm5: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
@@ -1060,7 +1079,8 @@ public:
 class PlanetAlgorithm6: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
@@ -1149,7 +1169,8 @@ public:
 class PlanetAlgorithm7: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
 		double num = 0.008;
 		double num2 = 0.01;
 		double num3 = 0.01;
@@ -1218,7 +1239,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -1244,6 +1265,7 @@ public:
 			}
 		}
 		float p = 1.0f;
+		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
@@ -1443,7 +1465,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			veins[vein_point_type-1]++;
+			planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -1502,7 +1524,7 @@ public:
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
 				//float num29 = data.QueryHeight(vein_pos);
-				res[vein_point_type-1]++;
+				planet.veins_point[vein_point_type-1]++;
 			}
 		}
 		tmp_vecs.clear();
@@ -1512,7 +1534,10 @@ public:
 class PlanetAlgorithm8: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		double num = 0.002 * modX;
 		double num2 = 0.002 * modX * modX * 6.66667;
 		double num3 = 0.002 * modX;
@@ -1583,7 +1608,10 @@ public:
 class PlanetAlgorithm9: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		double num = 0.01;
 		double num2 = 0.012;
 		double num3 = 0.01;
@@ -1691,7 +1719,8 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -1876,7 +1905,10 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		double num = 0.007;
 		double num2 = 0.007;
 		double num3 = 0.007;
@@ -1953,7 +1985,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -1979,6 +2011,7 @@ public:
 			}
 		}
 		float p = 1.0f;
+		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
@@ -2204,7 +2237,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			veins[vein_point_type-1]++;
+			planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -2269,7 +2302,7 @@ public:
 				float num29 = data.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
-					res[vein_point_type-1]++;
+					planet.veins_point[vein_point_type-1]++;
 				}
 			}
 		}
@@ -2295,7 +2328,10 @@ private:
 		return Math.Pow(1.0 - t,3.0) + Math.Pow(1.0 - t,2.0) * 3.0 * t;
 	}
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		double num = 1.1 * modX;
 		double num2 = 0.2;
 		double num3 = 8.0;
@@ -2367,7 +2403,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -2393,6 +2429,7 @@ public:
 			}
 		}
 		float p = 1.0f;
+		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
@@ -2618,7 +2655,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			veins[vein_point_type-1]++;
+			planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -2683,7 +2720,7 @@ public:
 				float num29 = data.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
-					res[vein_point_type-1]++;
+					planet.veins_point[vein_point_type-1]++;
 				}
 			}
 		}
@@ -2699,7 +2736,10 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClass& planet,double modX,double modY) override {
+	void GenerateTerrain(PlanetClassSimple& planet) override
+	{
+		double modX = planet.mod_x;
+		double modY = planet.mod_y;
 		double num = 0.007 * modX;
 		double num2 = 0.007 * modX;
 		double num3 = 0.007 * modX;
@@ -2761,7 +2801,7 @@ public:
 		}
 	}
 
-	void GenerateVeins(StarClass& star,PlanetClass& planet,int birthPlanetId,int* veins,int* res) override {
+	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		ThemeProto themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
@@ -2787,6 +2827,7 @@ public:
 			}
 		}
 		float p = 1.0f;
+		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
@@ -3012,7 +3053,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			veins[vein_point_type-1]++;
+			planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -3077,7 +3118,7 @@ public:
 				float num29 = data.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
-					res[vein_point_type-1]++;
+					planet.veins_point[vein_point_type-1]++;
 				}
 			}
 		}

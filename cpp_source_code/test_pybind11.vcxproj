@@ -156,6 +156,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="astro_class.cpp" />
     <ClCompile Include="check_seed.cpp" />
     <ClCompile Include="check_seed_util.cpp" />
     <ClCompile Include="check_seed_util.hpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="static_value.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="astro_class.hpp" />
     <ClInclude Include="check_seed.hpp" />
     <ClInclude Include="condition_to_struct.hpp" />
     <ClInclude Include="const_value.hpp" />
