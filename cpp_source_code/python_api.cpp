@@ -54,25 +54,6 @@ bool get_support_double_c() {
 	return OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE;
 }
 
-bool is_need_veins(const GalaxyCondition& galaxy_condition)
-{
-	if(galaxy_condition.need_veins)
-		return true;
-	for(const StarCondition& star_condition: galaxy_condition.stars) {
-		if(star_condition.need_veins)
-			return true;
-		for(const PlanetCondition& planet_condition: star_condition.planets) {
-			if(planet_condition.need_veins)
-				return true;
-		}
-	}
-	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
-		if(planet_condition.need_veins)
-			return true;
-	}
-	return false;
-}
-
 vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	vector<string> result;
@@ -100,25 +81,61 @@ vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& s
 	return result;
 }
 
+static bool is_need_veins(const GalaxyCondition& galaxy_condition)
+{
+	if(galaxy_condition.need_veins)
+		return true;
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		if(star_condition.need_veins)
+			return true;
+		for(const PlanetCondition& planet_condition: star_condition.planets) {
+			if(planet_condition.need_veins)
+				return true;
+		}
+	}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
+		if(planet_condition.need_veins)
+			return true;
+	}
+	return false;
+}
+
+static bool is_need_planet(const GalaxyCondition& galaxy_condition)
+{
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		if(star_condition.planets.size() > 0)
+			return true;
+	}
+	return galaxy_condition.planets.size() > 0;
+}
+
+int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
+	if(is_need_veins(galaxy_condition))
+	{
+		if(quick)
+			return 3;
+		else
+			return 4;
+	} else
+	{
+		if(is_need_planet(galaxy_condition))
+			return 2;
+		else
+			return 1;
+	}
+}
+
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-	int check_level = 3;
-	if(quick)
-		check_level = 2;
-	if(!is_need_veins(galaxy_condition))
-		check_level = 1;
+	int check_level = get_condition_level(galaxy_condition,quick);
 	return check_batch(start_seed,end_seed,start_star_num,end_star_num,galaxy_condition,check_level);
 }
 
 vector<string> check_precise_c(const vector<int>& seed_vector,const vector<int>& star_num_vector,const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-	int check_level = 3;
-	if(quick)
-		check_level = 2;
-	if(!is_need_veins(galaxy_condition))
-		check_level = 1;
+	int check_level = get_condition_level(galaxy_condition,quick);
 	return check_precise(seed_vector,star_num_vector,galaxy_condition,check_level);
 }
 

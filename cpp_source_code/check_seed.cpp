@@ -18,10 +18,10 @@
 
 using namespace std;
 
-uint16_t static get_has_veins(const int *veins,const int *veins_point) {
+static uint16_t get_has_veins(const uint16_t *veins_group,const uint16_t *veins_point) {
 	uint16_t has_veins = 0;
 	for(int i=0;i<14;i++) {
-		has_veins |= (veins[i] > 0 || veins_point[i] > 0) << i;
+		has_veins |= (veins_group[i] > 0 || veins_point[i] > 0) << i;
 	}
 	return has_veins;
 }
@@ -116,38 +116,25 @@ GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 
 bool check_seed_level_4(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
+	//cout << galaxy.seed << " " << galaxy.starCount << " level4 check start" << endl;
 	memset(galaxy.veins_group,0,sizeof(galaxy.veins_group));
 	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
-	for(StarClassSimple& star : galaxy.stars)
-	{
-		memset(star.veins_group,0,sizeof(star.veins_group));
-		memset(star.veins_point,0,sizeof(star.veins_point));
-		for(PlanetClassSimple& planet : star.planets)
-		{
-			memset(planet.veins_group,0,sizeof(planet.veins_group));
-			memset(planet.veins_point,0,sizeof(planet.veins_point));
-		}
-	}
 	return check_galaxy_level_4(galaxy,galaxy_condition);
 }
 
 bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
+	//cout << galaxy.seed << " " << galaxy.starCount << " level3 check start" << endl;
 	for(StarClassSimple& star : galaxy.stars)
 	{
 		for(PlanetClassSimple& planet : star.planets)
 		{
 			if(planet.type == EPlanetType::Gas)
-			{
 				planet.is_real_veins = true;
-			}
 			else
-			{
 				planet.MyGenerateVeins();
-				planet.has_veins = get_has_veins(planet.veins_group,planet.veins_point);
-			}
 		}
-		star.has_veins = get_has_veins(star.veins_group,star.veins_point);
+		star.has_veins = get_has_veins(star.upper_veins_group,star.upper_veins_point);
 	}
 	if(!check_galaxy_level_3(galaxy,galaxy_condition))
 		return false;
@@ -159,6 +146,7 @@ bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 
 bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
+	//cout << galaxy.seed << " " << galaxy.starCount << " level2 check start" << endl;
 	galaxy.CreatePlanets();
 	if(!check_galaxy_level_2(galaxy,galaxy_condition))
 		return false;

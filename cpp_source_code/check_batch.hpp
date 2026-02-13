@@ -170,11 +170,7 @@ public:
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
 	{
 		galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		check_level = 3;
-		if(quick)
-			check_level = 2;
-		if(!is_need_veins(galaxy_condition))
-			check_level = 1;
+		check_level = get_condition_level(galaxy_condition,quick);
 		this->max_thread = max_thread;
 		this->seed_manager.set_raw_data(seed_manager.get_raw_data());
 	}
@@ -277,11 +273,7 @@ public:
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
 	{
 		galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		check_level = 3;
-		if(quick)
-			check_level = 2;
-		if(!is_need_veins(galaxy_condition))
-			check_level = 1;
+		check_level = get_condition_level(galaxy_condition,quick);
 		this->start_seed = start_seed;
 		this->end_seed = end_seed;
 		this->start_star_num = start_star_num;
@@ -294,11 +286,7 @@ public:
 		const GalaxyCondition& galaxy_condition,bool quick,int max_thread)
 	{
 		this->galaxy_condition = galaxy_condition;
-		check_level = 3;
-		if(quick)
-			check_level = 2;
-		if(!is_need_veins(galaxy_condition))
-			check_level = 1;
+		check_level = get_condition_level(galaxy_condition,quick);
 		this->start_seed = start_seed;
 		this->end_seed = end_seed;
 		this->start_star_num = start_star_num;

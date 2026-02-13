@@ -1,7 +1,9 @@
 #include <array>
+#include <memory>
 #include <cstdint>
 #include <iostream>
 
+#include "defines.hpp"
 #include "data_struct.hpp"
 #include "astro_class.hpp"
 
@@ -115,7 +117,7 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	return true;
 }
 
-bool static check_veins(const vector<int>& need_veins_group,const vector<int>& need_veins_point,const int* has_veins_group,const int* has_veins_point)
+static bool check_veins(const vector<int>& need_veins_group,const vector<int>& need_veins_point,const int* has_veins_group,const int* has_veins_point)
 {
 	for(int i = 0;i < 14;i++) {
 		if(need_veins_group[i] > has_veins_group[i] || need_veins_point[i] > has_veins_point[i])
@@ -124,26 +126,54 @@ bool static check_veins(const vector<int>& need_veins_group,const vector<int>& n
 	return true;
 }
 
-bool static check_planet_veins(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_veins(const vector<int>& need_veins_group,const vector<int>& need_veins_point,const uint16_t* has_veins_group,const uint16_t* has_veins_point)
 {
+	for(int i = 0;i < 14;i++) {
+		if(need_veins_group[i] > has_veins_group[i] || need_veins_point[i] > has_veins_point[i])
+			return false;
+	}
+	return true;
+}
+
+static bool check_planet_veins(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+{
+	if((planet_condition.need_veins & planet_data.has_veins) != planet_condition.need_veins)
+		return false;
 	return check_veins(planet_condition.veins_group,planet_condition.veins_point,planet_data.veins_group,planet_data.veins_point);
 }
 
-bool static check_star_veins(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_upper_veins(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	return check_veins(star_condition.veins_group,star_condition.veins_point,star_data.veins_group,star_data.veins_point);
+	if((star_condition.need_veins & star_data.has_veins) != star_condition.need_veins)
+		return false;
+	return check_veins(star_condition.veins_group,star_condition.veins_point,star_data.upper_veins_group,star_data.upper_veins_point);
 }
 
-bool static check_galaxy_veins(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+static bool check_star_real_veins(const StarClassSimple& star_data,const StarCondition& star_condition)
+{
+	return check_veins(star_condition.veins_group,star_condition.veins_point,star_data.real_veins_group,star_data.real_veins_point);
+}
+
+static bool check_galaxy_veins(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	return check_veins(galaxy_condition.veins_group,galaxy_condition.veins_point,galaxy_data.veins_group,galaxy_data.veins_point);
 }
 
-uint16_t static get_veins_mask(const vector<int>& need_veins_group,const vector<int>& need_veins_point,const int* has_veins_group,const int* has_veins_point)
+static uint16_t get_galaxy_veins_mask(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	uint16_t mask = 0;
 	for(int i = 0;i < 14;i++) {
-		if(need_veins_group[i] > has_veins_group[i] || need_veins_point[i] > has_veins_point[i])
+		if(galaxy_condition.veins_group[i] > galaxy_data.veins_group[i] || galaxy_condition.veins_point[i] > galaxy_data.veins_point[i])
+			mask |= 1 << i;
+	}
+	return mask;
+}
+
+static uint16_t get_star_veins_mask(const StarClassSimple& star_data,const StarCondition& star_condition)
+{
+	uint16_t mask = 0;
+	for(int i = 0;i < 14;i++) {
+		if(star_condition.veins_group[i] > star_data.real_veins_group[i] || star_condition.veins_point[i] > star_data.real_veins_point[i])
 			mask |= 1 << i;
 	}
 	return mask;
@@ -160,7 +190,8 @@ bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondi
 		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
 		return false;
-	if(planet_condition.need_veins) {
+	if(planet_condition.need_veins)
+	{
 		return check_planet_veins(planet_data,planet_condition);
 	}
 	return true;
@@ -168,7 +199,7 @@ bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondi
 
 bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type)
+	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;
@@ -189,15 +220,17 @@ bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& st
 		if(left_satisfy_num)
 			return false;
 	}
-	if(star_condition.need_veins) {
-		return check_star_veins(star_data,star_condition);
+	if(star_condition.need_veins)
+	{
+		return check_star_upper_veins(star_data,star_condition);
 	}
 	return true;
 }
 
 bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
-	for(const StarCondition& star_condition: galaxy_condition.stars) {
+	for(const StarCondition& star_condition: galaxy_condition.stars)
+	{
 		int left_satisfy_num = star_condition.satisfy_num;
 		for(const StarClassSimple& star_data: galaxy_data.stars)
 		{
@@ -230,7 +263,8 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 		if(left_satisfy_num)
 			return false;
 	}
-	if(galaxy_condition.need_veins) {
+	if(galaxy_condition.need_veins)
+	{
 		return check_galaxy_veins(galaxy_data,galaxy_condition);
 	}
 	return true;
@@ -247,10 +281,14 @@ bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& 
 		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
 		return false;
-	if(planet_condition.need_veins) {
-		if((planet_data.has_veins & planet_condition.need_veins) != planet_condition.need_veins)
-			return false;
-		if(!planet_data.is_real_veins) {
+	if(planet_condition.need_veins)
+	{
+		if(!planet_data.is_real_veins)
+		{
+			if(!check_planet_veins(planet_data,planet_condition))
+				return false;
+			memset(planet_data.veins_group,0,sizeof(planet_data.veins_group));
+			memset(planet_data.veins_point,0,sizeof(planet_data.veins_point));
 			planet_data.generate_real_veins();
 		}
 		return check_planet_veins(planet_data,planet_condition);
@@ -260,7 +298,7 @@ bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& 
 
 bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type)
+	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;
@@ -281,16 +319,20 @@ bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_con
 		if(left_satisfy_num)
 			return false;
 	}
-	if(star_condition.need_veins) {
-		if((star_data.has_veins & star_condition.need_veins) != star_condition.need_veins)
+	if(star_condition.need_veins)
+	{
+		if(!check_star_upper_veins(star_data,star_condition))
 			return false;
-		if(!check_star_veins(star_data,star_condition)) {
+		if(!check_star_real_veins(star_data,star_condition))
+		{
 			for(PlanetClassSimple& planet_data: star_data.planets)
 			{
-				if(planet_data.is_real_veins || !(planet_data.has_veins & star_condition.need_veins))
+				if(planet_data.is_real_veins || !(planet_data.has_veins & get_star_veins_mask(star_data,star_condition)))
 					continue;
+				memset(planet_data.veins_group,0,sizeof(planet_data.veins_group));
+				memset(planet_data.veins_point,0,sizeof(planet_data.veins_point));
 				planet_data.generate_real_veins();
-				if(check_star_veins(star_data,star_condition))
+				if(check_star_real_veins(star_data,star_condition))
 					goto end_veins_check_label;
 			}
 			return false;
@@ -337,12 +379,13 @@ bool check_galaxy_level_4(GalaxyClassSimple& galaxy_data,const GalaxyCondition& 
 	}
 	if(galaxy_condition.need_veins) {
 		if(!check_galaxy_veins(galaxy_data,galaxy_condition)) {
-			for(StarClassSimple& star_data: galaxy_data.stars)
-			{
+			for(StarClassSimple& star_data: galaxy_data.stars) {
 				for(PlanetClassSimple& planet_data: star_data.planets)
 				{
-					if(planet_data.is_real_veins || !(planet_data.has_veins & galaxy_condition.need_veins))
+					if(planet_data.is_real_veins || !(planet_data.has_veins & get_galaxy_veins_mask(galaxy_data,galaxy_condition)))
 						continue;
+					memset(planet_data.veins_group,0,sizeof(planet_data.veins_group));
+					memset(planet_data.veins_point,0,sizeof(planet_data.veins_point));
 					planet_data.generate_real_veins();
 					if(check_galaxy_veins(galaxy_data,galaxy_condition))
 						goto end_veins_check_label;

@@ -6,7 +6,7 @@
 using namespace std;
 namespace py = pybind11;
 
-PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
+static PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
 	PlanetCondition new_planet_condition = PlanetCondition();
 	new_planet_condition.satisfy_num = planet_condition["satisfy_num"].cast<uint8_t>();
 	new_planet_condition.dsp_level = planet_condition["dsp_level"].cast<uint8_t>();
@@ -19,7 +19,7 @@ PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
 	return new_planet_condition;
 }
 
-StarCondition star_condition_to_struct(py::dict star_condition) {
+static StarCondition star_condition_to_struct(py::dict star_condition) {
 	StarCondition new_star_condition = StarCondition();
 	new_star_condition.satisfy_num = star_condition["satisfy_num"].cast<uint8_t>();
 	new_star_condition.type = star_condition["type"].cast<uint8_t>();

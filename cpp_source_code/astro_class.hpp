@@ -36,11 +36,12 @@ public:
 	uint8_t type_id;
 	uint8_t singularity;
 	uint8_t dsp_level;
+	//bool is_upper_veins = false;
 	bool is_real_veins = false;
-	//uint8_t index;
+
 	uint16_t has_veins = 0;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
+	uint16_t veins_group[14]{0};
+	uint16_t veins_point[14]{0};
 	//bool levelized;
 	EPlanetType type;
 	int theme;
@@ -182,12 +183,14 @@ public:
 	float dysonRadius = 10.0f;
 	float orbitScaler = 1.0f;
 	int planetCount;
+	float distance;
 
 	uint8_t type_id;
 	uint16_t has_veins = 0;
-	float distance;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
+	uint16_t upper_veins_group[14]{0};
+	uint16_t upper_veins_point[14]{0};
+	uint16_t real_veins_group[14]{0};
+	uint16_t real_veins_point[14]{0};
 	//float resourceCoef = 1.0f;
 	std::vector<PlanetClassSimple> planets;
 	GalaxyClassSimple* galaxy = nullptr;
@@ -240,7 +243,7 @@ public:
 class GalaxyClassSimple
 {
 protected:
-	virtual void SetPlanetTheme(StarClassSimple& star,PlanetClassSimple& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed,float planet_temperatureBias)
+	void SetPlanetTheme(StarClassSimple& star,PlanetClassSimple& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed,float planet_temperatureBias)
 	{
 		std::vector <int> tmp_theme;
 		std::vector<int>& themeIds = LDB.themeIds;
@@ -340,7 +343,7 @@ protected:
 		planet.type_id = planet.typeId();
 	}
 
-	virtual PlanetClassSimple CreatePlanet(StarClassSimple& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
+	PlanetClassSimple CreatePlanet(StarClassSimple& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
 	{
 		PlanetClassSimple& planet = star.planets[index];
 		DotNet35Random dotNet35Random(info_seed);
@@ -536,7 +539,7 @@ protected:
 		return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
 	}
 
-	virtual void SetStarAge(StarClassSimple& star,double rn,double rt)
+	void SetStarAge(StarClassSimple& star,double rn,double rt)
 	{
 		float num1 = (float)(rn * 0.1 + 0.95);
 		float num2 = (float)(rt * 0.4 + 0.8);
@@ -586,7 +589,7 @@ protected:
 		}
 	}
 
-	virtual void CreateStar(VectorLF3 pos,int id,int seed,EStarType needtype,ESpectrType needSpectr)
+	void CreateStar(VectorLF3 pos,int id,int seed,EStarType needtype,ESpectrType needSpectr)
 	{
 		StarClassSimple& star = stars[id - 1];
 		star.index = id - 1;
@@ -685,9 +688,10 @@ protected:
 		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
 		star.type_id = star.typeId();
 		star.galaxy = this;
+		star.distance = (float)(star.uPosition - stars[0].uPosition).magnitude() / 2400000.0f;
 	}
 
-	virtual StarClassSimple CreateBirthStar(int index,int seed)
+	StarClassSimple CreateBirthStar(int index,int seed)
 	{
 		StarClassSimple& birthStar = stars[index];
 		birthStar.index = 0;
@@ -731,6 +735,7 @@ protected:
 		birthStar.dysonRadius = birthStar.orbitScaler * 0.28f;
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
+		birthStar.galaxy = this;
 		return birthStar;
 	}
 

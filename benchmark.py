@@ -63,20 +63,23 @@ if __name__ == "__main__":
     # galaxy_condition = benchmark_condition_extreme_factory()
     # galaxy_condition = benchmark_condition_ttenyx_simple()
     # galaxy_condition = benchmark_condition_easy()
-    galaxy_condition = benchmark_condition_3_blue()
+    # galaxy_condition = benchmark_condition_3_blue()
     # galaxy_condition["veins_group"] = {"单极磁石": 24}
+    galaxy_condition = {"veins_point": {"单极磁石":350}}
 
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
-    seeds = (0, 49999)
-    star_nums = (32, 64)
-    batch_size = 256
+    seeds = (0, 999999)
+    star_nums = (64, 64)
+    # batch_size = 256
     max_thread = 20
     device_id = 0
     local_size = 256
 
-    quick = 1
-    record_seed = 0
+    quick = 0
+    record_seed = 1
+
+    set_device_id_c(device_id)
 
     # debug_seed = 12
     # debug_star_num = 64
@@ -88,14 +91,13 @@ if __name__ == "__main__":
     # check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
     # print(f"py多线程用时{perf_counter() - flag:.2f}s")
 
-    flag = perf_counter()
-    check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
-    print(f"c++多线程用时{perf_counter() - flag:.2f}s")
+    # flag = perf_counter()
+    # check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
+    # print(f"c++多线程用时{perf_counter() - flag:.2f}s")
 
     flag = perf_counter()
     check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, galaxy_condition, bool(quick), max_thread)
     check_batch_manager.run()
-    sleep(0.1)
     while check_batch_manager.is_running():
         sleep(0.1)
     result = check_batch_manager.get_results()

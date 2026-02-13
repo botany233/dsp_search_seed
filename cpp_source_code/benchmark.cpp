@@ -8,6 +8,7 @@
 #include <string>
 #include <sstream>
 #include <stdexcept>
+#include <cstdint>
 
 #include "Vector3.hpp"
 #include "python_api.hpp"
@@ -19,24 +20,130 @@
 #include "PlanetAlgorithm.hpp"
 #include "util.hpp"
 #include "check_batch.hpp"
+#include "astro_class.hpp"
 
 using namespace std;
 using namespace chrono;
+namespace py = pybind11;
+
+static uint16_t get_need_veins(vector<int>& veins_group,vector<int>& veins_point) {
+	uint16_t result = 0;
+	for(int i=0;i<14;i++) {
+		if(veins_point[i] > 0 || veins_group[i] > 0)
+			result |= (1 << i);
+	}
+	return result;
+}
+
+static void add_need_veins(GalaxyCondition& galaxy_condition) {
+	galaxy_condition.need_veins = get_need_veins(galaxy_condition.veins_group,galaxy_condition.veins_point);
+	for(StarCondition& star_condition: galaxy_condition.stars) {
+		star_condition.need_veins = get_need_veins(star_condition.veins_group,star_condition.veins_point);
+		for(PlanetCondition& planet_condition: star_condition.planets) {
+			planet_condition.need_veins = get_need_veins(planet_condition.veins_group,planet_condition.veins_point);
+		}
+	}
+	for(PlanetCondition& planet_condition: galaxy_condition.planets) {
+		planet_condition.need_veins = get_need_veins(planet_condition.veins_group,planet_condition.veins_point);
+	}
+}
+
+GalaxyCondition mag_300_condition() {
+	GalaxyCondition con;
+	con.veins_point[13] = 300;
+	return con;
+}
+
+GalaxyCondition satelite_light_condition() {
+	GalaxyCondition con;
+	PlanetCondition pc;
+	pc.veins_point[11] = 50;
+	pc.singularity = 1<<6;
+	con.planets.push_back(pc);
+	return con;
+}
+
+GalaxyCondition debug_veins_condition() {
+	GalaxyCondition con;
+	con.veins_point[6] = 200;
+	con.veins_point[12] = 400;
+	con.veins_point[13] = 200;
+	return con;
+}
+
+GalaxyCondition debug_extreme_factory_condition() {
+	GalaxyCondition con;
+	con.veins_group[13] = 8;
+	con.veins_point[12] = 400;
+	StarCondition sc;
+	sc.type = 14;
+	sc.satisfy_num = 4;
+	con.stars.push_back(sc);
+	PlanetCondition pc;
+	pc.type = 13;
+	pc.satisfy_num = 8;
+	con.planets.push_back(pc);
+	return con;
+}
+
+GalaxyCondition good_birth_condition() {
+	GalaxyCondition con;
+	StarCondition sc;
+	sc.distance = 10;
+	sc.type = 14;
+	for(int i=6;i<13;i++) {
+		sc.veins_group[i] = 1;
+	}
+	con.stars.push_back(sc);
+	return con;
+}
+
+//int main() {
+//	system("chcp 65001>nul");
+//	do_init();
+//	set_device_id_c(0);
+//
+//	for(int seed=0;seed<1000;seed++){
+//		GalaxyData galaxy_data = get_galaxy_data(seed,64,true);
+//	}
+//}
 
 int main() {
 	system("chcp 65001>nul");
 	do_init();
 	set_device_id_c(0);
-	GalaxyData galaxy_data = get_galaxy_data(5121007,64,false);
-	for(const StarData& star_data: galaxy_data.stars) {
-		cout << "star " << star_data.type << " " << star_data.name << endl;
-		for(const PlanetData& planet_data: star_data.planets) {
-			cout << "    planet " << planet_data.type << " " << planet_data.name << endl;
-		}
+
+	bool quick = false;
+	//GalaxyCondition galaxy_condition = mag_300_condition();
+	//GalaxyCondition galaxy_condition = satelite_light_condition();
+	//GalaxyCondition galaxy_condition = debug_veins_condition();
+	//GalaxyCondition galaxy_condition = debug_extreme_factory_condition();
+	GalaxyCondition galaxy_condition = good_birth_condition();
+
+	add_need_veins(galaxy_condition);
+	int check_level = get_condition_level(galaxy_condition,quick);
+
+	vector<string> results = check_batch(1752,1753,64,65,galaxy_condition,check_level);
+	for(const string& result:results) {
+		cout << result << endl;
 	}
+	cout << "找到 " << results.size() << " 个种子" << endl;
 }
 
-//// 测试gpu和cpu的星系生成效率
+//int main() {
+//	system("chcp 65001>nul");
+//	do_init();
+//	set_device_id_c(0);
+//	GalaxyData galaxy_data = get_galaxy_data(5121007,64,false);
+//	for(const StarData& star_data: galaxy_data.stars) {
+//		cout << "star " << star_data.type << " " << star_data.name << endl;
+//		for(const PlanetData& planet_data: star_data.planets) {
+//			cout << "    planet " << planet_data.type << " " << planet_data.name << endl;
+//		}
+//	}
+//}
+
+// 测试gpu和cpu的星系生成效率
 //int main() {
 // system("chcp 65001>nul");
 //	do_init();
@@ -161,61 +268,4 @@ int main() {
 //	}
 //	cout << "mismatch num: " << mismatch_num_debug << endl;
 //	std::this_thread::sleep_for(std::chrono::seconds(1000));
-//}
-
-//性能测试
-//int main(int argc, char* argv[])
-//{
-//    system("chcp 65001>nul");
-//	
-//	StarCondition star_condition1 = StarCondition();
-//	star_condition1.satisfy_num = 3;
-//	star_condition1.type = 3;
-//	GalaxyCondition galaxy_condition = GalaxyCondition();
-//	galaxy_condition.stars.push_back(star_condition1);
-//
-//	do_init();
-//
-//	//bool result = check_seed_level_1(497,64,galaxy_condition,3);
-//	//cout << result << endl;
-//
-//	auto start = high_resolution_clock::now();
-//	vector<string> results = check_batch(0,20000,64,65,galaxy_condition,1);
-//	auto end = high_resolution_clock::now();
-//	auto duration = duration_cast<milliseconds>(end - start);
-//	cout << "代码运行时间: " << duration.count() << " 毫秒，找到"<< results.size() << "个种子" << endl;
-//
-//	start = high_resolution_clock::now();
-//	int result_num = 0;
-//	for(int i=0;i<20000;i++) {
-//		if(check_seed_new(i,64,galaxy_condition))
-//			result_num++;
-//	}
-//	end = high_resolution_clock::now();
-//	duration = duration_cast<milliseconds>(end - start);
-//	cout << "代码运行时间: " << duration.count() << " 毫秒，找到"<< result_num << "个种子" << endl;
-//
-//	//auto start = high_resolution_clock::now();
-//	//CheckBatchManager check_batch_manager = CheckBatchManager(0,50000,32,65,galaxy_condition,true,20);
-//	//check_batch_manager.run();
-//	////int last_result_num = 0;
-//	////SeedStruct last_valid_seed = SeedStruct(-1,-1);
-//	//while(check_batch_manager.is_running()) {
-//	//	cout << "进度: " << check_batch_manager.get_task_progress() << " / " << check_batch_manager.get_task_num() << "\r";
-//	//	//int current_result_num = check_batch_manager.get_result_num();
-//	//	//last_valid_seed = check_batch_manager.get_last_result();
-//	//	//if(current_result_num > last_result_num) {
-//	//	//	//cout << "找到新种子: (" << last_valid_seed.seed_id << ", " << last_valid_seed.star_num << ")" << endl;
-//	//	//	last_result_num = current_result_num;
-//	//	//}
-//	//	this_thread::sleep_for(chrono::milliseconds(50));
-//	//}
-//	//vector<SeedStruct> results = check_batch_manager.get_results();
-//	//auto end = high_resolution_clock::now();
-//	//auto duration = duration_cast<milliseconds>(end - start);
-//	//cout << "代码运行时间: " << duration.count() << " 毫秒，找到"<< results.size() << "个种子" << endl;
-//	////for(SeedStruct& result: results)
-//	////	cout << "(" << result.seed_id << ", " << result.star_num << "), ";
-//	////cout << endl;
-//    return 0;
 //}

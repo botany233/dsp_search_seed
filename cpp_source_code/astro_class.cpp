@@ -1,7 +1,15 @@
+#include <cstdint>
+
 #include "astro_class.hpp"
 #include "PlanetAlgorithm.hpp"
 
-//extern std::unique_ptr<PlanetAlgorithm> PlanetAlgorithmManager(int algoId);
+static uint16_t get_has_veins(const uint16_t *veins_group,const uint16_t *veins_point) {
+	uint16_t has_veins = 0;
+	for(int i=0;i<14;i++) {
+		has_veins |= (veins_group[i] > 0 || veins_point[i] > 0) << i;
+	}
+	return has_veins;
+}
 
 void PlanetClassSimple::MyGenerateVeins()
 {
@@ -113,11 +121,12 @@ void PlanetClassSimple::MyGenerateVeins()
 	}
 	veins_point[6] = veins_group[6]; //油井单独处理
 	for(int i=0;i<14;i++) {
-		star->veins_group[i] += veins_group[i];
-		star->veins_point[i] += veins_point[i];
+		star->upper_veins_group[i] += veins_group[i];
+		star->upper_veins_point[i] += veins_point[i];
 		star->galaxy->veins_group[i] += veins_group[i];
 		star->galaxy->veins_point[i] += veins_point[i];
 	}
+	has_veins = get_has_veins(veins_group,veins_point);
 }
 
 void PlanetClassSimple::generate_real_veins() {
@@ -126,8 +135,8 @@ void PlanetClassSimple::generate_real_veins() {
 	planet_algorithm->GenerateVeins(*this,this->star->galaxy->birthPlanetId);
 	is_real_veins = true;
 	for(int i=0;i<14;i++) {
-		star->veins_group[i] += veins_group[i];
-		star->veins_point[i] += veins_point[i];
+		star->real_veins_group[i] += veins_group[i];
+		star->real_veins_point[i] += veins_point[i];
 		star->galaxy->veins_group[i] += veins_group[i];
 		star->galaxy->veins_point[i] += veins_point[i];
 	}

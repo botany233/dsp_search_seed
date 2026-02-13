@@ -8,7 +8,7 @@
 using namespace std;
 namespace py = pybind11;
 
-bool is_need_veins(const GalaxyCondition& galaxy_condition);
+int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick);
 void do_init();
 bool set_device_id_c(int device_id);
 int get_device_id_c();
