@@ -66,21 +66,35 @@ def change_singularity_legal(singularity:str) -> int:
     return 1 << singularity_c.index(singularity)
 
 def del_empty_condition(galaxy_condition:dict) -> dict:
-    if "stars" in galaxy_condition:
-        for i in range(len(galaxy_condition["stars"])-1, -1, -1):
-            star_condition = galaxy_condition["stars"][i]
-            if "planets" in star_condition:
-                for j in range(len(star_condition["planets"])-1, -1, -1):
-                    if not star_condition["planets"][j]:
-                        star_condition["planets"].pop(j)
-                if not star_condition["planets"]:
-                    star_condition.pop("planets")
-            if not star_condition:
-                galaxy_condition["stars"].pop(i)
-    if "planets" in galaxy_condition:
-        for j in range(len(galaxy_condition["planets"])-1, -1, -1):
-            if not galaxy_condition["planets"][j]:
-                galaxy_condition["planets"].pop(j)
-        if not galaxy_condition["planets"]:
-            galaxy_condition.pop("planets")
+    del_empty_stars(galaxy_condition)
+    del_empty_planets(galaxy_condition)
     return galaxy_condition
+
+def del_empty_stars(condition:dict) -> None:
+    if "stars" in condition:
+        for i in range(len(condition["stars"])-1, -1, -1):
+            del_empty_planets(condition["stars"][i])
+            if is_empty_condition(condition["stars"][i]):
+                condition["stars"].pop(i)
+        if not condition["stars"]:
+            condition.pop("stars")
+
+def del_empty_planets(condition:dict) -> None:
+    if "planets" in condition:
+        for j in range(len(condition["planets"])-1, -1, -1):
+            del_empty_moons(condition["planets"][j])
+            if is_empty_condition(condition["planets"][j]):
+                condition["planets"].pop(j)
+        if not condition["planets"]:
+            condition.pop("planets")
+
+def del_empty_moons(condition:dict) -> None:
+    if "moons" in condition:
+        for j in range(len(condition["moons"])-1, -1, -1):
+            if is_empty_condition(condition["moons"][j]):
+                condition["moons"].pop(j)
+        if not condition["moons"]:
+            condition.pop("moons")
+
+def is_empty_condition(condition:dict) -> bool:
+    return len(condition) == 0 or (len(condition) == 1 and "satisfy_num" in condition)

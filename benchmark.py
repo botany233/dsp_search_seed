@@ -1,9 +1,4 @@
 from CApi import *
-from functools import partial
-from concurrent.futures import ProcessPoolExecutor
-from multiprocessing import cpu_count
-from tqdm import tqdm
-from math import ceil
 
 # vein_names = "铁, 铜, 硅, 钛, 石, 煤, 油, 可燃冰, 金伯利, 分型硅, 有机晶体, 光栅石, 刺笋结晶, 单极磁石"
 # liquid = "水, 硫酸"
@@ -13,42 +8,6 @@ from math import ceil
 # star_types = ["红巨星", "黄巨星", "蓝巨星", "白巨星", "白矮星", "中子星", "黑洞",
 #               "A型恒星", "B型恒星", "F型恒星", "G型恒星", "K型恒星", "M型恒星", "O型恒星"]
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
-
-def check_seeds_py(seeds: tuple[int, int],
-                   star_nums: tuple[int, int],
-                   galaxy_condition: dict,
-                   quick: bool,
-                   batch_size: int,
-                   max_thread: int,
-                   record_seed: bool,
-                   init_args: tuple[int, int]):
-    max_thread = min(max_thread, cpu_count())
-    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=init_args) as executor:
-        generator = batch_generator_py(galaxy_condition, quick, seeds, star_nums, batch_size)
-
-        results = executor.map(check_batch_wrapper_py, generator)
-        for result in results:
-            if record_seed:
-                with open("result_py.csv", "a") as f:
-                    f.writelines(map(lambda x: f"{x}\n", result))
-
-def check_seeds_c(seeds: tuple[int, int],
-                  star_nums: tuple[int, int],
-                  galaxy_str: str,
-                  quick: bool,
-                  batch_size: int,
-                  max_thread: int,
-                  record_seed: bool,
-                  init_args: tuple[int, int]):
-    max_thread = min(max_thread, cpu_count())
-    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=init_args) as executor:
-        generator = batch_generator_c(galaxy_str, quick, seeds, star_nums, batch_size)
-
-        results = executor.map(check_batch_wrapper_c, generator)
-        for result in results:
-            if record_seed:
-                with open("result_c.csv", "a") as f:
-                    f.writelines(map(lambda x: f"{x}\n", result))
 
 if __name__ == "__main__":
     from time import perf_counter, sleep
@@ -66,14 +25,6 @@ if __name__ == "__main__":
     # print(check_batch_py(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
     # print(check_batch_c(debug_seed, debug_seed+1, debug_star_num, debug_star_num+1, galaxy_condition, bool(quick)))
     # aaa
-
-    # flag = perf_counter()
-    # check_seeds_py(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
-    # print(f"py多线程用时{perf_counter() - flag:.2f}s")
-
-    # flag = perf_counter()
-    # check_seeds_c(seeds, star_nums, galaxy_condition, bool(quick), batch_size, max_thread, record_seed, (device_id, local_size))
-    # print(f"c++多线程用时{perf_counter() - flag:.2f}s")
 
     galaxy_conditions = []
     for condition_func in benchmark_condition_functions:
