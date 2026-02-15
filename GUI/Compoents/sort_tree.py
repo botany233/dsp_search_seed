@@ -1,36 +1,24 @@
 __all__ = ["SortTree"]
 
 from typing import Any
-from PySide6.QtCore import QAbstractItemModel, Qt, QPoint, QSize, Signal
-from PySide6.QtGui import QMouseEvent, QIcon, QColor
+from PySide6.QtCore import Qt, QPoint, QSize
+from PySide6.QtGui import QMouseEvent, QColor
 from PySide6.QtWidgets import (
     QWidget,
     QTreeWidgetItem,
-    QFileSystemModel,
     QHBoxLayout,
-    QComboBox,
-    QSizePolicy,
     QHeaderView,
-    QGridLayout,
 )
 
 from qfluentwidgets import (
     TreeWidget,
-    setTheme,
-    Theme,
-    TreeView,
     PushButton,
-    VBoxLayout,
-    ComboBox,
     RoundMenu,
     Action,
-    LineEdit,
     BodyLabel,
-    FluentLabelBase,
     FluentIcon,
     ToolButton,
     TransparentToolButton,
-    SwitchButton,
     setFont,
     setCustomStyleSheet,
     ToolTipFilter,
@@ -39,7 +27,6 @@ from qfluentwidgets import (
 
 from .combox import AutoFixedComboBox
 from .Widgets.line_edit import LimitLineEdit
-from .Widgets.button import ConfigSwitchButton
 
 
 from config import cfg
@@ -59,8 +46,10 @@ from GUI.dsp_icons import AppIcons
 
 star_types = ["无限制"] + star_types
 planet_types = ["无限制"] + planet_types
+mult_moons_planet_types = ["无限制", "气态巨星", "高产气巨", "冰巨星"]
 liquid = ["无限制"] + liquid
 singularity = ["无限制"] + singularity
+moon_singularity = [s for s in singularity if s not in ["卫星", "多卫星", "潮汐锁定"]]
 dsp_level = ["无限制"] + dsp_level
 
 
@@ -361,6 +350,7 @@ class ToolTipFilterWithEgg(ToolTipFilter):
 class PlanetTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj: PlanetCondition):
         super().__init__(root, config_obj, "planet_condition")
+        self.has_moon = False
 
     def add_widgets(self):
         self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
@@ -374,12 +364,6 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.addPlanetButton.setToolTip("添加卫星条件")
-        self.manageButtons.adjustButton = TransparentToolButton()
-        self.manageButtons.adjustButton.setToolTip("eggg")
-        self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=5000))
-        qss = """TransparentToolButton:hover{background: transparent}"""
-        setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
-        self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
 
     def _on_add_button_clicked(self):
         self.addMoonLeaf()
@@ -394,7 +378,17 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.addChild(new_leaf)
         new_leaf.add_widgets()
         self.setExpanded(True)
+        self._switch_moons_planet()
         return new_leaf
+
+    def _switch_moons_planet(self):
+        if self.has_moon:
+            return
+        self.leaf.planetTypeComboBox.clear()
+        self.leaf.planetTypeComboBox.addItems(mult_moons_planet_types)
+        self.leaf.planetTypeComboBox.load_config()
+
+        self.has_moon = True
 
 class MoonTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj: MoonCondition):
@@ -417,6 +411,13 @@ class MoonTreeWidgetItem(TreeWidgetItem):
         qss = """TransparentToolButton:hover{background: transparent}"""
         setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
         self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
+
+        self._moon_diff()
+
+    def _moon_diff(self):
+        self.leaf.singularityComboBox.clear()
+        self.leaf.singularityComboBox.addItems(moon_singularity)
+        self.leaf.singularityComboBox.load_config()
 
 class SettingsTreeLeave(QWidget):
     def __init__(
@@ -676,7 +677,7 @@ class SortTree(TreeWidget):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.Fixed)
 
-        self.setColumnWidth(0, 170)
+        self.setColumnWidth(0, 186)
         self.setColumnWidth(1, 550)
         self.setColumnWidth(2, 100)
 
@@ -699,7 +700,7 @@ class SortTree(TreeWidget):
             )
             menu.addAction(del_action)
 
-        if not isinstance(item, PlanetTreeWidgetItem):
+        if not isinstance(item, PlanetTreeWidgetItem) and not isinstance(item, MoonTreeWidgetItem):
             add_action = Action("添加星球条件")
             add_action.triggered.connect(
                 lambda: self.on_menu_add_action_triggered(item)
@@ -711,16 +712,27 @@ class SortTree(TreeWidget):
                 lambda: self.on_menu_add_star_action_triggered(item)
             )
             menu.addAction(add_star_action)
+
+        if isinstance(item, PlanetTreeWidgetItem):
+            add_moon_action = Action("添加卫星条件")
+            add_moon_action.triggered.connect(
+                lambda: self.on_menu_add_moon_action_triggered(item)
+            )
+            menu.addAction(add_moon_action)
+
         pos = QPoint(pos.x() + 10, pos.y() + 30)
         menu.exec(self.mapToGlobal(pos))
 
     def on_menu_del_action_triggered(self, item: TreeWidgetItem):
         item._on_del_button_clicked()
 
+    def on_menu_add_moon_action_triggered(self, item: PlanetTreeWidgetItem):
+        item.addMoonLeaf()
+
     def on_menu_add_star_action_triggered(self, item: GalaxyTreeWidgetItem):
         item.addStarLeaf()
 
-    def on_menu_add_action_triggered(self, item: TreeWidgetItem):
+    def on_menu_add_action_triggered(self, item: StarTreeWidgetItem):
         item.addPlanetLeaf()
 
     def addLeaf(self, new_galaxy_condition: GalaxyCondition) -> GalaxyTreeWidgetItem:
