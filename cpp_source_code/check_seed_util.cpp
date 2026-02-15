@@ -41,6 +41,7 @@ bool check_galaxy_level_1(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 
 bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
+	const PlanetDataSimple& planet_data = star_data.planets[planet_index];
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
 	if(planet_condition.type && planet_condition.type != planet_data.type_id &&
@@ -181,6 +182,8 @@ static uint16_t get_star_veins_mask(const StarClassSimple& star_data,const StarC
 
 bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
+    const PlanetDataSimple& planet_data = star_data.planets[planet_index];
+
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
 	if(planet_condition.type && planet_condition.type != planet_data.type_id &&

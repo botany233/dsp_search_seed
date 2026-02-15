@@ -4,6 +4,7 @@ from config.cfg_dict_tying import (
     GalaxyCondition,
     PlanetCondition,
     StarCondition,
+    MoonCondition,
     VeinsCondition,
     VeinsName,
 )
@@ -57,7 +58,30 @@ def config_to_planet_condition(planet_cfg: PlanetCondition) -> dict:
             planet_condition["dsp_level"] = planet_cfg.dsp_level
         if planet_cfg.satisfy_num > 1:
             planet_condition["satisfy_num"] = planet_cfg.satisfy_num
+    planet_condition["moons"] = [config_to_moon_condition(moon_cfg) for moon_cfg in planet_cfg.moon_conditions]
     return planet_condition
+
+def config_to_moon_condition(moon_cfg: MoonCondition) -> dict:
+    moon_condition = {}
+    if moon_cfg.checked:
+        if (veins_group := get_veins_dict(moon_cfg.veins_condition)):
+            moon_condition["veins_group"] = veins_group
+        if (veins_point := get_veins_dict(moon_cfg.veins_point_condition)):
+            moon_condition["veins_point"] = veins_point
+        if moon_cfg.planet_type != "无限制":
+            moon_condition["type"] = moon_cfg.planet_type
+        if moon_cfg.singularity != "无限制":
+            if moon_cfg.singularity == "潮汐锁定":
+                moon_condition["singularity"] = "潮汐锁定永昼永夜"
+            else:
+                moon_condition["singularity"] = moon_cfg.singularity
+        if moon_cfg.liquid_type != "无限制":
+            moon_condition["liquid"] = moon_cfg.liquid_type
+        if moon_cfg.dsp_level != "无限制":
+            moon_condition["dsp_level"] = moon_cfg.dsp_level
+        if moon_cfg.satisfy_num > 1:
+            moon_condition["satisfy_num"] = moon_cfg.satisfy_num
+    return moon_condition
 
 def get_veins_dict(data: VeinsCondition) -> dict:
     veins = {}

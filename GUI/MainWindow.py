@@ -242,7 +242,9 @@ class MainWindow(FluentWindow):
         for star_condition in galaxy_condition.star_condition:
             star_leaf = galaxy_leaf.addStarLeaf(star_condition)
             for planet_condition in star_condition.planet_condition:
-                star_leaf.addPlanetLeaf(planet_condition)
+                planet_leaf = star_leaf.addPlanetLeaf(planet_condition)
+                for moon_condition in planet_condition.moon_conditions:
+                    planet_leaf.addMoonLeaf(moon_condition)
         for planet_condition in galaxy_condition.planet_condition:
             galaxy_leaf.addPlanetLeaf(planet_condition)
 

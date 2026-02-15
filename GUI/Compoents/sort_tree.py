@@ -48,6 +48,7 @@ from config.cfg_dict_tying import (
     GalaxyCondition,
     PlanetCondition,
     StarCondition,
+    MoonCondition,
     VeinsName,
     BaseModel
 )
@@ -361,6 +362,44 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj: PlanetCondition):
         super().__init__(root, config_obj, "planet_condition")
 
+    def add_widgets(self):
+        self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
+        self.root.setItemWidget(self, 1, self.leaf)
+        self.leaf.load_config()
+
+        self.manageButtons = TreeWidgetLeave()
+        self.root.setItemWidget(self, 2, self.manageButtons)
+        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
+
+        self.manageButtons.addButton.setHidden(True)
+        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
+        self.manageButtons.addPlanetButton.setToolTip("添加卫星条件")
+        self.manageButtons.adjustButton = TransparentToolButton()
+        self.manageButtons.adjustButton.setToolTip("eggg")
+        self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=5000))
+        qss = """TransparentToolButton:hover{background: transparent}"""
+        setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
+        self.manageButtons.mainLayout.insertWidget(0, self.manageButtons.adjustButton)
+
+    def _on_add_button_clicked(self):
+        self.addMoonLeaf()
+    
+    def addMoonLeaf(self, new_planet_condition: MoonCondition|None = None) -> "MoonTreeWidgetItem":
+        if new_planet_condition is None:
+            new_planet_condition = MoonCondition()
+            self.config_obj.moon_conditions.append(new_planet_condition)
+            cfg.save()
+
+        new_leaf = MoonTreeWidgetItem(self.root, new_planet_condition)
+        self.addChild(new_leaf)
+        new_leaf.add_widgets()
+        self.setExpanded(True)
+        return new_leaf
+
+class MoonTreeWidgetItem(TreeWidgetItem):
+    def __init__(self, root: "SortTree", config_obj: MoonCondition):
+        super().__init__(root, config_obj, "moon_conditions")
+    
     def add_widgets(self):
         self.leaf = PlanetTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
