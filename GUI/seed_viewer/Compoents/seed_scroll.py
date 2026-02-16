@@ -1,10 +1,21 @@
-from PySide6.QtWidgets import QTableWidgetItem, QApplication
-from qfluentwidgets import TableWidget, TableItemDelegate
+from PySide6.QtWidgets import QTableWidgetItem, QApplication, QTableWidget
+from PySide6.QtCore import QObject, Qt, Signal
+from qfluentwidgets import TableWidget, TableItemDelegate, RoundMenu, CheckableMenu, Action, FluentIcon, MenuIndicatorType
+from logger import log
 
 class SeedScroll(TableWidget):
+
+    SelectModeChanged = Signal(bool)
+    SeedListUpdated = Signal()
+
     def __init__(self, seed_list: list[int, int, float|int]):
         super().__init__()
+        self._multi_select = False
+        self.all_selected = False
+        self.disable_context_menu = False
         self.seed_list = seed_list
+        self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.__on_menu_requested)
         self.setEditTriggers(TableWidget.NoEditTriggers)
         self.setItemDelegate(TableItemDelegate(self))
         self.setColumnCount(3)
@@ -19,7 +30,72 @@ class SeedScroll(TableWidget):
         header.setSectionResizeMode(0, header.ResizeMode.Fixed)
         header.setSectionResizeMode(1, header.ResizeMode.Fixed)
         header.setSectionResizeMode(2, header.ResizeMode.Fixed)
-        self.setSelectionMode(TableWidget.SingleSelection)
+        self.setSelectionMode(QTableWidget.SingleSelection)
+
+    @property
+    def multi_select(self) -> bool:
+        return self._multi_select
+
+    @multi_select.setter
+    def multi_select(self, value: bool):
+        self._multi_select = value
+        if value:
+            self.setSelectionMode(QTableWidget.ExtendedSelection)
+        else:
+            self.setSelectionMode(QTableWidget.SingleSelection)
+        self.SelectModeChanged.emit(value)
+
+    def __on_menu_requested(self, pos):
+
+        menu = CheckableMenu(indicatorType=MenuIndicatorType.CHECK)
+        if self.disable_context_menu:
+            menu.addAction(Action("搜索中, 禁用菜单"))
+            menu.exec(self.viewport().mapToGlobal(pos))
+            menu.closedSignal.connect(menu.deleteLater)
+            return
+        mult_select_action = Action("选择模式", checkable=True)
+        mult_select_action.setChecked(self.multi_select)
+        mult_select_action.triggered.connect(lambda _: self._switch_select_mode(pos))
+        menu.addAction(mult_select_action)
+
+        normal_action = Action("查看模式", checkable=True)
+        normal_action.setChecked(not self.multi_select)
+        normal_action.triggered.connect(self._switch_select_mode)
+        menu.addAction(normal_action)
+
+        if self.multi_select:
+            menu.addSeparator()
+            output_csv_action = Action("导出选中", triggered=self._export_select)
+            menu.addAction(output_csv_action)
+
+            select_all_action = Action("全选" if not self.all_selected else "取消全选")
+            select_all_action.triggered.connect(self._select_all)
+            menu.addAction(select_all_action)
+        
+            if self.selectedItems() and not self.all_selected:
+                clear_select_action = Action("取消选中")
+                clear_select_action.triggered.connect(self._clear_select)
+                menu.addAction(clear_select_action)
+            menu.addSeparator()
+            
+            del_action = Action("删除选中", triggered=self.delete_select)
+            menu.addAction(del_action)
+
+
+        test_action = Action("打印选中")
+        test_action.triggered.connect(self.test)
+        menu.addAction(test_action)
+
+        menu.exec(self.viewport().mapToGlobal(pos))
+        menu.closedSignal.connect(menu.deleteLater)
+
+    def test(self):
+        items = self.selectedItems()
+        ret = set()
+        assert len(items) % 3 == 0
+        for seed, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
+            ret.add((int(seed.text()), int(star_num.text())))
+        print(ret)
 
     def fresh(self) -> None:
         self.setRowCount(len(self.seed_list))
@@ -46,23 +122,64 @@ class SeedScroll(TableWidget):
             for table_col in range(3):
                 self.setItem(table_row, table_col, QTableWidgetItem(str(self.seed_list[seed_row][table_col])))
 
-    def delete_select(self) -> None:
-        target_seed, target_star_num = self.get_select_seed(True)
-        for i, (seed, star_num, _) in enumerate(self.seed_list):
-            if seed == target_seed and star_num == target_star_num:
-                self.seed_list.pop(i)
-                return
+    def _export_select(self) -> None:
+        data = self.get_select_seed()
+        if data:
+            for (seed, star_num) in data:
+                print(seed, star_num)
+                # TODO: 靠你惹
+        log.error("靠你惹")
 
-    def get_select_seed(self, pop = False) -> tuple[int, int]:
-        selected_indexes = self.selectedIndexes()
-        if not selected_indexes:
-            return -1, -1
-        row = selected_indexes[0].row()
-        seed = int(self.item(row, 0).text())
-        star_num = int(self.item(row, 1).text())
+    def _switch_select_mode(self, pos: None) -> None:
+        self.multi_select = not self.multi_select
+        # if isinstance(pos, bool):
+        #     pos = None
+
+        # if self.multi_select and pos:
+        #     self.__on_menu_requested(pos)
+
+    def _select_all(self) -> None:
+        if not self.multi_select:
+            return
+        
+        if self.all_selected:
+            self._clear_select()
+        else:
+            self.selectAll()
+            self.all_selected = True
+    
+    def _clear_select(self) -> None:
+        if not self.multi_select:
+            return
+        
+        self.clearSelection()
+        self.all_selected = False
+
+    def delete_select(self) -> None:
+        data = self.get_select_seed(True)
+        for (seed, star_num) in data:
+            for index, (s, sn, _) in enumerate(self.seed_list):
+                if s == seed and sn == star_num:
+                    self.seed_list.pop(index)
+                    break
+        self.SeedListUpdated.emit()
+            
+
+    def get_select_seed(self, pop = False) -> set[tuple[int, int]]:
+        """
+        Returns:
+            ret: set (seed, star_num)
+        """
+        items = self.selectedItems()
+        data = set()
+        assert len(items) % 3 == 0
+        for seed, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
+            data.add((int(seed.text()), int(star_num.text())))
+            if pop:
+                self.removeRow(seed.row())
         if pop:
-            self.removeRow(row)
-        return seed, star_num
+            self.clearSelection()
+        return data
 
     def get_table_value(self) -> list[tuple[int, int, float]]:
         row_count = self.rowCount()

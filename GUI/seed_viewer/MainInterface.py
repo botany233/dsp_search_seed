@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication, QDialog
-from PySide6.QtCore import Qt, QThread, Signal
-from qfluentwidgets import TitleLabel, BodyLabel, PushButton, CaptionLabel
+from PySide6.QtCore import Qt
+from qfluentwidgets import BodyLabel, PushButton
 from csv import reader
 from .Compoents import *
 from .sort_seed import SortThread
@@ -30,6 +30,7 @@ class ViewerInterface(QFrame):
 
         self.sort_thread = SortThread(self)
         self.sort_thread.label_text.connect(self.progress_label.setText)
+        self.sort_thread.started.connect(self.__on_sort_started)
         self.sort_thread.completed.connect(self.__on_sort_completed)
         self.sort_thread.finished.connect(self.__on_sort_finished)
 
@@ -46,6 +47,7 @@ class ViewerInterface(QFrame):
         self.seed_scroll.itemClicked.connect(self.__on_select_seed_change)
 
         self.seed_text = SeedText(self.seed_list, self.max_seed)
+        self.seed_scroll.SeedListUpdated.connect(self.seed_text.fresh)
         self.seed_text.setAlignment(Qt.AlignBottom)
         self.leftLayout.addWidget(self.seed_text)
 
@@ -118,7 +120,6 @@ class ViewerInterface(QFrame):
         self.buttonsLayout.addWidget(self.start_button, 3, 0)
         self.buttonsLayout.addWidget(self.stop_button, 3, 1)
 
-
     def __on_manual_add_button_clicked(self) -> None:
         dlg = ManualAddMessageBox(self.seed_list, self)
         if dlg.exec() != QDialog.Accepted:
@@ -144,11 +145,15 @@ class ViewerInterface(QFrame):
     def __on_stop_button_clicked(self) -> None:
         self.sort_thread.terminate()
 
+    def __on_sort_started(self) -> None:
+        self.seed_scroll.disable_context_menu = True
+
     def __on_sort_finished(self) -> None:
         self.start_button.setEnabled(True)
         self.stop_button.setEnabled(False)
         self.delete_button.setEnabled(True)
         self.add_button.setEnabled(True)
+        self.seed_scroll.disable_context_menu = False
 
     def __on_sort_completed(self) -> None:
         self.progress_label.setText("排序中...")
@@ -156,7 +161,10 @@ class ViewerInterface(QFrame):
         self.progress_label.setText("排序完成！")
 
     def __on_select_seed_change(self):
-        seed_id, star_num = self.seed_scroll.get_select_seed()
+        if self.seed_scroll.multi_select:
+            return
+
+        seed_id, star_num = self.seed_scroll.get_select_seed().pop()
         if seed_id < 0 or star_num < 0 or self.current_select == (seed_id, star_num):
             return
 
@@ -194,7 +202,6 @@ class ViewerInterface(QFrame):
         if self.sort_thread.isRunning():
             return
         self.seed_scroll.delete_select()
-        self.seed_text.fresh()
 
     def __on_export_button_clicked(self) -> None:
         if self.sort_thread.isRunning():
