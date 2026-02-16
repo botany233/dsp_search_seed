@@ -161,7 +161,7 @@ class ViewerInterface(QFrame):
         self.progress_label.setText("排序完成！")
 
     def __on_select_seed_change(self):
-        if self.seed_scroll.multi_select:
+        if self.seed_scroll.selected_num > 1:
             return
 
         seed_id, star_num = self.seed_scroll.get_select_seed().pop()

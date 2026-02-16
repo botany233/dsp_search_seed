@@ -5,13 +5,11 @@ from logger import log
 
 class SeedScroll(TableWidget):
 
-    SelectModeChanged = Signal(bool)
     SeedListUpdated = Signal()
 
     def __init__(self, seed_list: list[int, int, float|int]):
         super().__init__()
-        self._multi_select = False
-        self.all_selected = False
+        self.selected_num = 0
         self.disable_context_menu = False
         self.seed_list = seed_list
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
@@ -30,20 +28,12 @@ class SeedScroll(TableWidget):
         header.setSectionResizeMode(0, header.ResizeMode.Fixed)
         header.setSectionResizeMode(1, header.ResizeMode.Fixed)
         header.setSectionResizeMode(2, header.ResizeMode.Fixed)
-        self.setSelectionMode(QTableWidget.SingleSelection)
+        self.setSelectionMode(QTableWidget.ExtendedSelection)
 
-    @property
-    def multi_select(self) -> bool:
-        return self._multi_select
+        self.itemSelectionChanged.connect(self.__update_selected_num)
 
-    @multi_select.setter
-    def multi_select(self, value: bool):
-        self._multi_select = value
-        if value:
-            self.setSelectionMode(QTableWidget.ExtendedSelection)
-        else:
-            self.setSelectionMode(QTableWidget.SingleSelection)
-        self.SelectModeChanged.emit(value)
+    def __update_selected_num(self):
+        self.selected_num = len(self.selectedItems()) // 3
 
     def __on_menu_requested(self, pos):
 
@@ -53,33 +43,21 @@ class SeedScroll(TableWidget):
             menu.exec(self.viewport().mapToGlobal(pos))
             menu.closedSignal.connect(menu.deleteLater)
             return
-        mult_select_action = Action("选择模式", checkable=True)
-        mult_select_action.setChecked(self.multi_select)
-        mult_select_action.triggered.connect(lambda _: self._switch_select_mode(pos))
-        menu.addAction(mult_select_action)
+        output_csv_action = Action("导出选中", triggered=self._export_select)
+        menu.addAction(output_csv_action)
 
-        normal_action = Action("查看模式", checkable=True)
-        normal_action.setChecked(not self.multi_select)
-        normal_action.triggered.connect(self._switch_select_mode)
-        menu.addAction(normal_action)
-
-        if self.multi_select:
-            menu.addSeparator()
-            output_csv_action = Action("导出选中", triggered=self._export_select)
-            menu.addAction(output_csv_action)
-
-            select_all_action = Action("全选" if not self.all_selected else "取消全选")
-            select_all_action.triggered.connect(self._select_all)
-            menu.addAction(select_all_action)
+        select_all_action = Action("全选" if not self.all_selected else "取消全选")
+        select_all_action.triggered.connect(self._select_all)
+        menu.addAction(select_all_action)
+    
+        if self.selectedItems() and not self.all_selected:
+            clear_select_action = Action("取消选中")
+            clear_select_action.triggered.connect(self._clear_select)
+            menu.addAction(clear_select_action)
+        menu.addSeparator()
         
-            if self.selectedItems() and not self.all_selected:
-                clear_select_action = Action("取消选中")
-                clear_select_action.triggered.connect(self._clear_select)
-                menu.addAction(clear_select_action)
-            menu.addSeparator()
-            
-            del_action = Action("删除选中", triggered=self.delete_select)
-            menu.addAction(del_action)
+        del_action = Action("删除选中", triggered=self.delete_select)
+        menu.addAction(del_action)
 
 
         test_action = Action("打印选中")
@@ -88,6 +66,12 @@ class SeedScroll(TableWidget):
 
         menu.exec(self.viewport().mapToGlobal(pos))
         menu.closedSignal.connect(menu.deleteLater)
+
+    @property
+    def all_selected(self) -> bool:
+        if not self.seed_list:
+            return False
+        return self.selected_num == len(self.seed_list)
 
     def test(self):
         items = self.selectedItems()
@@ -130,30 +114,14 @@ class SeedScroll(TableWidget):
                 # TODO: 靠你惹
         log.error("靠你惹")
 
-    def _switch_select_mode(self, pos: None) -> None:
-        self.multi_select = not self.multi_select
-        # if isinstance(pos, bool):
-        #     pos = None
-
-        # if self.multi_select and pos:
-        #     self.__on_menu_requested(pos)
-
     def _select_all(self) -> None:
-        if not self.multi_select:
-            return
-        
         if self.all_selected:
             self._clear_select()
         else:
             self.selectAll()
-            self.all_selected = True
-    
+
     def _clear_select(self) -> None:
-        if not self.multi_select:
-            return
-        
         self.clearSelection()
-        self.all_selected = False
 
     def delete_select(self) -> None:
         data = self.get_select_seed(True)
