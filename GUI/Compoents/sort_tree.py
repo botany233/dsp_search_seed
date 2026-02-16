@@ -722,6 +722,7 @@ class SortTree(TreeWidget):
 
         pos = QPoint(pos.x() + 10, pos.y() + 30)
         menu.exec(self.mapToGlobal(pos))
+        menu.closedSignal.connect(menu.deleteLater)
 
     def on_menu_del_action_triggered(self, item: TreeWidgetItem):
         item._on_del_button_clicked()
