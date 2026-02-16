@@ -39,16 +39,6 @@ class GalaxyData:
     gas_veins: list[float]
     liquid: list[int]
 
-class MoonCondition:
-    satisfy_num: int = 1
-    dsp_level: int = 0
-    type: int = 0
-    liquid: int = 0
-    singularity: int = 0
-    need_veins: int = 0
-    veins_group: list[int] = [0] * 14
-    veins_point: list[int] = [0] * 14
-
 class PlanetCondition:
     satisfy_num: int = 1
     dsp_level: int = 0
@@ -58,7 +48,7 @@ class PlanetCondition:
     need_veins: int = 0
     veins_group: list[int] = [0] * 14
     veins_point: list[int] = [0] * 14
-    moons: list[MoonCondition] = []
+    moons: list[PlanetCondition] = []
 
 class StarCondition:
     satisfy_num: int = 1

@@ -12,17 +12,6 @@ struct SeedStruct {
 	SeedStruct(int seed_id,int star_num): seed_id(seed_id),star_num(star_num) {}
 };
 
-struct MoonCondition {
-	uint8_t satisfy_num = 1;
-	uint8_t dsp_level = 0;
-	uint8_t type = 0;
-	uint8_t liquid = 0;
-	uint8_t singularity = 0;
-	uint16_t need_veins = 0;
-	vector<int> veins_group = vector<int>(14,0);
-	vector<int> veins_point = vector<int>(14,0);
-};
-
 struct PlanetCondition {
 	uint8_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
@@ -32,7 +21,7 @@ struct PlanetCondition {
 	uint16_t need_veins = 0;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
-	vector<MoonCondition> moons = vector<MoonCondition>();
+	vector<PlanetCondition> moons = vector<PlanetCondition>();
 };
 
 struct StarCondition {
