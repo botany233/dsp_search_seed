@@ -3,6 +3,7 @@
 #pragma once
 #include <iostream>
 #include <cstdint>
+#include <vector>
 
 #include "defines.hpp"
 #include "LDB.hpp"
@@ -49,6 +50,7 @@ public:
 	double mod_x;
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
+	std::vector<PlanetClassSimple*> moons;
 	PlanetRawData data = PlanetRawData();
 	float orbitRadius = 1.0f;
 	float rotationPhase;
@@ -367,6 +369,7 @@ protected:
 				if(orbitAround == star.planets[index2].number && star.planets[index2].orbitAround == 0)
 				{
 					planet.orbitAroundPlanet = &star.planets[index2];
+					planet.orbitAroundPlanet->moons.push_back(&planet);
 					if(orbitIndex > 1)
 					{
 						planet.orbitAroundPlanet->singularity |= EPlanetSingularity::MultipleSatellites;
@@ -1127,40 +1130,6 @@ protected:
 				}
 			}
 		}
-		int num16 = 0;
-		int num17 = 0;
-		int index1 = 0;
-		for(int index2 = 0; index2 < star.planetCount; ++index2)
-		{
-			if(star.planets[index2].type == EPlanetType::Gas)
-			{
-				num16 = star.planets[index2].orbitIndex;
-				break;
-			}
-		}
-		for(int index3 = 0; index3 < star.planetCount; ++index3)
-		{
-			if(star.planets[index3].orbitAround == 0)
-				num17 = star.planets[index3].orbitIndex;
-		}
-		if(num16 > 0)
-		{
-			int num18 = num16 - 1;
-			bool flag = true;
-			for(int index4 = 0; index4 < star.planetCount; ++index4)
-			{
-				if(star.planets[index4].orbitAround == 0 && star.planets[index4].orbitIndex == num16 - 1)
-				{
-					flag = false;
-					break;
-				}
-			}
-			if(flag && num4 < 0.2 + (double)num18 * 0.2)
-				index1 = num18;
-		}
-		int index5 = num5 >= 0.2 ? (num5 >= 0.4 ? (num5 >= 0.8 ? 0 : num17 + 1) : num17 + 2) : num17 + 3;
-		if(index5 != 0 && index5 < 5)
-			index5 = 5;
 	}
 
 public:
