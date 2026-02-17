@@ -25,7 +25,6 @@ for name, galaxy_condition, seeds, star_nums, quick in galaxy_conditions:
     flag = perf_counter()
     check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, galaxy_condition, quick, max_thread)
     check_batch_manager.run()
-    sleep(0.1)
     while check_batch_manager.is_running():
         sleep(0.1)
     result = check_batch_manager.get_results()

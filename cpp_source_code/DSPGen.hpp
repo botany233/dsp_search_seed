@@ -317,6 +317,7 @@ public:
         int num2 = num1 + index;
         if (orbitAround > 0)
         {
+			planet.singularity |= EPlanetSingularity::Satellite;
             for (int index2 = 0; index2 < star.planetCount; ++index2)
             {
                 if (orbitAround == star.planets[index2].number && star.planets[index2].orbitAround == 0)
