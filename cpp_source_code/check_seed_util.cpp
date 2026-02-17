@@ -114,7 +114,7 @@ bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondi
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons)
 	{
-		int left_satisfy_num = planet_condition.satisfy_num;
+		int left_satisfy_num = moon_condition.satisfy_num;
 		for(const PlanetClassSimple* moon_ptr: planet_data.moons)
 		{
 			if(check_planet_level_2(*moon_ptr,moon_condition))
@@ -209,7 +209,7 @@ bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondi
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons)
 	{
-		int left_satisfy_num = planet_condition.satisfy_num;
+		int left_satisfy_num = moon_condition.satisfy_num;
 		for(const PlanetClassSimple* moon_ptr: planet_data.moons)
 		{
 			if(check_planet_level_3(*moon_ptr,moon_condition))
@@ -307,7 +307,7 @@ bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& 
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons)
 	{
-		int left_satisfy_num = planet_condition.satisfy_num;
+		int left_satisfy_num = moon_condition.satisfy_num;
 		for(PlanetClassSimple* moon_ptr: planet_data.moons)
 		{
 			if(check_planet_level_4(*moon_ptr,moon_condition))

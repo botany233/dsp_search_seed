@@ -4,8 +4,10 @@ def benchmark_condition_level_1():
     return galaxy_condition, (0, 4999999), (64, 64), True
 
 def benchmark_condition_level_2():
-    planet_condition = {"type": "水世界", "satisfy_num": 8}
-    galaxy_condition = {"planets":[planet_condition]}
+    planet_condition_1 = {"type": "水世界", "satisfy_num": 6}
+    moon_condition = {"satisfy_num": 3}
+    planet_condition_2 = {"type": "气态巨星", "satisfy_num": 2, "singularity": "多卫星", "moons": [moon_condition]}
+    galaxy_condition = {"planets":[planet_condition_1, planet_condition_2]}
     return galaxy_condition, (0, 1999999), (64, 64), True
 
 def benchmark_condition_level_3():
@@ -17,7 +19,7 @@ def benchmark_condition_level_4():
     return galaxy_condition, (0, 199), (64, 64), False
 
 def benchmark_condition_birthstar_bamboo():
-    planet_condition = {"type": "贫瘠荒漠", "veins_point": {"刺笋结晶":1}} #增产剂
+    planet_condition = {"type": "贫瘠荒漠", "veins_point": {"刺笋结晶":1}}
     star_condition = {"planets": [planet_condition], "distance": 0}
     galaxy_condition = {"stars":[star_condition]}
     return galaxy_condition, (0, 1999999), (64, 64), False
@@ -43,8 +45,9 @@ def debug_condition_star():
     return galaxy_condition, (0, 1999999), (64, 64), True
 
 def debug_condition_planet():
-    planet_condition_1 = {"type": "水世界", "satisfy_num": 8}
-    planet_condition_2 = {"type": "气态巨星", "satisfy_num": 6, "singularity": "多卫星"}
+    planet_condition_1 = {"type": "水世界", "satisfy_num": 6}
+    moon_condition = {"veins_point": {"铜":1, "钛":1, "煤":1}, "liquid": "硫酸"}
+    planet_condition_2 = {"type": "气态巨星", "satisfy_num": 4, "singularity": "多卫星", "moons": [moon_condition]}
     galaxy_condition = {"planets":[planet_condition_1, planet_condition_2]}
     return galaxy_condition, (0, 999999), (64, 64), True
 
@@ -83,4 +86,14 @@ def debug_condition_extreme_factory():
     galaxy_condition = {"stars":[star_condition], "planets": [planet_condition], "veins_group": {"单极磁石":8}, "veins_point": {"刺笋结晶": 400}}
     return galaxy_condition, (0, 999999), (64, 64), False
 
-debug_condition_functions = [debug_condition_star, debug_condition_planet, debug_condition_veins, debug_condition_good_birth_star, debug_condition_100k_factory, debug_condition_extreme_factory]
+def debug_condition_nuclear():
+    moon_condition_1 = {"veins_point": {"铜":1, "钛":1, "煤":1}, "liquid": "硫酸"}
+    moon_condition_2 = {"satisfy_num": 3}
+    planet_condition = {"type": "高产气巨", "moons": [moon_condition_1, moon_condition_2], "satisfy_num": 2}
+    galaxy_condition = {"planets":[planet_condition]}
+    return galaxy_condition, (0, 999999), (64, 64), True
+
+debug_condition_functions = [
+    debug_condition_star, debug_condition_planet, debug_condition_veins,
+    debug_condition_good_birth_star, debug_condition_100k_factory, debug_condition_extreme_factory,
+    debug_condition_nuclear]

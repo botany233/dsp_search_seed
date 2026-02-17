@@ -63,7 +63,7 @@ def del_empty_stars(condition:dict) -> None:
     if "stars" in condition:
         for i in range(len(condition["stars"])-1, -1, -1):
             del_empty_planets(condition["stars"][i])
-            if is_empty_condition(condition["stars"][i]):
+            if not condition["stars"][i]:
                 condition["stars"].pop(i)
         if not condition["stars"]:
             condition.pop("stars")
@@ -72,7 +72,7 @@ def del_empty_planets(condition:dict) -> None:
     if "planets" in condition:
         for j in range(len(condition["planets"])-1, -1, -1):
             del_empty_moons(condition["planets"][j])
-            if is_empty_condition(condition["planets"][j]):
+            if not condition["planets"][j]:
                 condition["planets"].pop(j)
         if not condition["planets"]:
             condition.pop("planets")
@@ -80,10 +80,7 @@ def del_empty_planets(condition:dict) -> None:
 def del_empty_moons(condition:dict) -> None:
     if "moons" in condition:
         for j in range(len(condition["moons"])-1, -1, -1):
-            if is_empty_condition(condition["moons"][j]):
+            if not condition["moons"][j]:
                 condition["moons"].pop(j)
         if not condition["moons"]:
             condition.pop("moons")
-
-def is_empty_condition(condition:dict) -> bool:
-    return len(condition) == 0 or (len(condition) == 1 and "satisfy_num" in condition)
