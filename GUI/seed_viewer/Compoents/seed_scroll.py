@@ -4,6 +4,7 @@ from qfluentwidgets import TableWidget, TableItemDelegate, RoundMenu, CheckableM
 from logger import log
 
 from .seed_list import SeedList
+from .export_window import ExportWindow
 
 class SeedScroll(TableWidget):
     SeedListUpdated = Signal()
@@ -38,7 +39,7 @@ class SeedScroll(TableWidget):
     #     self.selected_num = len(self.selectedItems()) // 3
 
     def __on_menu_requested(self, pos):
-        menu = CheckableMenu(indicatorType=MenuIndicatorType.CHECK)
+        menu = RoundMenu()
         if self.disable_context_menu:
             menu.addAction(Action("搜索中, 禁用菜单"))
             menu.exec(self.viewport().mapToGlobal(pos))
@@ -112,7 +113,13 @@ class SeedScroll(TableWidget):
         self.clearSelection()
 
     def _export_select(self) -> None:
-        data = self.get_select_seed()
+        # if self.selected_num <= 0:
+        #     return
+        window = ExportWindow(parent=self.parent().parent())
+        window.show()
+            # data = window.data
+        # data = self.get_select_seed()
+        return
         if data:
             for (seed, star_num) in data:
                 print(seed, star_num)

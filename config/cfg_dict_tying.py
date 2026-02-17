@@ -88,6 +88,39 @@ class GalaxyCondition(BaseModel):
     star_condition: list[StarCondition] = []
     planet_condition: list[PlanetCondition] = []
 
+# csv 导出设置
+
+class GalaxyExportCondition(BaseModel):
+    enable: bool = True
+    veins: bool = True
+    gas_veins: bool = True
+    liquid: bool = True
+    stars_types: bool = True
+
+class StarExportCondition(BaseModel):
+    enable: bool = True
+    distance: bool = True
+    location: bool = True
+    ds_radius: bool = True
+    ds_lumino: bool = True
+    veins: bool = True
+    gas_veins: bool = True
+    liquid: bool = True
+    star_type: bool = True
+
+class PlanetExportCondition(BaseModel):
+    enable: bool = True
+    distance: bool = True
+    location: bool = True
+    singularity: bool = True
+    dsp_level: bool = True
+    liquid: bool = True
+    veins: bool = True
+    gas_veins: bool = True
+    planet_type: bool = True
+    wind_usage: bool = True
+    light_usage: bool = True
+
 class GUIConfig(BaseModel):
     start_seed: int = 0
     end_seed: int = 99999
@@ -103,6 +136,10 @@ class GUIConfig(BaseModel):
     local_size: int = 256
     device_name: str = "cpu"
     use_gpu: bool = False # 仅仅是方便初始化, 不过确实是关联的
+    # csv
+    csv_galaxy: GalaxyExportCondition = GalaxyExportCondition()
+    csv_star: StarExportCondition = StarExportCondition()
+    csv_planet: PlanetExportCondition = PlanetExportCondition()
 
 if __name__ == "__main__":
     # cfg = GUIConfig()
