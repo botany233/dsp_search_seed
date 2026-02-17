@@ -1,15 +1,14 @@
 from PySide6.QtCore import QThread, Signal
-from CApi import *
-from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-from .sort_seed_util import get_value_function
-from config import cfg
-from time import sleep, perf_counter
-
-from logger import log
+from time import sleep
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from GUI.seed_viewer.MainInterface import ViewerInterface
+
+from config import cfg
+from logger import log
+from CApi import *
+from .sort_seed_util import get_value_function
 
 class SortThread(QThread):
     finished = Signal()
@@ -36,19 +35,19 @@ class SortThread(QThread):
             self.running = True
             self.label_text.emit("正在生成任务...")
 
-            finish_num, task_num = 0, len(self.seed_list)
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
 
             get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
-            seed_index_dict = {}
-            for index, (seed_id, star_num, _) in enumerate(self.seed_list):
-                seed_index_dict[(seed_id, star_num)] = index
+
+            data = self.seed_list.get_all_data()
+            for seed_id, star_num, _ in data:
                 get_data_manager.add_task(seed_id, star_num)
 
                 if self.end_flag:
                     get_data_manager.shutdown()
                     break
             else:
+                finish_num, task_num = 0, len(data)
                 self.label_text.emit(f"0/{task_num}(0%)")
                 while finish_num < task_num:
                     if self.end_flag:
@@ -59,10 +58,9 @@ class SortThread(QThread):
                     if len(results) > 0:
                         for galaxy_data in results:
                             value = value_func(galaxy_data)
-                            index = seed_index_dict[(galaxy_data.seed, galaxy_data.star_num)]
-                            self.seed_list[index][2] = value
+                            self.seed_list.set_seed_value(galaxy_data.seed, galaxy_data.star_num, value)
                         finish_num += len(results)
-                        self.label_text.emit(f"{finish_num}/{task_num}({round(finish_num/task_num*100)}%)")
+                        self.label_text.emit(f"{finish_num}/{task_num}({finish_num/task_num:.0%})")
                         sleep(0.01)
                     else:
                         sleep(0.1)

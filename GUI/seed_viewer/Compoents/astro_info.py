@@ -220,8 +220,8 @@ class PlanetInfo(InfoBase):
 
         self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid, data.is_gas))
         other_label = CaptionLabel(f'''\
-风能利用率：{data.wind*100:.0f}%
-光能利用率：{data.lumino*100:.0f}%''')
+风能利用率：{data.wind:.0%}
+光能利用率：{data.lumino:.0%}''')
         self.main_layout.addWidget(other_label)
 
 def get_veins_list(veins: list[int], gas_veins: list[float], liquid: list[int]|int, is_gas = False) -> list[str]:

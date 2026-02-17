@@ -1,7 +1,9 @@
 from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase
 
+from .seed_list import SeedList
+
 class ManualAddMessageBox(MessageBoxBase):
-    def __init__(self, seed_list: list, parent=None):
+    def __init__(self, seed_list: SeedList, parent=None):
         super().__init__(parent)
         title_label = TitleLabel("手动添加种子", self)
         self.viewLayout.addWidget(title_label)
@@ -30,7 +32,7 @@ class ManualAddMessageBox(MessageBoxBase):
             if not (0 <= seed <= 99999999 and 32 <= star_num <= 64):
                 self.warning_label.setText("无效的种子！")
                 return False
-            elif (seed, star_num) in [(i[0], i[1]) for i in self.seed_list]:
+            elif self.seed_list.is_exist(seed, star_num):
                 self.warning_label.setText("种子已存在！")
                 return False
             else:

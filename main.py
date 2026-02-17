@@ -4,7 +4,7 @@ from PySide6.QtCore import Qt
 import sys
 import os
 from config import cfg
-import multiprocessing
+# import multiprocessing
 from CApi import *
 
 def main():
@@ -29,7 +29,7 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
+    # multiprocessing.freeze_support()
     os.chdir(
         os.path.dirname(sys.executable)
         if getattr(sys, "frozen", False)

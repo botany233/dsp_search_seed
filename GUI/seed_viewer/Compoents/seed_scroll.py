@@ -1,14 +1,16 @@
 from PySide6.QtWidgets import QTableWidgetItem, QApplication, QTableWidget
-from PySide6.QtCore import QObject, Qt, Signal
+from PySide6.QtCore import QObject, Qt, Signal, QMutex, QMutexLocker
 from qfluentwidgets import TableWidget, TableItemDelegate, RoundMenu, CheckableMenu, Action, FluentIcon, MenuIndicatorType
 from logger import log
 
+from .seed_list import SeedList
+
 class SeedScroll(TableWidget):
-
     SeedListUpdated = Signal()
-
-    def __init__(self, seed_list: list[int, int, float|int]):
+    def __init__(self, seed_list: SeedList):
         super().__init__()
+        self.mutex = QMutex()
+
         self.selected_num = 0
         self.disable_context_menu = False
         self.seed_list = seed_list
@@ -30,64 +32,66 @@ class SeedScroll(TableWidget):
         header.setSectionResizeMode(2, header.ResizeMode.Fixed)
         self.setSelectionMode(QTableWidget.ExtendedSelection)
 
-        self.itemSelectionChanged.connect(self.__update_selected_num)
+    #     self.itemSelectionChanged.connect(self.__update_selected_num)
 
-    def __update_selected_num(self):
-        self.selected_num = len(self.selectedItems()) // 3
+    # def __update_selected_num(self):
+    #     self.selected_num = len(self.selectedItems()) // 3
 
     def __on_menu_requested(self, pos):
-
         menu = CheckableMenu(indicatorType=MenuIndicatorType.CHECK)
         if self.disable_context_menu:
             menu.addAction(Action("搜索中, 禁用菜单"))
             menu.exec(self.viewport().mapToGlobal(pos))
             menu.closedSignal.connect(menu.deleteLater)
             return
-        output_csv_action = Action("导出选中", triggered=self._export_select)
+        output_csv_action = Action("导出选中种子", triggered=self._export_select)
         menu.addAction(output_csv_action)
 
-        select_all_action = Action("全选" if not self.all_selected else "取消全选")
-        select_all_action.triggered.connect(self._select_all)
-        menu.addAction(select_all_action)
-    
-        if self.selectedItems() and not self.all_selected:
-            clear_select_action = Action("取消选中")
-            clear_select_action.triggered.connect(self._clear_select)
-            menu.addAction(clear_select_action)
-        menu.addSeparator()
-        
-        del_action = Action("删除选中", triggered=self.delete_select)
-        menu.addAction(del_action)
+        # select_all_action = Action("全选" if not self.all_selected else "取消全选")
+        # select_all_action.triggered.connect(self._select_all)
+        # menu.addAction(select_all_action)
 
+        # if self.selectedItems() and not self.all_selected:
+        #     clear_select_action = Action("取消选中")
+        #     clear_select_action.triggered.connect(self._clear_select)
+        #     menu.addAction(clear_select_action)
+        # menu.addSeparator()
 
-        test_action = Action("打印选中")
-        test_action.triggered.connect(self.test)
-        menu.addAction(test_action)
+        # del_action = Action("删除选中", triggered=self.delete_select)
+        # menu.addAction(del_action)
+
+        # test_action = Action("打印选中")
+        # test_action.triggered.connect(self.test)
+        # menu.addAction(test_action)
 
         menu.exec(self.viewport().mapToGlobal(pos))
         menu.closedSignal.connect(menu.deleteLater)
 
-    @property
-    def all_selected(self) -> bool:
-        if not self.seed_list:
-            return False
-        return self.selected_num == len(self.seed_list)
+    # @property
+    # def all_selected(self) -> bool:
+    #     if not self.seed_list:
+    #         return False
+    #     return self.selected_num == len(self.seed_list)
 
-    def test(self):
-        items = self.selectedItems()
-        ret = set()
-        assert len(items) % 3 == 0
-        for seed, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
-            ret.add((int(seed.text()), int(star_num.text())))
-        print(ret)
+    # def test(self):
+    #     items = self.selectedItems()
+    #     ret = set()
+    #     assert len(items) % 3 == 0
+    #     for seed, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
+    #         ret.add((int(seed.text()), int(star_num.text())))
+    #     print(ret)
 
     def fresh(self) -> None:
-        self.setRowCount(len(self.seed_list))
-        for row in range(len(self.seed_list)):
-            for col in range(3):
-                self.setItem(row, col, QTableWidgetItem(str(self.seed_list[row][col])))
+        locker = QMutexLocker(self.mutex)
+        data = self.seed_list.get_all_data()
+        self.setRowCount(len(data))
+        for row, (seed, star_num, sort_value) in enumerate(data):
+            self.setItem(row, 0, QTableWidgetItem(str(seed)))
+            self.setItem(row, 1, QTableWidgetItem(str(star_num)))
+            self.setItem(row, 2, QTableWidgetItem(str(sort_value)))
 
     def add_row(self, seed: int, star_num: int) -> None:
+        locker = QMutexLocker(self.mutex)
         row_count = self.rowCount()
         self.setRowCount(row_count + 1)
         self.setItem(row_count, 0, QTableWidgetItem(str(seed)))
@@ -95,16 +99,16 @@ class SeedScroll(TableWidget):
         self.setItem(row_count, 2, QTableWidgetItem(str(0)))
 
     def do_sort(self, is_ascending_order = True) -> None:
-        sort_list = [(i, value[2]) for i, value in enumerate(self.seed_list)]
-        if is_ascending_order:
-            sort_list.sort(key=lambda x:x[1])
-        else:
-            sort_list.sort(key=lambda x:x[1], reverse=True)
-        for table_row, i in enumerate(sort_list):
-            QApplication.processEvents()
-            seed_row = i[0]
-            for table_col in range(3):
-                self.setItem(table_row, table_col, QTableWidgetItem(str(self.seed_list[seed_row][table_col])))
+        locker = QMutexLocker(self.mutex)
+        data = self.seed_list.get_all_data()
+        data.sort(key=lambda x:x[2], reverse=not is_ascending_order)
+
+        for table_row, (seed_id, star_num, sort_value) in enumerate(data):
+            self.setItem(table_row, 0, QTableWidgetItem(str(seed_id)))
+            self.setItem(table_row, 1, QTableWidgetItem(str(star_num)))
+            self.setItem(table_row, 2, QTableWidgetItem(str(sort_value)))
+            if table_row % 100 == 0:
+                QApplication.processEvents()
 
     def _export_select(self) -> None:
         data = self.get_select_seed()
@@ -114,37 +118,33 @@ class SeedScroll(TableWidget):
                 # TODO: 靠你惹
         log.error("靠你惹")
 
-    def _select_all(self) -> None:
-        if self.all_selected:
-            self._clear_select()
-        else:
-            self.selectAll()
+    # def _select_all(self) -> None:
+    #     if self.all_selected:
+    #         self._clear_select()
+    #     else:
+    #         self.selectAll()
 
-    def _clear_select(self) -> None:
-        self.clearSelection()
+    # def _clear_select(self) -> None:
+    #     self.clearSelection()
 
-    def delete_select(self) -> None:
-        data = self.get_select_seed(True)
-        for (seed, star_num) in data:
-            for index, (s, sn, _) in enumerate(self.seed_list):
-                if s == seed and sn == star_num:
-                    self.seed_list.pop(index)
-                    break
-        self.SeedListUpdated.emit()
-            
+    # def delete_select(self) -> None:
+    #     data = self.get_select_seed(True)
+    #     for (seed, star_num) in data:
+    #         for index, (s, sn, _) in enumerate(self.seed_list):
+    #             if s == seed and sn == star_num:
+    #                 self.seed_list.pop(index)
+    #                 break
+    #     self.SeedListUpdated.emit()
 
-    def get_select_seed(self, pop = False) -> set[tuple[int, int]]:
-        """
-        Returns:
-            ret: set (seed, star_num)
-        """
+    def get_select_seed(self, pop = False) -> list[tuple[int, int]]:
+        locker = QMutexLocker(self.mutex)
         items = self.selectedItems()
-        data = set()
+        data = []
         assert len(items) % 3 == 0
-        for seed, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
-            data.add((int(seed.text()), int(star_num.text())))
+        for seed_id, star_num, sort_value in zip(items[::3], items[1::3], items[2::3]):
+            data.append((int(seed_id.text()), int(star_num.text())))
             if pop:
-                self.removeRow(seed.row())
+                self.removeRow(seed_id.row())
         if pop:
             self.clearSelection()
         return data
