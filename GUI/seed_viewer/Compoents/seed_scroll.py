@@ -81,14 +81,14 @@ class SeedScroll(TableWidget):
     #         ret.add((int(seed.text()), int(star_num.text())))
     #     print(ret)
 
-    def fresh(self) -> None:
-        locker = QMutexLocker(self.mutex)
-        data = self.seed_list.get_all_data()
-        self.setRowCount(len(data))
-        for row, (seed, star_num, sort_value) in enumerate(data):
-            self.setItem(row, 0, QTableWidgetItem(str(seed)))
-            self.setItem(row, 1, QTableWidgetItem(str(star_num)))
-            self.setItem(row, 2, QTableWidgetItem(str(sort_value)))
+    # def fresh(self) -> None:
+    #     locker = QMutexLocker(self.mutex)
+    #     data = self.seed_list.get_all_data()
+    #     self.setRowCount(len(data))
+    #     for row, (seed, star_num, sort_value) in enumerate(data):
+    #         self.setItem(row, 0, QTableWidgetItem(str(seed)))
+    #         self.setItem(row, 1, QTableWidgetItem(str(star_num)))
+    #         self.setItem(row, 2, QTableWidgetItem(str(sort_value)))
 
     def add_row(self, seed: int, star_num: int) -> None:
         locker = QMutexLocker(self.mutex)
@@ -109,6 +109,7 @@ class SeedScroll(TableWidget):
             self.setItem(table_row, 2, QTableWidgetItem(str(sort_value)))
             if table_row % 100 == 0:
                 QApplication.processEvents()
+        self.clearSelection()
 
     def _export_select(self) -> None:
         data = self.get_select_seed()
