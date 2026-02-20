@@ -50,33 +50,33 @@ QFrame {
         qss = qss.replace("--background-color", "rgb(255, 255, 255)" if not isDarkTheme() else "rgb(43, 43, 43)")
         self.setStyleSheet(qss)
 
-class FlowLayout(QGridLayout):
-    def __init__(self, /, parent: QWidget | None = None) -> None:
-        super().__init__(parent)
-        self.flow_num: int = 0
+# class FlowLayout(QGridLayout):
+#     def __init__(self, /, parent: QWidget | None = None) -> None:
+#         super().__init__(parent)
+#         self.flow_num: int = 0
     
-    def setFlowNum(self, num: int):
-        self.flow_num = num
-        self.flow()
+#     def setFlowNum(self, num: int):
+#         self.flow_num = num
+#         self.flow()
 
-    def flow(self):
-        children = []
-        for row in range(self.rowCount()):
-            for col in range(self.columnCount()):
-                item = self.itemAtPosition(row, col)
-                if item is not None:
-                    widget = item.widget()
-                    if widget is not None:
-                        self.removeWidget(widget)
-                        children.append(widget)
-        for child in children:
-            self.addFlowWidget(child)
+#     def flow(self):
+#         children = []
+#         for row in range(self.rowCount()):
+#             for col in range(self.columnCount()):
+#                 item = self.itemAtPosition(row, col)
+#                 if item is not None:
+#                     widget = item.widget()
+#                     if widget is not None:
+#                         self.removeWidget(widget)
+#                         children.append(widget)
+#         for child in children:
+#             self.addFlowWidget(child)
 
-    def addFlowWidget(self, widget: QWidget):
-        count = self.count()
-        row = count // self.flow_num
-        col = count % self.flow_num
-        self.addWidget(widget, row, col)
+#     def addFlowWidget(self, widget: QWidget):
+#         count = self.count()
+#         row = count // self.flow_num
+#         col = count % self.flow_num
+#         self.addWidget(widget, row, col)
 
 class ChoiceWindow(QFrame, Ui_MessageBox):
     def __init__(self, parent=None):
@@ -112,99 +112,71 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.__init__star()
 
     def __init__galaxy(self):
-        self.galaxy_title = BodyLabel("选择导出的星系信息")
-        self.galaxy_box = ConfigCheckBox("创建星系表", config_key="enable", config_obj=cfg.config.csv_galaxy)
-        self.galaxyTitleLayout = QHBoxLayout()
-        self.galaxyTitleLayout.setContentsMargins(0, 0, 0, 0)
-        self.galaxyTitleLayout.addWidget(self.galaxy_title, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.galaxyTitleLayout.addWidget(self.galaxy_box, alignment=Qt.AlignmentFlag.AlignRight)
-        self.galaxyGridLayout = FlowLayout()
-        self.galaxyGridLayout.setFlowNum(4)
-        self.galaxyGridLayout.setContentsMargins(0, 0, 0, 0)
-        self.galaxy_veins_box = ConfigCheckBox("矿脉", config_key="veins", config_obj=cfg.config.csv_galaxy)
-        self.galaxy_gas_box = ConfigCheckBox("气体矿脉", config_key="gas_veins", config_obj=cfg.config.csv_galaxy)
-        self.galaxy_liquid_box = ConfigCheckBox("液体", config_key="liquid", config_obj=cfg.config.csv_galaxy)
-        self.galaxy_stars_types_box = ConfigCheckBox("恒星类型", config_key="stars_types", config_obj=cfg.config.csv_galaxy)
-        self.galaxyGridLayout.addFlowWidget(self.galaxy_veins_box)
-        self.galaxyGridLayout.addFlowWidget(self.galaxy_gas_box)
-        self.galaxyGridLayout.addFlowWidget(self.galaxy_liquid_box)
-        self.galaxyGridLayout.addFlowWidget(self.galaxy_stars_types_box)
+        curTitleLayout = QHBoxLayout()
+        curTitleLayout.setContentsMargins(0, 0, 0, 0)
+        curTitleLayout.addWidget(BodyLabel("选择导出的星系信息"), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox("创建星系表", config_key="enable", config_obj=cfg.config.csv.galaxy), alignment=Qt.AlignmentFlag.AlignRight)
 
+        boxs_paras = [
+            [("恒星类型", "star_types"), ("行星类型", "planet_types")],
+            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+        ]
 
-        self.galaxyLayout.addLayout(self.galaxyTitleLayout)
+        curGridLayout = QGridLayout()
+        curGridLayout.setContentsMargins(0, 0, 0, 0)
+        for row, box_paras in enumerate(boxs_paras):
+            for col, (display_text, config_key) in enumerate(box_paras):
+                box = ConfigCheckBox(display_text, config_key=config_key, config_obj=cfg.config.csv.galaxy)
+                curGridLayout.addWidget(box, row, col)
+
+        self.galaxyLayout.addLayout(curTitleLayout)
         self.galaxyLayout.addSpacing(10)
-        self.galaxyLayout.addLayout(self.galaxyGridLayout)
+        self.galaxyLayout.addLayout(curGridLayout)
 
     def __init__star(self):
-        self.star_title = BodyLabel("选择导出的恒星信息")
-        self.star_box = ConfigCheckBox("创建恒星表", config_key="enable", config_obj=cfg.config.csv_star)
-        self.starTitleLayout = QHBoxLayout()
-        self.starTitleLayout.setContentsMargins(0, 0, 0, 0)
-        self.starTitleLayout.addWidget(self.star_title, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.starTitleLayout.addWidget(self.star_box, alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout = QHBoxLayout()
+        curTitleLayout.setContentsMargins(0, 0, 0, 0)
+        curTitleLayout.addWidget(BodyLabel("选择导出的恒星信息"), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox("创建恒星表", config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
-        self.star_veins_box = ConfigCheckBox("矿脉", config_key="veins", config_obj=cfg.config.csv_star)
-        self.star_gas_box = ConfigCheckBox("气体矿脉", config_key="gas_veins", config_obj=cfg.config.csv_star)
-        self.star_liquid_box = ConfigCheckBox("液体", config_key="liquid", config_obj=cfg.config.csv_star)
-        self.star_star_types_box = ConfigCheckBox("恒星类型", config_key="star_type", config_obj=cfg.config.csv_star)
-        self.star_distance_box = ConfigCheckBox("距离", config_key="distance", config_obj=cfg.config.csv_star)
-        self.star_location_box = ConfigCheckBox("位置", config_key="location", config_obj=cfg.config.csv_star)
-        self.star_lumino_box = ConfigCheckBox("戴森球亮度", config_key="ds_lumino", config_obj=cfg.config.csv_star)
-        self.star_radius_box = ConfigCheckBox("戴森球半径", config_key="ds_radius", config_obj=cfg.config.csv_star)
+        boxs_paras = [
+            [("类型", "type"), ("距离", "distance"), ("坐标", "location"), ("液体", "liquid")],
+            [("亮度", "ds_lumino"), ("戴森球半径", "ds_radius"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+        ]
 
-        self.starGridLayout = FlowLayout()
-        self.starGridLayout.setFlowNum(4)
-        self.starGridLayout.setContentsMargins(0, 0, 0, 0)
-        self.starGridLayout.addFlowWidget(self.star_veins_box)
-        self.starGridLayout.addFlowWidget(self.star_gas_box)
-        self.starGridLayout.addFlowWidget(self.star_liquid_box)
-        self.starGridLayout.addFlowWidget(self.star_star_types_box)
-        self.starGridLayout.addFlowWidget(self.star_distance_box)
-        self.starGridLayout.addFlowWidget(self.star_location_box)
-        self.starGridLayout.addFlowWidget(self.star_lumino_box)
-        self.starGridLayout.addFlowWidget(self.star_radius_box)
+        curGridLayout = QGridLayout()
+        curGridLayout.setContentsMargins(0, 0, 0, 0)
+        for row, box_paras in enumerate(boxs_paras):
+            for col, (display_text, config_key) in enumerate(box_paras):
+                box = ConfigCheckBox(display_text, config_key=config_key, config_obj=cfg.config.csv.star)
+                curGridLayout.addWidget(box, row, col)
 
-        self.starLayout.addLayout(self.starTitleLayout)
+        self.starLayout.addLayout(curTitleLayout)
         self.starLayout.addSpacing(10)
-        self.starLayout.addLayout(self.starGridLayout)
+        self.starLayout.addLayout(curGridLayout)
 
     def __init__planet(self):
-        self.planet_title = BodyLabel("选择导出的行星信息")
-        self.planet_box = ConfigCheckBox("创建行星表", config_key="enable", config_obj=cfg.config.csv_planet)
-        self.planetTitleLayout = QHBoxLayout()
-        self.planetTitleLayout.setContentsMargins(0, 0, 0, 0)
-        self.planetTitleLayout.addWidget(self.planet_title, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.planetTitleLayout.addWidget(self.planet_box, alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout = QHBoxLayout()
+        curTitleLayout.setContentsMargins(0, 0, 0, 0)
+        curTitleLayout.addWidget(BodyLabel("选择导出的行星信息"), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox("创建行星表", config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
-        self.planet_veins_box = ConfigCheckBox("矿脉", config_key="veins", config_obj=cfg.config.csv_planet)
-        self.planet_gas_box = ConfigCheckBox("气体矿脉", config_key="gas_veins", config_obj=cfg.config.csv_planet)
-        self.planet_liquid_box = ConfigCheckBox("液体", config_key="liquid", config_obj=cfg.config.csv_planet)
-        self.planet_star_types_box = ConfigCheckBox("星球类型", config_key="planet_type", config_obj=cfg.config.csv_planet)
-        self.planet_distance_box = ConfigCheckBox("距离", config_key="distance", config_obj=cfg.config.csv_planet)
-        self.planet_location_box = ConfigCheckBox("位置", config_key="location", config_obj=cfg.config.csv_planet)
-        self.planet_sing_box = ConfigCheckBox("特点", config_key="singularity", config_obj=cfg.config.csv_planet)
-        self.planet_dsp_box = ConfigCheckBox("戴森球接收", config_key="dsp_level", config_obj=cfg.config.csv_planet)
-        self.planet_wind_box = ConfigCheckBox("风能利用率", config_key="wind_usage", config_obj=cfg.config.csv_planet)
-        self.planet_light_box = ConfigCheckBox("光能利用率", config_key="light_usage", config_obj=cfg.config.csv_planet)
+        boxs_paras = [
+            [("恒星名称", "star_name"), ("恒星类型", "star_type"), ("恒星光度", "star_lumino"), ("恒星距离", "star_distance"), ("恒星坐标", "star_location")],
+            [("星球类型", "planet_type"), ("词条", "singularity"), ("戴森球接收", "dsp_level"), ("液体", "liquid")],
+            [("风能利用率", "wind_usage"), ("光能利用率", "light_usage"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+        ]
 
-        self.planetGridLayout = FlowLayout()
-        self.planetGridLayout.setFlowNum(4)
-        self.planetGridLayout.setContentsMargins(0, 0, 0, 0)
-        self.planetGridLayout.addFlowWidget(self.planet_veins_box)
-        self.planetGridLayout.addFlowWidget(self.planet_gas_box)
-        self.planetGridLayout.addFlowWidget(self.planet_liquid_box)
-        self.planetGridLayout.addFlowWidget(self.planet_star_types_box)
-        self.planetGridLayout.addFlowWidget(self.planet_sing_box)
-        self.planetGridLayout.addFlowWidget(self.planet_distance_box)
-        self.planetGridLayout.addFlowWidget(self.planet_location_box)
-        self.planetGridLayout.addFlowWidget(self.planet_dsp_box)
-        self.planetGridLayout.addFlowWidget(self.planet_wind_box)
-        self.planetGridLayout.addFlowWidget(self.planet_light_box)
+        curGridLayout = QGridLayout()
+        curGridLayout.setContentsMargins(0, 0, 0, 0)
+        for row, box_paras in enumerate(boxs_paras):
+            for col, (display_text, config_key) in enumerate(box_paras):
+                box = ConfigCheckBox(display_text, config_key=config_key, config_obj=cfg.config.csv.planet)
+                curGridLayout.addWidget(box, row, col)
 
-        self.planetLayout.addLayout(self.planetTitleLayout)
+        self.planetLayout.addLayout(curTitleLayout)
         self.planetLayout.addSpacing(10)
-        self.planetLayout.addLayout(self.planetGridLayout)
-        
+        self.planetLayout.addLayout(curGridLayout)
 
     def _init_button(self):
         self.buttonGroup = QFrame()
