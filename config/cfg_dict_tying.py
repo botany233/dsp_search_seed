@@ -34,21 +34,6 @@ class VeinsCondition(BaseModel):
     bamboo_shoot_crystal: int = 0
     monopolar_magnet: int = 0
 
-class MoonCondition(BaseModel):
-    custom_name: str = "卫星条件"
-    checked: bool = True
-
-    planet_type: str = "无限制"
-    singularity: str = "无限制"
-    liquid_type: str = "无限制"
-
-    dsp_level: str = "无限制"
-    satisfy_num: int = 1
-
-    veins_condition: VeinsCondition = VeinsCondition()
-    veins_point_condition: VeinsCondition = VeinsCondition()
-    uuid: UUID = Field(default_factory=uuid4)
-
 class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
     checked: bool = True
@@ -62,7 +47,7 @@ class PlanetCondition(BaseModel):
 
     veins_condition: VeinsCondition = VeinsCondition()
     veins_point_condition: VeinsCondition = VeinsCondition()
-    moon_conditions: list[MoonCondition] = []
+    moon_conditions: list['PlanetCondition'] = []
     uuid: UUID = Field(default_factory=uuid4)
 
 class StarCondition(BaseModel):

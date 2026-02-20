@@ -35,7 +35,6 @@ from config.cfg_dict_tying import (
     GalaxyCondition,
     PlanetCondition,
     StarCondition,
-    MoonCondition,
     VeinsName,
     BaseModel
 )
@@ -368,9 +367,9 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
     def _on_add_button_clicked(self):
         self.addMoonLeaf()
     
-    def addMoonLeaf(self, new_planet_condition: MoonCondition|None = None) -> "MoonTreeWidgetItem":
+    def addMoonLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "MoonTreeWidgetItem":
         if new_planet_condition is None:
-            new_planet_condition = MoonCondition()
+            new_planet_condition = PlanetCondition()
             self.config_obj.moon_conditions.append(new_planet_condition)
             cfg.save()
 
@@ -391,7 +390,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.has_moon = True
 
 class MoonTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", config_obj: MoonCondition):
+    def __init__(self, root: "SortTree", config_obj: PlanetCondition):
         super().__init__(root, config_obj, "moon_conditions")
     
     def add_widgets(self):

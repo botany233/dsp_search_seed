@@ -21,8 +21,10 @@ class Config:
     def __init__config(self):
         self.config = GUIConfig()
         self.config.galaxy_condition.star_condition = [StarCondition()]
-        self.config.galaxy_condition.planet_condition = [PlanetCondition()]
         self.config.galaxy_condition.star_condition[0].planet_condition = [PlanetCondition()]
+        self.config.galaxy_condition.star_condition[0].planet_condition[0].moon_conditions = [PlanetCondition()]
+        self.config.galaxy_condition.planet_condition = [PlanetCondition()]
+        self.config.galaxy_condition.planet_condition[0].moon_conditions = [PlanetCondition()]
 
     def save(self) -> None:
         with open("./config.json", "w", encoding="utf-8") as f:
