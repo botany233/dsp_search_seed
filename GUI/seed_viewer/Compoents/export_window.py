@@ -1,6 +1,9 @@
+from copy import deepcopy
+from os.path import join as j_
+
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QColor, QResizeEvent
-from PySide6.QtWidgets import QHBoxLayout, QFrame, QVBoxLayout, QDialog, QGridLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QFrame, QVBoxLayout, QDialog, QGridLayout, QWidget, QFileDialog, QApplication
 from qfluentwidgets import (
     MessageBox,
     MaskDialogBase,
@@ -14,7 +17,10 @@ from qfluentwidgets import (
     isDarkTheme,
 )
 from GUI.Compoents import ConfigCheckBox
+from CApi import GetDataManager
 from config import cfg
+
+from .save_seed_info import save_seed_info
 
 class Ui_MessageBox:
     """ Ui of message box """
@@ -219,8 +225,9 @@ class PreviewWindow(QFrame, Ui_MessageBox):
         return super().resizeEvent(event)
 
 class ExportWindow(MaskDialogBase):
-    def __init__(self, parent):
+    def __init__(self, parent, selected_seeds):
         super().__init__(parent)
+        self.selected_seeds = selected_seeds
         self.setShadowEffect(60, (0, 10), QColor(0, 0, 0, 50))
         # self.widget.setGraphicsEffect(None)
 
@@ -247,12 +254,38 @@ QFrame {
         self.left_dialog.yesButton.clicked.connect(self._onYesButtonClicked)
         self.left_dialog.cancelButton.clicked.connect(self._onCancelButtonClicked)
 
+    def __do_export_seeds(self) -> None:
+        csv_config = deepcopy(cfg.config.csv)
+
+        dir_path = QFileDialog.getExistingDirectory(
+            self,
+            "选择保存文件夹",
+            # "export_seed"
+        )
+
+        if not dir_path:
+            return
+
+        get_data_manager = GetDataManager(cfg.config.max_thread, False, min(32, cfg.config.max_thread))
+        for seed_id, star_num in self.selected_seeds:
+            get_data_manager.add_task(seed_id, star_num)
+
+        finish_num, task_num = 0, len(self.selected_seeds)
+        while finish_num < task_num:
+            results = get_data_manager.get_results()
+            for result in results:
+                file_path = j_(dir_path, f"{result.seed}_{result.star_num}.csv")
+                save_seed_info(file_path, result, csv_config)
+            finish_num += len(results)
+            QApplication.processEvents()
+
     def _onYesButtonClicked(self):
+        self.__do_export_seeds()
         self.accept()
-    
+
     def _onCancelButtonClicked(self):
         self.reject()
-    
+
     def _onDone(self, code):
         super()._onDone(code)
         self.deleteLater()

@@ -115,7 +115,8 @@ class SeedScroll(TableWidget):
     def _export_select(self) -> None:
         # if self.selected_num <= 0:
         #     return
-        window = ExportWindow(parent=self.parent().parent())
+        selected_seeds = self.get_select_seed()
+        window = ExportWindow(self.parent().parent(), selected_seeds)
         window.show()
             # data = window.data
         # data = self.get_select_seed()

@@ -1,6 +1,4 @@
 from csv import reader
-from copy import deepcopy
-from os.path import join as j_
 from multiprocessing import cpu_count
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication, QDialog
@@ -12,7 +10,6 @@ from config import cfg
 from logger import log
 from .Compoents import *
 from .sort_seed import SortThread
-from .save_seed_info import save_seed_info
 
 class ViewerInterface(QFrame):
     def __init__(self, parent=None):
@@ -207,32 +204,6 @@ class ViewerInterface(QFrame):
     def __on_delete_button_clicked(self) -> None:
         data = self.seed_scroll.get_select_seed(True)
         self.seed_list.del_seeds(data)
-
-    def __do_export_seeds(self) -> None:
-        selected_seeds = self.seed_scroll.get_select_seed() #这里最好是外边导入种子列表
-        csv_config = deepcopy(cfg.config.csv)
-
-        dir_path = QFileDialog.getExistingDirectory(
-            self,
-            "选择保存文件夹",
-            "export_seed"
-        )
-
-        if not dir_path:
-            return
-
-        get_data_manager = GetDataManager(cfg.config.max_thread, False, min(32, cfg.config.max_thread))
-        for seed_id, star_num in selected_seeds:
-            get_data_manager.add_task(seed_id, star_num)
-
-        rest_num = len(selected_seeds)
-        while rest_num > 0:
-            results = get_data_manager.get_results()
-            for result in results:
-                file_path = j_(dir_path, f"{result.seed}_{result.star_num}.csv")
-                save_seed_info(file_path, result, csv_config)
-            rest_num -= len(results)
-            QApplication.processEvents()
 
     def __on_export_button_clicked(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
