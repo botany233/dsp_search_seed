@@ -1,13 +1,14 @@
+from collections import deque
+
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PySide6.QtGui import QColor
 from PySide6.QtCore import QTimer, Qt
-
 from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, LineEdit
 
-from config import cfg
-from .Widgets.button import ConfigSwitchButton
-
 from GUI.Messenger import SearchMessages
+from config import cfg
+
+from .Widgets.button import ConfigSwitchButton
 
 class UserLayout(QVBoxLayout):
     def __init__(self):
@@ -57,6 +58,8 @@ class UserLayout(QVBoxLayout):
         SearchMessages.search_progress_info.connect(self._update_progress)
         SearchMessages.new_find_seed.connect(self._update_last_seed)
 
+        self.progress_cache = deque(maxlen=1000)
+
     def _update_output_filename(self, filename: str):
         cfg.config.save_name = "seed" if filename == "" else filename
 
@@ -77,13 +80,17 @@ class UserLayout(QVBoxLayout):
             raise ValueError(f"finish_task={finish_task}不能大于total_task={total_task}！")
 
     def get_remain_time_str(self, batch_id: int, total_batch: int, use_time: float) -> str:
+        self.progress_cache.append((batch_id, use_time))
+        while use_time - self.progress_cache[0][1] > 60:
+            self.progress_cache.popleft()
         cost_time_str = self.get_format_time_str(use_time)
         if batch_id <= 0:
             leave_time_str = "?"
             speed_str = "?seed/s"
         else:
-            leave_time_str = self.get_format_time_str(use_time/batch_id*(total_batch-batch_id))
-            speed = batch_id / use_time
+            last = self.progress_cache[0]
+            speed = (batch_id - last[0]) / (use_time - last[1])
+            leave_time_str = self.get_format_time_str((total_batch-batch_id)/speed)
             if speed >= 1:
                 speed_str = f"{speed:.1f}seed/s"
             else:

@@ -14,7 +14,7 @@ if __name__ == "__main__":
     from benchmark_condition import benchmark_condition_functions
 
     max_thread = 20
-    device_id = 1
+    device_id = -1
     local_size = 256
 
     set_device_id_c(device_id)
@@ -29,10 +29,15 @@ if __name__ == "__main__":
     galaxy_conditions = []
     for condition_func in benchmark_condition_functions:
         galaxy_condition, seeds, star_nums, quick = condition_func()
+        name = condition_func.__name__
         if quick:
-            galaxy_conditions.append((f"{condition_func.__name__}_quick", galaxy_condition, seeds, star_nums, True))
+            if not name.endswith("_quick"):
+                name += "_quick"
+            galaxy_conditions.append((name, galaxy_condition, seeds, star_nums, True))
         else:
-            galaxy_conditions.append((f"{condition_func.__name__}_standard", galaxy_condition, seeds, star_nums, False))
+            if not name.endswith("_standard"):
+                name += "_standard"
+            galaxy_conditions.append((name, galaxy_condition, seeds, star_nums, False))
 
     for name, galaxy_condition, seeds, star_nums, quick in galaxy_conditions:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)

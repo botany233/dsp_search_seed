@@ -16,7 +16,7 @@ def benchmark_condition_level_3_quick():
 
 def benchmark_condition_level_3_standard():
     galaxy_condition = {"veins_point": {"单极磁石":250, "油":250}}
-    return galaxy_condition, (0, 999999), (64, 64), True
+    return galaxy_condition, (0, 9999), (64, 64), False
 
 def benchmark_condition_level_4():
     galaxy_condition = {"veins_point": {"铁":30000}}

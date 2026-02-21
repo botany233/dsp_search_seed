@@ -9,6 +9,7 @@ from qfluentwidgets import (
     MaskDialogBase,
     Dialog,
     BodyLabel,
+    CaptionLabel,
     FluentStyleSheet,
     TitleLabel,
     CheckBox,
@@ -93,6 +94,8 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.choiceLayout = QVBoxLayout()
         self.choiceLayout.setContentsMargins(15, 15, 15, 0)
         self.mainLayout.addLayout(self.choiceLayout)
+        self.progress_text = CaptionLabel()
+        self.mainLayout.addWidget(self.progress_text)
         self._init_button()
 
         self.title = TitleLabel("选择导出内容")
@@ -266,17 +269,20 @@ QFrame {
         if not dir_path:
             return
 
+        self.left_dialog.progress_text.setText("正在生成任务...")
+        finish_num, task_num = 0, len(self.selected_seeds)
         get_data_manager = GetDataManager(cfg.config.max_thread, False, min(32, cfg.config.max_thread))
         for seed_id, star_num in self.selected_seeds:
             get_data_manager.add_task(seed_id, star_num)
 
-        finish_num, task_num = 0, len(self.selected_seeds)
+        self.left_dialog.progress_text.setText(f"0/{task_num}(0%)")
         while finish_num < task_num:
             results = get_data_manager.get_results()
             for result in results:
                 file_path = j_(dir_path, f"{result.seed}_{result.star_num}.csv")
                 save_seed_info(file_path, result, csv_config)
             finish_num += len(results)
+            self.left_dialog.progress_text.setText(f"{finish_num}/{task_num}({finish_num/task_num:.0%})")
             QApplication.processEvents()
 
     def _onYesButtonClicked(self):
