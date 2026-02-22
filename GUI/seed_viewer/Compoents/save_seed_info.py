@@ -91,5 +91,5 @@ def get_seed_text(galaxy: GalaxyData, cfg: CSVExportCondition) -> str:
 
 def save_seed_info(save_path: str, galaxy: GalaxyData, cfg: CSVExportCondition) -> None:
     save_text = get_seed_text(galaxy, cfg)
-    with open(save_path, "w", encoding="utf-8") as f:
+    with open(save_path, "w", encoding="utf-8-sig") as f:
         f.write(save_text)
