@@ -4,7 +4,7 @@ from multiprocessing import cpu_count
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QApplication, QScrollArea, QLabel
-from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase, PushButton
+from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase, ScrollArea, isDarkTheme
 
 from config import cfg
 from CApi import *
@@ -68,18 +68,18 @@ class GPUBenchmarkMessageBox(MessageBoxBase):
         self.yesButton.setText("开始测试")
         self.cancelButton.setText("关闭")
 
-        title_label = TitleLabel("GPU性能测试", self)
+        title_label = TitleLabel("GPU性能测试")
         self.viewLayout.addWidget(title_label)
 
         cpu_layout = QHBoxLayout()
-        cpu_layout.addWidget(CaptionLabel("CPU线程数:", self))
+        cpu_layout.addWidget(CaptionLabel("CPU线程数:"))
         self.cpu_thread = LimitLineEdit("int", 1, 128, cfg.config.max_thread)
         cpu_layout.addWidget(self.cpu_thread)
         self.viewLayout.addLayout(cpu_layout)
 
         # self.viewLayout.addWidget(CaptionLabel("GPU线程数:", self))
         gpu_layout = QHBoxLayout()
-        gpu_layout.addWidget(CaptionLabel("GPU线程数:", self))
+        gpu_layout.addWidget(CaptionLabel("GPU线程数:"))
         self.gpu_thread_start = LimitLineEdit("int", 0, 128, 0)
         gpu_layout.addWidget(self.gpu_thread_start)
         gpu_layout.addWidget(CaptionLabel("至", self))
@@ -88,28 +88,31 @@ class GPUBenchmarkMessageBox(MessageBoxBase):
         self.viewLayout.addLayout(gpu_layout)
 
         test_time_layout = QHBoxLayout()
-        test_time_layout.addWidget(CaptionLabel("测试时间:", self))
+        test_time_layout.addWidget(CaptionLabel("测试时间:"))
         self.test_time = LimitLineEdit("float", 0.1, 60, default_value=1.0)
         test_time_layout.addWidget(self.test_time)
         self.viewLayout.addLayout(test_time_layout)
 
-        self.result_label = CaptionLabel(self)
+        self.result_label = CaptionLabel()
         self.result_label.setWordWrap(True)
         self.result_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.result_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
 
-        result_area = QScrollArea(self)
+        result_area = ScrollArea()
         result_area.setMinimumHeight(200)
         result_area.setWidgetResizable(True)
         result_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        qss = """
+QScrollArea {
+    border: 1px solid --border-color;
+    border-radius: 4px;
+}
+QScrollArea > QWidget > QLabel {
+    padding-left: 8px;
+}"""
+        result_area.setStyleSheet(qss.replace("--border-color", "#ededed" if not isDarkTheme() else "#4B4B4B"))
 
-        result_container = QWidget()
-        result_layout = QVBoxLayout(result_container)
-        result_layout.setContentsMargins(0, 0, 0, 0)
-        result_layout.addWidget(self.result_label)
-        result_layout.addStretch(1)
-
-        result_area.setWidget(result_container)
+        result_area.setWidget(self.result_label)
         self.viewLayout.addWidget(result_area)
 
         self.testing = False

@@ -216,7 +216,10 @@ class GPUSettingFrame(BaseSettingFrame):
             default_value=8,
             empty_invisible=False
         )
+        self.gpuTestFrame = BaseSettingItemFrame("")
         self.gpu_test_button = PushButton("GPU性能测试")
+        self.gpu_test_button.setMaximumWidth(120)
+        self.gpuTestFrame.mainLayout.addWidget(self.gpu_test_button, Qt.AlignmentFlag.AlignRight)
         self.gpu_test_button.clicked.connect(self.__on_gpu_test_button_clicked)
 
         self.warningLabel = PixmapLabel()
@@ -248,7 +251,7 @@ class GPUSettingFrame(BaseSettingFrame):
         self.mainLayout.addWidget(self.localSizeSetting)
         self.mainLayout.addWidget(self.gpuDeviceSetting)
         self.mainLayout.addWidget(self.gpuWorkerSetting)
-        self.mainLayout.addWidget(self.gpu_test_button)
+        self.mainLayout.addWidget(self.gpuTestFrame)
 
     def __on_gpu_test_button_clicked(self) -> None:
         GPUBenchmarkMessageBox(self.root).exec()
