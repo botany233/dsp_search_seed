@@ -24,7 +24,7 @@ public:
 	}
 
 	void add_seed(int seed_id,int star_num) {
-		int64_t index = (int64_t)seed_id * 33 + star_num - 32;
+		size_t index = (size_t)seed_id * 33 + star_num - 32;
 		uint64_t mask = (uint64_t)1 << (index % 64);
 		lock_guard<shared_mutex> lck(data_mtx);
 		uint64_t& seed_entry = seeds[index / 64];
@@ -35,7 +35,7 @@ public:
 	}
 	
 	void del_seed(int seed_id,int star_num) {
-		int64_t index = seed_id * 33 + star_num - 32;
+		size_t index = seed_id * 33 + star_num - 32;
 		uint64_t mask = uint64_t(1) << (index % 64);
 		lock_guard<shared_mutex> lck(data_mtx);
 		uint64_t& seed_entry = seeds[index / 64];
@@ -71,7 +71,7 @@ public:
 				uint64_t temp = seed_entry;
 				unsigned long bit_pos;
 				while(_BitScanForward64(&bit_pos,temp)) {
-					int64_t real_index = (int64_t)current_index * 64 + bit_pos;
+					size_t real_index = (size_t)current_index * 64 + bit_pos;
 					result.emplace_back(real_index/33,real_index%33+32);
 					temp &= (temp - 1);
 				}
@@ -81,14 +81,14 @@ public:
 		return result;
 	}
 
-	pair<vector<uint64_t>,size_t> get_raw_data() {
-		shared_lock<shared_mutex> lck(data_mtx);
-		return pair(seeds,seed_num);
-	}
+	//pair<vector<uint64_t>,size_t> get_raw_data() {
+	//	shared_lock<shared_mutex> lck(data_mtx);
+	//	return pair(seeds,seed_num);
+	//}
 
-	void set_raw_data(const pair<vector<uint64_t>,size_t>& raw_data) {
-		lock_guard<shared_mutex> lck(data_mtx);
-		seeds = raw_data.first;
-		seed_num = raw_data.second;
-	}
+	//void set_raw_data(const pair<vector<uint64_t>,size_t>& raw_data) {
+	//	lock_guard<shared_mutex> lck(data_mtx);
+	//	seeds = raw_data.first;
+	//	seed_num = raw_data.second;
+	//}
 };

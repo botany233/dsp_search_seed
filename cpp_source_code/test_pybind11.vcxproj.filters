@@ -116,6 +116,9 @@
     <ClInclude Include="astro_class.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="gpu_benchmark.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

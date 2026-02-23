@@ -127,6 +127,7 @@ class GUIConfig(BaseModel):
     quick_check: bool = False
     local_size: int = 256
     device_name: str = "cpu"
+    max_gpu_worker: int = 1
     use_gpu: bool = False # 仅仅是方便初始化, 不过确实是关联的
     # csv
     csv: CSVExportCondition = CSVExportCondition()

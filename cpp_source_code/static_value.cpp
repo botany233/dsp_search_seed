@@ -1,4 +1,5 @@
 #include <vector>
+#include <mutex>
 
 #include "LDB.hpp"
 LDB_CLASS LDB;
@@ -14,6 +15,9 @@ bool OpenCLManager::SUPPORT_GPU;
 bool OpenCLManager::SUPPORT_DOUBLE;
 int OpenCLManager::local_size;
 int OpenCLManager::device_id;
+mutex OpenCLManager::lock;
+int OpenCLManager::max_worker = 8;
+int OpenCLManager::cur_worker = 0;
 std::vector<cl::Device> OpenCLManager::devices;
 std::vector<string> OpenCLManager::devices_info;
 cl::Context OpenCLManager::context;

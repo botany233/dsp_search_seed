@@ -5,6 +5,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <mutex>
 #include <glm/glm.hpp>
 #include <CL/opencl.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -40,6 +41,9 @@ public:
 	static cl::CommandQueue queue;
 	static cl::Program program;
 	static cl::Buffer vertices_buffer;
+	static mutex lock;
+	static int max_worker;
+	static int cur_worker;
 
 	static void do_init()
 	{
@@ -149,7 +153,7 @@ public:
 		return true;
 	}
 
-	static void set_local_size(int size = 256) {
+	static void set_local_size(int size = 32) {
 		if(size < 32)
 			size = 32;
 		local_size = size;
@@ -159,6 +163,30 @@ public:
 		ifstream file(file_name);
 		string* source_code = new string(istreambuf_iterator<char>(file),(istreambuf_iterator<char>()));
 		sources.push_back((*source_code).c_str());
+	}
+
+	static void set_max_worker(int num) {
+		lock_guard<mutex> lck(lock);
+		max_worker = num;
+	}
+
+	static int get_max_worker() {
+		lock_guard<mutex> lck(lock);
+		return max_worker;
+	}
+
+	static bool get_worker() {
+		lock_guard<mutex> lck(lock);
+		if(cur_worker < max_worker) {
+			cur_worker++;
+			return true;
+		}
+		return false;
+	}
+
+	static void return_worker() {
+		lock_guard<mutex> lck(lock);
+		cur_worker--;
 	}
 };
 
@@ -558,33 +586,33 @@ public:
 	void GenerateTerrain(PlanetClassSimple& planet) override
 	{
 		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain0");
+		data.heightData.resize(DATALENGTH,(unsigned short)((double)planet.radius * 100.0));
+		//if(OpenCLManager::SUPPORT_GPU) {
+		//	cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain0");
 
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+		//	cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
 
-			kernel.setArg(0,sizeof(float),&planet.radius);
-			kernel.setArg(1,heightData_buffer);
+		//	kernel.setArg(0,sizeof(float),&planet.radius);
+		//	kernel.setArg(1,heightData_buffer);
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		//	int local_size = OpenCLManager::local_size;
+		//	int global_size = (int)ceil(161604.0/local_size) * local_size;
+		//	cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		//	OpenCLManager::queue.finish();
+		//	if(err != CL_SUCCESS){
+		//		std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+		//		throw std::runtime_error("Kernel execution failed");
+		//	}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
-		}
-		else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				data.heightData[i] = (unsigned short)((double)planet.radius * 100.0);
-			}
-		}
+		//	OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+		//				  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+		//}
+		//else {
+		//	for(int i = 0; i < DATALENGTH; i++)
+		//	{
+		//		data.heightData[i] = (unsigned short)((double)planet.radius * 100.0);
+		//	}
+		//}
 	}
 	
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -614,7 +642,7 @@ public:
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
 			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
@@ -646,6 +674,7 @@ public:
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			//OpenCLManager::queue.enqueueReadBuffer(debugData_buffer,CL_TRUE,0,
 			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
+			OpenCLManager::return_worker();
 		}
 		else {
 			for(int i = 0; i < DATALENGTH; i++) {
@@ -694,7 +723,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num7);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
 			float custom[4] = {planet.radius,num,num2,num3};
@@ -725,6 +754,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -771,7 +801,7 @@ public:
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
 			float custom[2] = {planet.radius,modX};
@@ -806,6 +836,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -862,8 +893,6 @@ class PlanetAlgorithm4: public PlanetAlgorithm
 {
 private:
 	static constexpr int kCircleCount = 80;
-	Vector4 circles[80] = {};
-	double heights[80] = {};
 
 public:
 	void GenerateTerrain(PlanetClassSimple& planet) override
@@ -879,7 +908,7 @@ public:
 		int num6 = dotNet35Random.Next();
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
 			float custom[401];
@@ -926,7 +955,10 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
+			Vector4 circles[80] = {};
+			double heights[80] = {};
 			for(int i = 0; i < 80; i++)
 			{
 				VectorLF3 vectorLF = RandomTable::SphericNormal(num6,1.0);
@@ -999,7 +1031,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num2);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
 
 			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
@@ -1027,6 +1059,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -1088,7 +1121,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num2);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
 			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
@@ -1116,6 +1149,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -1187,7 +1221,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num11);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
 
 			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
@@ -1215,6 +1249,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -1544,7 +1579,7 @@ public:
 		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
@@ -1571,6 +1606,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -1628,7 +1664,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num11);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
 			float custom[3] = {planet.radius,modX,modY};
@@ -1659,6 +1695,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -1703,9 +1740,6 @@ class PlanetAlgorithm10: public PlanetAlgorithm
 {
 private:
 	static constexpr int kCircleCount = 10;
-	Vector4 ellipses[10] = {};
-	double eccentricities[10] = {};
-	double heights[10] = {};
 	double Max(double a,double b)
 	{
 		if((a > b))
@@ -1736,7 +1770,7 @@ public:
 		int num8 = dotNet35Random.Next();
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
 			float custom[61];
@@ -1797,7 +1831,11 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
+			Vector4 ellipses[10] = {};
+			double eccentricities[10] = {};
+			double heights[10] = {};
 			for(int i = 0; i < 10; i++)
 			{
 				VectorLF3 vectorLF = RandomTable::SphericNormal(num8,1.0);
@@ -1924,7 +1962,7 @@ public:
 		SimplexNoise simplexNoise3 = SimplexNoise(num9);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
 			float custom[5] = {planet.radius,num4,num5,num6,modY};
@@ -1959,6 +1997,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -2342,7 +2381,7 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num5);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
 			float custom[3] = {planet.radius,num,modY};
@@ -2373,6 +2412,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{
@@ -2746,7 +2786,7 @@ public:
 		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU) {
+		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
@@ -2773,6 +2813,7 @@ public:
 
 			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+			OpenCLManager::return_worker();
 		} else {
 			for(int i = 0; i < DATALENGTH; i++)
 			{

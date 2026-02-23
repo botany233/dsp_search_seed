@@ -80,7 +80,8 @@ class UserLayout(QVBoxLayout):
             raise ValueError(f"finish_task={finish_task}不能大于total_task={total_task}！")
 
     def get_remain_time_str(self, batch_id: int, total_batch: int, use_time: float) -> str:
-        self.progress_cache.append((batch_id, use_time))
+        if len(self.progress_cache) == 0 or batch_id > self.progress_cache[-1][0]:
+            self.progress_cache.append((batch_id, use_time))
         while use_time - self.progress_cache[0][1] > 60:
             self.progress_cache.popleft()
         cost_time_str = self.get_format_time_str(use_time)
@@ -91,8 +92,10 @@ class UserLayout(QVBoxLayout):
             last = self.progress_cache[0]
             speed = (batch_id - last[0]) / (use_time - last[1])
             leave_time_str = self.get_format_time_str((total_batch-batch_id)/speed)
-            if speed >= 1:
+            if speed >= 100:
                 speed_str = f"{speed:.1f}seed/s"
+            elif speed >= 1:
+                speed_str = f"{speed:.2f}seed/s"
             else:
                 speed_str = f"{1/speed:.2f}s/seed"
 

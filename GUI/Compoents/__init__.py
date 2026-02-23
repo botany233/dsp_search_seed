@@ -4,3 +4,4 @@ from .userLayout import *
 from .Widgets import *
 from .checkbox import *
 from .import_seed_info import ImportSeedInfo
+from .message_box import GPUBenchmarkMessageBox

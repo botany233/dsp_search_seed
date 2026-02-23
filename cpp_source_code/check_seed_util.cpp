@@ -71,7 +71,7 @@ static uint16_t get_star_veins_mask(const StarClassSimple& star_data,const StarC
 	return mask;
 }
 
-bool check_star_level_1(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_1(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
@@ -90,7 +90,7 @@ bool check_galaxy_level_1(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 		{
 			if(check_star_level_1(star_data,star_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -101,7 +101,7 @@ bool check_galaxy_level_1(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	return true;
 }
 
-bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
@@ -119,7 +119,7 @@ bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondi
 		{
 			if(check_planet_level_2(*moon_ptr,moon_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -130,7 +130,7 @@ bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondi
 	return true;
 }
 
-bool check_star_level_2(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_2(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
@@ -145,7 +145,7 @@ bool check_star_level_2(const StarClassSimple& star_data,const StarCondition& st
 		{
 			if(check_planet_level_2(planet_data,planet_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -164,7 +164,7 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 		{
 			if(check_star_level_2(star_data,star_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -181,7 +181,7 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 			{
 				if(check_planet_level_2(planet,planet_condition))
 				{
-					left_satisfy_num -= 1;
+					left_satisfy_num--;
 					if(!left_satisfy_num)
 						goto end_check_label;
 				}
@@ -194,7 +194,7 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	return true;
 }
 
-bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
@@ -214,7 +214,7 @@ bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondi
 		{
 			if(check_planet_level_3(*moon_ptr,moon_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -225,7 +225,7 @@ bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondi
 	return true;
 }
 
-bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
@@ -242,7 +242,7 @@ bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& st
 		{
 			if(check_planet_level_3(planet_data,planet_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -264,7 +264,7 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 		{
 			if(check_star_level_3(star_data,star_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -281,7 +281,7 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 			{
 				if(check_planet_level_3(planet_data,planet_condition))
 				{
-					left_satisfy_num -= 1;
+					left_satisfy_num--;
 					if(!left_satisfy_num)
 						goto end_check_label;
 				}
@@ -294,7 +294,7 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	return true;
 }
 
-bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
@@ -312,7 +312,7 @@ bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& 
 		{
 			if(check_planet_level_4(*moon_ptr,moon_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -335,7 +335,7 @@ bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& 
 	return true;
 }
 
-bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(star_condition.type && star_condition.type != star_data.type_id)
 		return false;
@@ -350,7 +350,7 @@ bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_con
 		{
 			if(check_planet_level_4(planet_data,planet_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -389,7 +389,7 @@ bool check_galaxy_level_4(GalaxyClassSimple& galaxy_data,const GalaxyCondition& 
 		{
 			if(check_star_level_4(star_data,star_condition))
 			{
-				left_satisfy_num -= 1;
+				left_satisfy_num--;
 				if(!left_satisfy_num)
 					break;
 			}
@@ -406,7 +406,7 @@ bool check_galaxy_level_4(GalaxyClassSimple& galaxy_data,const GalaxyCondition& 
 			{
 				if(check_planet_level_4(planet_data,planet_condition))
 				{
-					left_satisfy_num -= 1;
+					left_satisfy_num--;
 					if(!left_satisfy_num)
 						goto end_check_label;
 				}

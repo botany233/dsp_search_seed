@@ -8,17 +8,18 @@ from qfluentwidgets import (
     SmoothScrollArea,
     ToolTipFilter,
     PixmapLabel,
-    FluentIcon
+    FluentIcon,
+    PushButton
 )
 from typing import Literal
 from config import cfg
 from logger import log
 
-from .Compoents import LimitLineEdit
+from .Compoents import LimitLineEdit, GPUBenchmarkMessageBox
 from multiprocessing import cpu_count
 
 from GUI.Compoents import AutoFixedConfigComboBox, ConfigSwitchButton
-from CApi import get_device_info_c, set_device_id_c, get_support_double_c, get_device_id_c
+from CApi import get_device_info_c, set_device_id_c, get_support_double_c, get_device_id_c, set_gpu_max_worker_c
 
 class BaseSettingFrame(QFrame):
     def __init__(self, title: str = "Base Setting", parent=None):
@@ -136,7 +137,7 @@ class NormalSettingFrame(BaseSettingFrame):
         super().__init__(title, parent)
         
         self.threadNumSetting = EditLineSettingItemFrame(
-            "最大线程数",
+            "最大CPU线程数",
             None,
             cfg_obj=cfg.config,
             cfg_key="max_thread",
@@ -181,8 +182,9 @@ class NormalSettingFrame(BaseSettingFrame):
             
         
 class GPUSettingFrame(BaseSettingFrame):
-    def __init__(self, title: str = "GPU设置", parent=None):
+    def __init__(self, title: str = "GPU设置", parent=None, root=None):
         super().__init__(title, parent)
+        self.root = root
 
         self.localSizeSetting = ComboBoxSettingItemFrame(
             ["32", "64", "128", "256", "512", "1024"],
@@ -204,6 +206,18 @@ class GPUSettingFrame(BaseSettingFrame):
                 cfg_key="device_name",
                 type_input="str",
             )
+        self.gpuWorkerSetting = EditLineSettingItemFrame(
+            "最大GPU线程数",
+            None,
+            cfg_obj=cfg.config,
+            cfg_key="max_gpu_worker",
+            min_value=0,
+            max_value=128, 
+            default_value=8,
+            empty_invisible=False
+        )
+        self.gpu_test_button = PushButton("GPU性能测试")
+        self.gpu_test_button.clicked.connect(self.__on_gpu_test_button_clicked)
 
         self.warningLabel = PixmapLabel()
         self.gpuDeviceSetting.labelLayout.addWidget(self.warningLabel)
@@ -226,11 +240,22 @@ class GPUSettingFrame(BaseSettingFrame):
             cfg.save()
 
         self._gpu_device_changed(self.gpuDeviceSetting.comboBox.currentIndex())
+        set_gpu_max_worker_c(cfg.config.max_gpu_worker)
 
         self.gpuDeviceSetting.comboBox.currentIndexChanged.connect(self._gpu_device_changed)
+        self.gpuWorkerSetting.line.editingFinished.connect(self._gpu_worker_changed)
 
         self.mainLayout.addWidget(self.localSizeSetting)
         self.mainLayout.addWidget(self.gpuDeviceSetting)
+        self.mainLayout.addWidget(self.gpuWorkerSetting)
+        self.mainLayout.addWidget(self.gpu_test_button)
+
+    def __on_gpu_test_button_clicked(self) -> None:
+        GPUBenchmarkMessageBox(self.root).exec()
+
+    def _gpu_worker_changed(self):
+        self.gpuWorkerSetting.line._on_text_edited()
+        set_gpu_max_worker_c(cfg.config.max_gpu_worker)
 
     def _gpu_device_changed(self, index):
         if self.gpuDeviceSetting.comboBox.text() == "无可用GPU设备":
@@ -306,7 +331,7 @@ class SettingInterface(SmoothScrollArea):
         self.rightLayout = QVBoxLayout()
         self.rightLayout.setContentsMargins(10, 10, 10, 10)
 
-        self.GPUSetting = GPUSettingFrame()
+        self.GPUSetting = GPUSettingFrame(root=self)
         self.rightLayout.addWidget(self.GPUSetting)
 
         self.rightLayout.addStretch()

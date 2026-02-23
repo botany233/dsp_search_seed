@@ -177,6 +177,7 @@
     <ClInclude Include="DotNet35Random.hpp" />
     <ClInclude Include="DSPGen.hpp" />
     <ClInclude Include="data_struct.hpp" />
+    <ClInclude Include="gpu_benchmark.hpp" />
     <ClInclude Include="LDB.hpp" />
     <ClInclude Include="Maths.hpp" />
     <ClInclude Include="NameGen.hpp" />
