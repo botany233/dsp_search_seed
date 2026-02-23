@@ -2,11 +2,13 @@ from time import sleep
 from typing import Literal
 from multiprocessing import cpu_count
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QApplication, QScrollArea, QLabel
+from PySide6.QtCore import Qt, QThread, QMutex, Signal
+from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QApplication, QScrollArea, QLabel
 from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase, PushButton
 
 from config import cfg
+from logger import log
+from GUI.Messenger import GPUBenchmarkMessages
 from CApi import *
 
 class LimitLineEdit(LineEdit):
@@ -62,11 +64,58 @@ class LimitLineEdit(LineEdit):
             self.setText(str(value))
             self.value = value
 
+class GPUBenchmarkThread(QThread):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.mutex = QMutex()
+        self.running = False
+        self.end_flag = False
+
+        self.cpu_thread = 8
+        self.gpu_thread_start = 0
+        self.gpu_thread_end = 8
+        self.test_time = 1.0
+
+    def terminate(self) -> None:
+        self.end_flag = True
+
+    def isRunning(self) -> bool:
+        return self.running
+
+    def run(self):
+        try:
+            if not self.mutex.try_lock():
+                return
+            self.running = True
+
+            gpu_benchmark = GPUBenchmark(self.cpu_thread)
+            gpu_benchmark.run()
+            sleep(0.5)
+
+            for gpu_thread in range(self.gpu_thread_start, min(self.gpu_thread_end, self.cpu_thread)+1):
+                set_gpu_max_worker_c(gpu_thread)
+                sleep(0.3)
+                gpu_benchmark.reset()
+                sleep(self.test_time)
+                speed = gpu_benchmark.get_speed()
+                GPUBenchmarkMessages.result.emit(gpu_thread, speed)
+
+                if self.end_flag:
+                    break
+        except Exception as e:
+            log.error(f"GPU benchmark failed: {e}")
+        finally:
+            self.mutex.unlock()
+            self.end_flag = False
+            self.running = False
+            GPUBenchmarkMessages.end.emit()
+
 class GPUBenchmarkMessageBox(MessageBoxBase):
     def __init__(self, parent):
         super().__init__(parent)
         self.yesButton.setText("开始测试")
         self.cancelButton.setText("关闭")
+        self.test_thread = GPUBenchmarkThread(parent)
 
         title_label = TitleLabel("GPU性能测试", self)
         self.viewLayout.addWidget(title_label)
@@ -112,28 +161,29 @@ class GPUBenchmarkMessageBox(MessageBoxBase):
         result_area.setWidget(result_container)
         self.viewLayout.addWidget(result_area)
 
-        self.testing = False
+        self.test_result = []
+        GPUBenchmarkMessages.result.connect(self.__update_text)
+        GPUBenchmarkMessages.end.connect(self.__on_test_end)
 
     def validate(self):
-        if self.testing:
+        if self.test_thread.isRunning():
             return False
-        self.testing = True
-        self.cancelButton.setEnabled(False)
-        cpu_thread = self.cpu_thread.value
+        self.yesButton.setEnabled(False)
 
-        gpu_benchmark = GPUBenchmark(cpu_thread)
-        gpu_benchmark.run()
-
-        results = []
-        for gpu_thread in range(self.gpu_thread_start.value, min(self.gpu_thread_end.value, cpu_thread)+1):
-            set_gpu_max_worker_c(gpu_thread)
-            sleep(0.5)
-            QApplication.processEvents()
-            speed = gpu_benchmark.do_test(self.test_time.value)
-            results.append(f"thread {gpu_thread}: {speed:.1f}planet/s")
-            self.result_label.setText("\n".join(results))
-            QApplication.processEvents()
-
-        self.testing = False
-        self.cancelButton.setEnabled(True)
+        self.test_result.clear()
+        self.test_thread.cpu_thread = self.cpu_thread.value
+        self.test_thread.gpu_thread_start = self.gpu_thread_start.value
+        self.test_thread.gpu_thread_end = self.gpu_thread_end.value
+        self.test_thread.test_time = self.test_time.value
+        self.test_thread.start()
         return False
+
+    def __on_test_end(self):
+        self.yesButton.setEnabled(True)
+
+    def __update_text(self, gpu_thread: int, speed: float):
+        self.test_result.append((gpu_thread, speed))
+        cur_max = max(self.test_result, key=lambda x: x[1])
+        text = "\n".join(f"线程 {i[0]}: {i[1]:.1f} planets/s" for i in self.test_result)
+        text += f"\n最优:\n线程 {cur_max[0]}: {cur_max[1]:.1f} planets/s"
+        self.result_label.setText(text)

@@ -1,8 +1,10 @@
-__all__ = ["SortTreeMessages", "SearchMessages"]
+__all__ = ["SortTreeMessages", "SearchMessages", "GPUBenchmarkMessages"]
 
-from .messenger import SortTreeSignal, SearchSignal
+from .messenger import *
 
 
 SortTreeMessages = SortTreeSignal()
 
 SearchMessages = SearchSignal()
+
+GPUBenchmarkMessages = GPUBenchmarkSignal()

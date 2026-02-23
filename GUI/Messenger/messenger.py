@@ -14,3 +14,7 @@ class SearchSignal(QObject):
     """
     searchEnd = Signal()
     new_find_seed = Signal(int, int, int)#total_seed_num, last_seed_id, last_star_num
+
+class GPUBenchmarkSignal(QObject):
+    result = Signal(int, float)#gpu_thread_num, speed
+    end = Signal()
