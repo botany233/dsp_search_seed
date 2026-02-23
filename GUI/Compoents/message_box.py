@@ -3,7 +3,7 @@ from typing import Literal
 from multiprocessing import cpu_count
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QApplication, QScrollArea
+from PySide6.QtWidgets import QWidget, QGridLayout, QHBoxLayout, QVBoxLayout, QApplication, QScrollArea, QLabel
 from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase, PushButton
 
 from config import cfg
@@ -94,13 +94,23 @@ class GPUBenchmarkMessageBox(MessageBoxBase):
         self.viewLayout.addLayout(test_time_layout)
 
         self.result_label = CaptionLabel(self)
+        self.result_label.setWordWrap(True)
+        self.result_label.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.result_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+
         result_area = QScrollArea(self)
         result_area.setMinimumHeight(200)
         result_area.setWidgetResizable(True)
         result_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        result_area.setWidget(self.result_label)
+
+        result_container = QWidget()
+        result_layout = QVBoxLayout(result_container)
+        result_layout.setContentsMargins(0, 0, 0, 0)
+        result_layout.addWidget(self.result_label)
+        result_layout.addStretch(1)
+
+        result_area.setWidget(result_container)
         self.viewLayout.addWidget(result_area)
-        self.result_label.setMinimumHeight(300)
 
         self.testing = False
 
