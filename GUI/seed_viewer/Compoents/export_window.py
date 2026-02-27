@@ -1,18 +1,15 @@
 from copy import deepcopy
-from os.path import join as j_
+from os import path
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QColor, QResizeEvent
-from PySide6.QtWidgets import QHBoxLayout, QFrame, QVBoxLayout, QDialog, QGridLayout, QWidget, QFileDialog, QApplication
+from PySide6.QtWidgets import QHBoxLayout, QFrame, QVBoxLayout, QDialog, QGridLayout, QFileDialog, QApplication
 from qfluentwidgets import (
-    MessageBox,
     MaskDialogBase,
-    Dialog,
     BodyLabel,
     CaptionLabel,
-    FluentStyleSheet,
     TitleLabel,
-    CheckBox,
+    ProgressBar,
     PrimaryPushButton,
     PushButton,
     isDarkTheme,
@@ -94,8 +91,6 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.choiceLayout = QVBoxLayout()
         self.choiceLayout.setContentsMargins(15, 15, 15, 0)
         self.mainLayout.addLayout(self.choiceLayout)
-        self.progress_text = CaptionLabel()
-        self.mainLayout.addWidget(self.progress_text)
         self._init_button()
 
         self.title = TitleLabel("选择导出内容")
@@ -116,9 +111,24 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.choiceLayout.addWidget(self.starFrame)
         self.choiceLayout.addSpacing(10)
         self.choiceLayout.addWidget(self.planetFrame)
+
+        self.__init__progress()
         self.__init__galaxy()
         self.__init__planet()
         self.__init__star()
+
+    def __init__progress(self):
+        self.progressLayout = QVBoxLayout()
+        self.progressLayout.setContentsMargins(0, 5, 0, 0)
+        self.progressLayout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self.progress_text = CaptionLabel("")
+        self.progressBar = ProgressBar()
+        self.progressBar.setValue(0)
+        self.progressBar.setFixedHeight(9)
+        self.progressLayout.addWidget(self.progress_text)
+        self.progressLayout.addWidget(self.progressBar)
+
+        self.choiceLayout.addLayout(self.progressLayout)
 
     def __init__galaxy(self):
         curTitleLayout = QHBoxLayout()
@@ -230,6 +240,7 @@ class PreviewWindow(QFrame, Ui_MessageBox):
 class ExportWindow(MaskDialogBase):
     def __init__(self, parent, selected_seeds):
         super().__init__(parent)
+        self.is_running = False
         self.selected_seeds = selected_seeds
         self.setShadowEffect(60, (0, 10), QColor(0, 0, 0, 50))
         # self.widget.setGraphicsEffect(None)
@@ -250,14 +261,14 @@ QFrame {
         self.setStyleSheet(qss)
 
         self.left_dialog = ChoiceWindow()
-        self.right_dialog = PreviewWindow()
+        # self.right_dialog = PreviewWindow()
         self.mainLayout.addWidget(self.left_dialog, 3)
-        self.mainLayout.addWidget(self.right_dialog, 2)
+        # self.mainLayout.addWidget(self.right_dialog, 2)
 
         self.left_dialog.yesButton.clicked.connect(self._onYesButtonClicked)
         self.left_dialog.cancelButton.clicked.connect(self._onCancelButtonClicked)
 
-    def __do_export_seeds(self) -> None:
+    def __do_export_seeds(self) -> bool:
         csv_config = deepcopy(cfg.config.csv)
 
         dir_path = QFileDialog.getExistingDirectory(
@@ -267,34 +278,61 @@ QFrame {
         )
 
         if not dir_path:
-            return
-
+            return False
+        
+        self.is_running = True
         self.left_dialog.progress_text.setText("正在生成任务...")
+        self.left_dialog.yesButton.setEnabled(False)
+        QApplication.processEvents()
         finish_num, task_num = 0, len(self.selected_seeds)
         get_data_manager = GetDataManager(cfg.config.max_thread, False, min(32, cfg.config.max_thread))
         for seed_id, star_num in self.selected_seeds:
             get_data_manager.add_task(seed_id, star_num)
 
         self.left_dialog.progress_text.setText(f"0/{task_num}(0%)")
-        while finish_num < task_num:
+        self.left_dialog.progressBar.setValue(0)
+        self.left_dialog.progressBar.setMaximum(task_num)
+        while finish_num < task_num and self.is_running:
             results = get_data_manager.get_results()
+            if not results:
+                QApplication.processEvents()
+                continue
             for result in results:
-                file_path = j_(dir_path, f"{result.seed}_{result.star_num}.csv")
+                file_path = path.join(dir_path, f"{result.seed}_{result.star_num}.csv")
                 save_seed_info(file_path, result, csv_config)
             finish_num += len(results)
+            if not self.is_running:
+                break
             self.left_dialog.progress_text.setText(f"{finish_num}/{task_num}({finish_num/task_num:.0%})")
+            self.left_dialog.progressBar.setValue(finish_num)
             QApplication.processEvents()
+        self.left_dialog.yesButton.setEnabled(True)
+        if self.is_running:
+            self.is_running = False
+            return True
+        else:
+            return False
 
     def _onYesButtonClicked(self):
-        self.__do_export_seeds()
+        if not self.__do_export_seeds():
+            return
         self.accept()
 
     def _onCancelButtonClicked(self):
+        if self.is_running:
+            self.is_running = False
+            self.left_dialog.progress_text.setText("正在取消任务...")
+            QApplication.processEvents()
         self.reject()
 
     def _onDone(self, code):
         super()._onDone(code)
         self.deleteLater()
+
+    def resizeEvent(self, e):
+        size = self.size()
+        self.widget.setMaximumWidth(max(self.widget.minimumWidth(), size.width() - 300))
+        return super().resizeEvent(e)
 
     def eventFilter(self, obj, e: QEvent):
         if obj is self.window():
