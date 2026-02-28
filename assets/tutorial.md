@@ -79,38 +79,38 @@
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">级别3-快速</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">级别3-标准</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">级别4-标准</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">更好的出生点</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">全珍奇硬飞</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">更好的出生点-标准</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">全珍奇硬飞-标准</th>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">128843</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">40688</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">26824</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">363.7</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.10</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">41090</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">114370</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">124447</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">40542</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">26948</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">718.5</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.32</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">41134</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">111575</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">123649</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">39702</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">27099</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1440</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">4.48</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">41646</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">114068</td>
   </tr>
 </table>
 
@@ -133,17 +133,17 @@
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.11</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.09</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">aaa</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">5.29</td>
   </tr>
 </table>

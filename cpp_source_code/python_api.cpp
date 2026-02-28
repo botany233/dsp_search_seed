@@ -258,7 +258,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def(py::init<int>())
 		.def("run",&GPUBenchmark::run)
 		.def("shutdown",&GPUBenchmark::shutdown)
-		.def("do_test",&GPUBenchmark::do_test);
+		.def("reset",&GPUBenchmark::reset)
+		.def("get_speed",&GPUBenchmark::get_speed);
 	m.def("do_init_c",&do_init);
 	m.def("set_device_id_c",&set_device_id_c,py::arg("device_id"));
 	m.def("get_device_id_c",&get_device_id_c);

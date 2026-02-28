@@ -14,6 +14,8 @@
 #include "DotNet35Random.hpp"
 #include "PlanetRawData.hpp"
 
+using namespace std;
+
 class StarClassSimple;
 class GalaxyClassSimple;
 
@@ -88,6 +90,7 @@ public:
 		double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
 		int num4 = (int)(num3 + 0.1);
 		num3 = (num3 - (double)num4) * 360.0;
+		Vector3 test = Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius);
 		Vector3 position = Maths::QRotate(runtimeOrbitRotation,Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius));
 		if(orbitAroundPlanet != nullptr)
 		{

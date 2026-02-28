@@ -17,6 +17,7 @@ protected:
 	vector<thread> threads{};
 	atomic<bool> stop = false;
 	atomic<int> num = 0;
+	chrono::steady_clock::time_point tag;
 
 	int max_thread;
 
@@ -62,14 +63,16 @@ public:
 		}
 	}
 
-	double do_test(double test_time) {
+	void reset() {
+		tag = chrono::steady_clock::now();
 		num.store(0);
-		auto start = chrono::steady_clock::now();
-		this_thread::sleep_for(chrono::milliseconds((int)(test_time * 1000)));
-		double finish_num = (double)num.load();
-		auto end = chrono::steady_clock::now();
-		double use_time = (double)chrono::duration_cast<chrono::microseconds>(end-start).count();
-		double speed = 1000000 * finish_num / use_time;
+	}
+
+	double get_speed() {
+		auto now = chrono::steady_clock::now();
+		double cur_num = (double)num.load();
+		double use_time = (double)chrono::duration_cast<chrono::microseconds>(now-tag).count();
+		double speed = 1000000 * cur_num / use_time;
 		return speed;
 	}
 };

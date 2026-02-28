@@ -190,6 +190,36 @@ public:
 	}
 };
 
+static StarClassSimple star_to_simple(const StarClass& star) {
+	StarClassSimple star_simple;
+	star_simple.type = star.type;
+	star_simple.index = star.index;
+	star_simple.spectr = star.spectr;
+	star_simple.uPosition = star.uPosition;
+	return star_simple;
+}
+
+static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
+	PlanetClassSimple planet_simple;
+	planet_simple.id = planet.id;
+	planet_simple.seed = planet.seed;
+	planet_simple.theme = planet.theme;
+	planet_simple.mod_x = planet.mod_x;
+	planet_simple.mod_y = planet.mod_y;
+	planet_simple.radius = planet.radius;
+	planet_simple.waterItemId = planet.waterItemId;
+	planet_simple.orbitRadius = planet.orbitRadius;
+	planet_simple.orbitalPeriod = planet.orbitalPeriod;
+	planet_simple.rotationPhase = planet.rotationPhase;
+	planet_simple.orbitInclination = planet.orbitInclination;
+	planet_simple.orbitPhase = planet.orbitPhase;
+	planet_simple.orbitalPeriod = planet.orbitalPeriod;
+	planet_simple.rotationPeriod = planet.rotationPeriod;
+	planet_simple.runtimeOrbitRotation = planet.runtimeOrbitRotation;
+	planet_simple.runtimeSystemRotation = planet.runtimeSystemRotation;
+	return planet_simple;
+}
+
 class PlanetAlgorithm
 {
 protected:
@@ -211,18 +241,14 @@ public:
 
 	void get_veins(const StarClass& star,const PlanetClass& planet,const int birthPlanetId,int* veins_group,int* veins_point)
 	{
-		StarClassSimple star_simple;
-		star_simple.type = star.type;
-		star_simple.index = star.index;
-		star_simple.spectr = star.spectr;
-		PlanetClassSimple planet_simple;
+		StarClassSimple star_simple = star_to_simple(star);
+		PlanetClassSimple planet_simple = planet_to_simple(planet);
 		planet_simple.star = &star_simple;
-		planet_simple.id = planet.id;
-		planet_simple.seed = planet.seed;
-		planet_simple.theme = planet.theme;
-		planet_simple.mod_x = planet.mod_x;
-		planet_simple.mod_y = planet.mod_y;
-		planet_simple.radius = planet.radius;
+		PlanetClassSimple planet_simple_orbit;
+		if(planet.orbitAroundPlanet != nullptr) {
+			planet_simple_orbit = planet_to_simple(*planet.orbitAroundPlanet);
+			planet_simple.orbitAroundPlanet = &planet_simple_orbit;
+		}
 		this->GenerateTerrain(planet_simple);
 		this->GenerateVeins(planet_simple,birthPlanetId);
 		for(int i=0; i < 14; i++) {
@@ -230,7 +256,7 @@ public:
 			veins_point[i] = planet_simple.veins_point[i];
 		}
 	}
-
+	
 	virtual void GenerateTerrain(PlanetClassSimple& planet) = 0;
 
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
@@ -474,6 +500,12 @@ public:
 				}
 			}
 		}
+		//if(planet.id==101) {
+		//	cout << "矿脉数量: " << veinVectorCount << endl;
+		//	for(int i = 0; i < veinVectorCount; i++) {
+		//		cout << "矿脉 " << i << ": " << veinVectorTypes[i] << ", " << veinVectors[i].x << " " << veinVectors[i].y << " " << veinVectors[i].z << endl;
+		//	}
+		//}
 		tmp_vecs.clear();
 		for(int vein_group_index = 0; vein_group_index < veinVectorCount; vein_group_index++)
 		{
@@ -485,7 +517,7 @@ public:
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
-			//if(planet.id == 201)
+			//if(planet.id==101)
 			//{
 			//	cout << std::setprecision(7);
 			//	cout << "矿簇: " << vein_group_index << endl;
@@ -540,7 +572,7 @@ public:
 					break;
 				}
 			}
-			//if(planet.id == 201)
+			//if(planet.id == 101)
 			//{
 			//	std::cout<< std::setprecision(7);
 			//	std::cout << "矿物: " << vein_point_type << " " << vein_point_num << std::endl;
@@ -561,7 +593,7 @@ public:
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
 				float num29 = rawData.QueryHeight(vein_pos);
-				//if(planet.id == 201)
+				//if(planet.id == 101)
 				//{
 				//	cout << "real_pos: " << vein_pos.x << " " << vein_pos.y << " " << vein_pos.z << ", height: " << num29 << endl;
 				//}

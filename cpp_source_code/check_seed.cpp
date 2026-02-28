@@ -64,8 +64,9 @@ GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 				planet_data.dsp_level = 1;
 			else
 				planet_data.dsp_level = 0;
-			planet_data.liquid = planet.waterItemId;
-			star_data.liquid[planet.waterItemId] += 1;
+			int real_waterItemId = planet.waterItemId & 3;
+			planet_data.liquid = real_waterItemId;
+			star_data.liquid[real_waterItemId] += 1;
 			if(planet.gasItems.size()) {
 				planet_data.is_gas = true;
 				for(int i = 0; i < 2; i++)
