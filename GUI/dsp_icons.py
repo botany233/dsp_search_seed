@@ -55,6 +55,7 @@ class AppIcons(FluentIconBase, Enum):
     LOGO = "icon"
     PLANET = "planet"
     STAR = "star"
+    MOON = "moon"
 
     def path(self, theme=Theme.AUTO) -> str:
         theme = getIconColor(theme)

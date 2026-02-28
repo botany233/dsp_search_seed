@@ -45,12 +45,13 @@ from GUI.dsp_icons import AppIcons
 
 star_types = ["无限制"] + star_types
 planet_types = ["无限制"] + planet_types
-mult_moons_planet_types = ["无限制", "气态巨星", "高产气巨", "冰巨星"]
+moon_parent_planet_types = ["无限制", "气态巨星", "高产气巨", "冰巨星"]
+moon_planet_types = ["无限制"] + [i for i in planet_types if i not in moon_parent_planet_types]
 liquid = ["无限制"] + liquid
 singularity = ["无限制"] + singularity
+moon_parent_singularity = [s for s in singularity if s != "卫星"]
 moon_singularity = [s for s in singularity if s not in ["卫星", "多卫星", "潮汐锁定"]]
 dsp_level = ["无限制"] + dsp_level
-
 
 class LeaveBase(QWidget):
     def __init__(self, parent=None, config_obj=None):
@@ -119,6 +120,8 @@ class TreeWidgetItem(QTreeWidgetItem):
         else:
             raise Exception("uuid not found!")
         cfg.save()
+        if isinstance(self, MoonTreeWidgetItem) and len(belong_list) == 0:
+            self.parent()._switch_no_moons_planet()
         self.parent().removeChild(self)
 
 class TreeWidgetLeave(LeaveBase):
@@ -361,6 +364,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
         self.manageButtons.addButton.setHidden(True)
+        self.manageButtons.addPlanetButton.setIcon(AppIcons.MOON)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.addPlanetButton.setToolTip("添加卫星条件")
 
@@ -384,10 +388,25 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         if self.has_moon:
             return
         self.leaf.planetTypeComboBox.clear()
-        self.leaf.planetTypeComboBox.addItems(mult_moons_planet_types)
+        self.leaf.planetTypeComboBox.addItems(moon_parent_planet_types)
         self.leaf.planetTypeComboBox.load_config()
+        self.leaf.singularityComboBox.clear()
+        self.leaf.singularityComboBox.addItems(moon_parent_singularity)
+        self.leaf.singularityComboBox.load_config()
 
         self.has_moon = True
+
+    def _switch_no_moons_planet(self):
+        if not self.has_moon:
+            return
+        self.leaf.planetTypeComboBox.clear()
+        self.leaf.planetTypeComboBox.addItems(planet_types)
+        self.leaf.planetTypeComboBox.load_config()
+        self.leaf.singularityComboBox.clear()
+        self.leaf.singularityComboBox.addItems(singularity)
+        self.leaf.singularityComboBox.load_config()
+
+        self.has_moon = False
 
 class MoonTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj: PlanetCondition):
@@ -417,6 +436,9 @@ class MoonTreeWidgetItem(TreeWidgetItem):
         self.leaf.singularityComboBox.clear()
         self.leaf.singularityComboBox.addItems(moon_singularity)
         self.leaf.singularityComboBox.load_config()
+        self.leaf.planetTypeComboBox.clear()
+        self.leaf.planetTypeComboBox.addItems(moon_planet_types)
+        self.leaf.planetTypeComboBox.load_config()
 
 class SettingsTreeLeave(QWidget):
     def __init__(

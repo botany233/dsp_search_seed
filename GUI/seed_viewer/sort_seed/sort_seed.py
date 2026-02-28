@@ -34,7 +34,6 @@ class SortThread(QThread):
         try:
             self.running = True
             self.label_text.emit("正在生成任务...")
-            tag = perf_counter()
 
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
 
@@ -65,7 +64,6 @@ class SortThread(QThread):
                         sleep(0.01)
                     else:
                         sleep(0.1)
-            print(f"任务完成，用时{perf_counter() - tag:.2f}s")
 
             if self.end_flag:
                 self.label_text.emit("排序已取消")
