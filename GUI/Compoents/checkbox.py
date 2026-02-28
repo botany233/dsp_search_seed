@@ -1,6 +1,5 @@
 __all__ = ["ConfigCheckBox"]
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QStyleOptionButton, QStyle, QCheckBox
 from qfluentwidgets import CheckBox
 from config import cfg
 from config.cfg_dict_tying import BaseModel
@@ -38,29 +37,12 @@ class ConfigCheckBox(CheckBox):
         config_value = getattr(self.config_obj, self.config_key)
         self.setChecked(config_value)
 
-    def mousePressEvent(self, e):
-        pos = e.position()
-        opt = QStyleOptionButton()
-        opt.initFrom(self)
-        rect = self.style().subElementRect(QStyle.SE_CheckBoxIndicator, opt, self)
-        if rect.contains(pos.toPoint()):
-            self.isPressed = True
-            e.accept()
-        else:
-            e.ignore()
-        return QCheckBox.mousePressEvent(self, e)
-
     def mouseReleaseEvent(self, e: QMouseEvent):
         if e.type() == QMouseEvent.Type.MouseButtonRelease:
             pos = e.position()
-            opt = QStyleOptionButton()
-            opt.initFrom(self)
-            rect = self.style().subElementRect(QStyle.SE_CheckBoxIndicator, opt, self)
-            if rect.contains(pos.toPoint()):
+            if pos.x() > 0 and pos.x() < self.width() and pos.y() > 0 and pos.y() < self.height():
                 self.toggle()
                 e.accept()
-            else:
-                e.ignore()
-            self.isPressed = False
-            return
+                self.isPressed = False
+                return
         return super().mouseReleaseEvent(e)
