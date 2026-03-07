@@ -17,7 +17,7 @@ from benchmark_condition import benchmark_condition_functions
 
 cpu_thread = 20
 gpu_thread = 4
-device_id = -1
+device_id = 0
 local_size = 256
 
 set_device_id_c(device_id)

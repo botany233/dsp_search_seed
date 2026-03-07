@@ -15,9 +15,10 @@ struct SeedStruct {
 struct PlanetCondition {
 	uint8_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
-	uint8_t type = 0;
+	//uint8_t type = 0;
 	uint8_t liquid = 0;
 	uint8_t singularity = 0;
+	uint32_t type = 0xFFFFFFFF;
 	uint16_t need_veins = 0;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
@@ -25,10 +26,10 @@ struct PlanetCondition {
 };
 
 struct StarCondition {
-	uint8_t satisfy_num = 1;
-	uint8_t type = 0;
 	float distance = 1000.0f;
 	float dyson_lumino = 0.0f;
+	uint16_t type = 0xFFFF;
+	uint8_t satisfy_num = 1;
 	uint16_t need_veins = 0;
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
@@ -59,6 +60,7 @@ struct PlanetData {
 	vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
+	vector<PlanetData> moons = vector<PlanetData>();
 };
 
 struct StarData {

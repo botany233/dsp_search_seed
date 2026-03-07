@@ -18,10 +18,10 @@
 
 using namespace std;
 
-static uint16_t get_has_veins(const uint16_t *veins_group,const uint16_t *veins_point) {
+static uint16_t get_has_veins(const uint16_t *veins_point) {
 	uint16_t has_veins = 0;
 	for(int i=0;i<14;i++) {
-		has_veins |= (veins_group[i] > 0 || veins_point[i] > 0) << i;
+		has_veins |= (veins_point[i] > 0) << i;
 	}
 	return has_veins;
 }
@@ -112,6 +112,17 @@ GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 		}
 		galaxy_data.stars.push_back(star_data);
 	}
+	for(StarData& star_data: galaxy_data.stars) {
+		PlanetData* last_gas=nullptr;
+		for(PlanetData& planet_data: star_data.planets) {
+			if(planet_data.is_gas) {
+				last_gas = &planet_data;
+			}
+			else if(planet_data.singularity & 0x40) {
+				last_gas->moons.push_back(planet_data);
+			}
+		}
+	}
 	return galaxy_data;
 }
 
@@ -135,7 +146,7 @@ bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 			else
 				planet.MyGenerateVeins();
 		}
-		star.has_veins = get_has_veins(star.upper_veins_group,star.upper_veins_point);
+		star.has_veins = get_has_veins(star.upper_veins_point);
 	}
 	if(!check_galaxy_level_3(galaxy,galaxy_condition))
 		return false;
@@ -159,6 +170,7 @@ bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 
 bool check_seed_level_1(int seed,int star_num,const GalaxyCondition& galaxy_condition,int check_level)
 {
+	//cout << seed << " " << star_num << " level1 check start" << endl;
 	GalaxyClassSimple galaxy;
 	galaxy.CreateStars(seed,star_num);
 	if(!check_galaxy_level_1(galaxy,galaxy_condition))

@@ -10,7 +10,7 @@ static PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
 	PlanetCondition new_planet_condition = PlanetCondition();
 	new_planet_condition.satisfy_num = planet_condition["satisfy_num"].cast<uint8_t>();
 	new_planet_condition.dsp_level = planet_condition["dsp_level"].cast<uint8_t>();
-	new_planet_condition.type = planet_condition["type"].cast<uint8_t>();
+	new_planet_condition.type = planet_condition["type"].cast<uint32_t>();
 	new_planet_condition.liquid = planet_condition["liquid"].cast<uint8_t>();
 	new_planet_condition.singularity = planet_condition["singularity"].cast<uint8_t>();
 	new_planet_condition.need_veins = planet_condition["need_veins"].cast<uint16_t>();
@@ -26,7 +26,7 @@ static PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
 static StarCondition star_condition_to_struct(py::dict star_condition) {
 	StarCondition new_star_condition = StarCondition();
 	new_star_condition.satisfy_num = star_condition["satisfy_num"].cast<uint8_t>();
-	new_star_condition.type = star_condition["type"].cast<uint8_t>();
+	new_star_condition.type = star_condition["type"].cast<uint16_t>();
 	new_star_condition.distance = star_condition["distance"].cast<float>();
 	new_star_condition.dyson_lumino = star_condition["dyson_lumino"].cast<float>();
 	new_star_condition.need_veins = star_condition["need_veins"].cast<uint16_t>();

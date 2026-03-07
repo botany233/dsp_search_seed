@@ -14,6 +14,7 @@ class PlanetData:
     veins_group: list[int]
     veins_point: list[int]
     gas_veins: list[float]
+    moons: list[PlanetData]
 
 class StarData:
     name: str

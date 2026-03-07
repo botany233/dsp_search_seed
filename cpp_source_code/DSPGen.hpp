@@ -1128,7 +1128,7 @@ public:
         birthStar.overrideName = "";
         return birthStar;
     }
-
+	
     int GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
     {
 

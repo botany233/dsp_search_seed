@@ -36,11 +36,12 @@ public:
 	//float landPercent;
 	//float waterHeight;
 	uint8_t waterItemId;
-	uint8_t type_id;
+	//uint8_t type_id;
 	uint8_t singularity;
 	uint8_t dsp_level;
 	//bool is_upper_veins = false;
 	bool is_real_veins = false;
+	uint32_t type_mask;
 
 	uint16_t has_veins = 0;
 	uint16_t veins_group[14]{0};
@@ -69,6 +70,10 @@ public:
 
 	uint8_t typeId() {
 		return planet_theme_to_type[theme-1];
+	}
+
+	void set_type_mask() {
+		type_mask = 1 << (typeId()-1);
 	}
 
 	float realRadius() {
@@ -190,7 +195,7 @@ public:
 	int planetCount;
 	float distance;
 
-	uint8_t type_id;
+	uint16_t type_mask;
 	uint16_t has_veins = 0;
 	uint16_t upper_veins_group[14]{0};
 	uint16_t upper_veins_point[14]{0};
@@ -205,39 +210,43 @@ public:
 		if(type == EStarType::GiantStar)
 		{
 			if(spectr <= ESpectrType::K)
-				return 1; //红巨星
+				return 0; //红巨星
 			else if(spectr <= ESpectrType::F)
-				return 2; //黄巨星
+				return 1; //黄巨星
 			else if((spectr != ESpectrType::A))
-				return 3; //蓝巨星
+				return 2; //蓝巨星
 			else
-				return 4; //白巨星
+				return 3; //白巨星
 		} else if(type == EStarType::WhiteDwarf)
-			return 5; //白矮星
+			return 4; //白矮星
 		else if(type == EStarType::NeutronStar)
-			return 6; //中子星
+			return 5; //中子星
 		else if(type == EStarType::BlackHole)
-			return 7; //黑洞
+			return 6; //黑洞
 		else if(type == EStarType::MainSeqStar)
 		{
 			if(spectr == ESpectrType::A)
-				return 8; //A型恒星
+				return 7; //A型恒星
 			else if(spectr == ESpectrType::B)
-				return 9; //B型恒星
+				return 8; //B型恒星
 			else if(spectr == ESpectrType::F)
-				return 10; //F型恒星
+				return 9; //F型恒星
 			else if(spectr == ESpectrType::G)
-				return 11; //G型恒星
+				return 10; //G型恒星
 			else if(spectr == ESpectrType::K)
-				return 12; //K型恒星
+				return 11; //K型恒星
 			else if(spectr == ESpectrType::M)
-				return 13; //M型恒星
+				return 12; //M型恒星
 			else if(spectr == ESpectrType::O)
-				return 14; //O型恒星
+				return 13; //O型恒星
 			else
-				return 15;
+				return 14;
 		} else
-			return 16;
+			return 15;
+	}
+
+	void set_type_mask() {
+		type_mask = 1 << typeId();
 	}
 
 	float physicsRadius() {
@@ -345,7 +354,10 @@ protected:
 			planet.dsp_level = 1;
 		else
 			planet.dsp_level = 0;
-		planet.type_id = planet.typeId();
+		//planet.type_id = planet.typeId();
+		planet.set_type_mask();
+		planet.has_veins = planet_veins_mask[themeProto1.ID - 1] | star_veins_mask[star.typeId()];
+		star.has_veins |= planet.has_veins;
 	}
 
 	PlanetClassSimple CreatePlanet(StarClassSimple& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
@@ -692,11 +704,12 @@ protected:
 			star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
 		star.dysonRadius = round(star.dysonRadius * 800) * 100;
 		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
-		star.type_id = star.typeId();
+		//star.type_id = star.typeId();
+		star.set_type_mask();
 		star.galaxy = this;
 		star.distance = (float)(star.uPosition - stars[0].uPosition).magnitude() / 2400000.0f;
 	}
-
+	
 	StarClassSimple CreateBirthStar(int index,int seed)
 	{
 		StarClassSimple& birthStar = stars[index];
@@ -742,6 +755,7 @@ protected:
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
 		birthStar.galaxy = this;
+		birthStar.set_type_mask();
 		return birthStar;
 	}
 

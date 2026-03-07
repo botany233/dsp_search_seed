@@ -73,7 +73,7 @@ static uint16_t get_star_veins_mask(const StarClassSimple& star_data,const StarC
 
 static bool check_star_level_1(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type_id)
+	if(!(star_condition.type & star_data.type_mask))
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;
@@ -103,12 +103,13 @@ static bool check_planet_level_2(const PlanetClassSimple& planet_data,const Plan
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
-	if(planet_condition.type && planet_condition.type != planet_data.type_id &&
-		!(planet_condition.type == 23 && planet_data.type_id == 22))
+	if(!(planet_condition.type & planet_data.type_mask))
 		return false;
 	if((planet_condition.liquid & planet_data.waterItemId) != planet_condition.liquid)
 		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
+	if((planet_condition.need_veins & planet_data.has_veins) != planet_condition.need_veins)
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
@@ -127,11 +128,13 @@ static bool check_planet_level_2(const PlanetClassSimple& planet_data,const Plan
 
 static bool check_star_level_2(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type_id)
+	if(!(star_condition.type & star_data.type_mask))
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;
 	if(star_condition.dyson_lumino > star_data.luminosity)
+		return false;
+	if((star_condition.need_veins & star_data.has_veins) != star_condition.need_veins)
 		return false;
 	for(const PlanetCondition& planet_condition: star_condition.planets) {
 		int left_satisfy_num = planet_condition.satisfy_num;
@@ -184,8 +187,7 @@ static bool check_planet_level_3(const PlanetClassSimple& planet_data,const Plan
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
-	if(planet_condition.type && planet_condition.type != planet_data.type_id &&
-		!(planet_condition.type == 23 && planet_data.type_id == 22))
+	if(!(planet_condition.type & planet_data.type_mask))
 		return false;
 	if((planet_condition.liquid & planet_data.waterItemId) != planet_condition.liquid)
 		return false;
@@ -210,7 +212,7 @@ static bool check_planet_level_3(const PlanetClassSimple& planet_data,const Plan
 
 static bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type_id)
+	if(!(star_condition.type & star_data.type_mask))
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;
@@ -271,8 +273,7 @@ static bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCond
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)
 		return false;
-	if(planet_condition.type && planet_condition.type != planet_data.type_id &&
-		!(planet_condition.type == 23 && planet_data.type_id == 22))
+	if(!(planet_condition.type & planet_data.type_mask))
 		return false;
 	if((planet_condition.liquid & planet_data.waterItemId) != planet_condition.liquid)
 		return false;
@@ -305,7 +306,7 @@ static bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCond
 
 static bool check_star_level_4(StarClassSimple& star_data,const StarCondition& star_condition)
 {
-	if(star_condition.type && star_condition.type != star_data.type_id)
+	if(!(star_condition.type & star_data.type_mask))
 		return false;
 	if(star_condition.distance < star_data.distance)
 		return false;

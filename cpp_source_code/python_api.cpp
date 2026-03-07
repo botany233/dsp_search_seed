@@ -90,6 +90,17 @@ vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& s
 	return result;
 }
 
+static bool is_planet_need_veins(const PlanetCondition& planet_condition)
+{
+	if(planet_condition.need_veins)
+		return true;
+	for(const PlanetCondition& moon_condition: planet_condition.moons) {
+		if(moon_condition.need_veins)
+			return true;
+	}
+	return false;
+}
+
 static bool is_need_veins(const GalaxyCondition& galaxy_condition)
 {
 	if(galaxy_condition.need_veins)
@@ -98,12 +109,12 @@ static bool is_need_veins(const GalaxyCondition& galaxy_condition)
 		if(star_condition.need_veins)
 			return true;
 		for(const PlanetCondition& planet_condition: star_condition.planets) {
-			if(planet_condition.need_veins)
+			if(is_planet_need_veins(planet_condition))
 				return true;
 		}
 	}
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
-		if(planet_condition.need_veins)
+		if(is_planet_need_veins(planet_condition))
 			return true;
 	}
 	return false;
@@ -162,7 +173,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("singularity",&PlanetCondition::singularity)
 		.def_readwrite("need_veins",&PlanetCondition::need_veins)
 		.def_readwrite("veins_group",&PlanetCondition::veins_group)
-		.def_readwrite("veins_point",&PlanetCondition::veins_point);
+		.def_readwrite("veins_point",&PlanetCondition::veins_point)
+		.def_readwrite("moons",&PlanetCondition::moons);;
 	py::class_<StarCondition>(m,"StarCondition")
 		.def(py::init<>())
 		.def_readwrite("satisfy_num",&StarCondition::satisfy_num)
@@ -196,7 +208,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("dsp_level",&PlanetData::dsp_level)
 		.def_readwrite("veins_group",&PlanetData::veins_group)
 		.def_readwrite("veins_point",&PlanetData::veins_point)
-		.def_readwrite("gas_veins",&PlanetData::gas_veins);
+		.def_readwrite("gas_veins",&PlanetData::gas_veins)
+		.def_readwrite("moons",&PlanetData::moons);
 	py::class_<StarData>(m,"StarData")
 		.def(py::init<>())
 		.def_readwrite("type",&StarData::type)

@@ -1,12 +1,15 @@
 #include <cstdint>
+#include <iostream>
 
 #include "astro_class.hpp"
 #include "PlanetAlgorithm.hpp"
 
-static uint16_t get_has_veins(const uint16_t *veins_group,const uint16_t *veins_point) {
+using namespace std;
+
+static uint16_t get_has_veins(const uint16_t *veins_point) {
 	uint16_t has_veins = 0;
 	for(int i=0;i<14;i++) {
-		has_veins |= (veins_group[i] > 0 || veins_point[i] > 0) << i;
+		has_veins |= (veins_point[i] > 0) << i;
 	}
 	return has_veins;
 }
@@ -126,7 +129,7 @@ void PlanetClassSimple::MyGenerateVeins()
 		star->galaxy->veins_group[i] += veins_group[i];
 		star->galaxy->veins_point[i] += veins_point[i];
 	}
-	has_veins = get_has_veins(veins_group,veins_point);
+	has_veins = get_has_veins(veins_point);
 }
 
 void PlanetClassSimple::generate_real_veins() {
@@ -134,6 +137,7 @@ void PlanetClassSimple::generate_real_veins() {
 	planet_algorithm->GenerateTerrain(*this);
 	planet_algorithm->GenerateVeins(*this,this->star->galaxy->birthPlanetId);
 	is_real_veins = true;
+	has_veins = get_has_veins(veins_point);
 	for(int i=0;i<14;i++) {
 		star->real_veins_group[i] += veins_group[i];
 		star->real_veins_point[i] += veins_point[i];
