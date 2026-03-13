@@ -22,7 +22,8 @@ def benchmark_condition_level_4():
     galaxy_condition = {"veins_point": {"铁":30000}}
     return galaxy_condition, (0, 199), (64, 64), False
 
-moon_condition_1 = {"type": "地中海"}
+def benchmark_condition_better_birthstar():
+    moon_condition_1 = {"type": "地中海"}
     moon_condition_2 = {"type": "贫瘠荒漠", "veins_point": {"刺笋结晶": 1}}
     planet_condition = {"type": "冰巨星", "moons": [moon_condition_1, moon_condition_2]}
     star_condition = {"planets": [planet_condition], "distance": 0}
@@ -39,4 +40,6 @@ def benchmark_condition_easy():
     galaxy_condition = {"veins_point": {"单极磁石": 80, "刺笋结晶": 400}, "stars":[star_condition_1]}
     return galaxy_condition, (0, 4999999), (64, 64), False
 
-benchmark_condition_functions = [benchmark_condition_level_1, benchmark_condition_level_2, benchmark_condition_level_3_quick, benchmark_condition_level_3_standard, benchmark_condition_level_4, benchmark_condition_better_birthstar, benchmark_condition_easy]
+benchmark_condition_functions = [
+    benchmark_condition_level_1, benchmark_condition_level_2, benchmark_condition_level_3_quick, benchmark_condition_level_3_standard, benchmark_condition_level_4,
+    benchmark_condition_better_birthstar, benchmark_condition_easy]

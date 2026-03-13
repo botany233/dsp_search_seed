@@ -2,7 +2,7 @@
 *.pyc
 *.csv
 test.py
-/*.json
+*.json
 
 
 logs/

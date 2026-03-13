@@ -60,7 +60,7 @@ public:
 		current_index = 0;
 	}
 
-	vector<SeedStruct> get_seeds(int batch_num = 1) {
+	vector<SeedStruct> get_seeds(int batch_num = 1,float resource_rate = 100.0f) {
 		vector<SeedStruct> result = vector<SeedStruct>(0);
 		lock_guard<mutex> index_lck(index_mtx);
 		shared_lock<shared_mutex> data_lck(data_mtx);
@@ -72,7 +72,7 @@ public:
 				unsigned long bit_pos;
 				while(_BitScanForward64(&bit_pos,temp)) {
 					size_t real_index = (size_t)current_index * 64 + bit_pos;
-					result.emplace_back(real_index/33,real_index%33+32);
+					result.emplace_back(real_index/33,real_index%33+32,resource_rate);
 					temp &= (temp - 1);
 				}
 			}
@@ -80,15 +80,4 @@ public:
 		}
 		return result;
 	}
-
-	//pair<vector<uint64_t>,size_t> get_raw_data() {
-	//	shared_lock<shared_mutex> lck(data_mtx);
-	//	return pair(seeds,seed_num);
-	//}
-
-	//void set_raw_data(const pair<vector<uint64_t>,size_t>& raw_data) {
-	//	lock_guard<shared_mutex> lck(data_mtx);
-	//	seeds = raw_data.first;
-	//	seed_num = raw_data.second;
-	//}
 };

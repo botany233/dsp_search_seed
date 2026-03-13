@@ -8,20 +8,22 @@ using namespace std;
 struct SeedStruct {
 	int seed_id;
 	int star_num;
-	SeedStruct(): seed_id(0),star_num(0) {}
-	SeedStruct(int seed_id,int star_num): seed_id(seed_id),star_num(star_num) {}
+	float resource_rate;
+	SeedStruct(): seed_id(0),star_num(0),resource_rate(0.0f) {}
+	SeedStruct(int seed_id,int star_num,float resource_rate): seed_id(seed_id),star_num(star_num),resource_rate(resource_rate) {}
 };
 
 struct PlanetCondition {
-	uint8_t satisfy_num = 1;
+	uint16_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
 	//uint8_t type = 0;
 	uint8_t liquid = 0;
 	uint8_t singularity = 0;
 	uint32_t type = 0xFFFFFFFF;
 	uint16_t need_veins = 0;
-	vector<int> veins_group = vector<int>(14,0);
-	vector<int> veins_point = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
+	vector<uint16_t> veins_point = vector<uint16_t>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<PlanetCondition> moons = vector<PlanetCondition>();
 };
 
@@ -29,17 +31,19 @@ struct StarCondition {
 	float distance = 1000.0f;
 	float dyson_lumino = 0.0f;
 	uint16_t type = 0xFFFF;
-	uint8_t satisfy_num = 1;
+	uint16_t satisfy_num = 1;
 	uint16_t need_veins = 0;
-	vector<int> veins_group = vector<int>(14,0);
-	vector<int> veins_point = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
+	vector<uint16_t> veins_point = vector<uint16_t>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<PlanetCondition> planets = vector<PlanetCondition>();
 };
 
 struct GalaxyCondition {
 	uint16_t need_veins = 0;
-	vector<int> veins_group = vector<int>(14,0);
-	vector<int> veins_point = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
+	vector<uint16_t> veins_point = vector<uint16_t>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<StarCondition> stars = vector<StarCondition>();
 	vector<PlanetCondition> planets = vector<PlanetCondition>();
 };
@@ -57,8 +61,9 @@ struct PlanetData {
 	int liquid;
 	int dsp_level;
 	vector<string> singularity_str = vector<string>();
-	vector<int> veins_group = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
 	vector<PlanetData> moons = vector<PlanetData>();
 };
@@ -73,18 +78,21 @@ struct StarData {
 	float distance;
 	vector<double> pos = vector<double>(3,0);
 	vector<PlanetData> planets;
-	vector<int> veins_group = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
 	vector<int> liquid = vector<int>(3,0);
 };
 
 struct GalaxyData {
-	int seed;
+	int seed_id;
 	int star_num;
+	float resource_rate;
 	vector<StarData> stars;
-	vector<int> veins_group = vector<int>(14,0);
+	//vector<int> veins_group = vector<int>(14,0);
 	vector<int> veins_point = vector<int>(14,0);
+	vector<uint64_t> veins_amount = vector<uint64_t>(14,0);
 	vector<float> gas_veins = vector<float>(3,0);
 	vector<int> liquid = vector<int>(3,0);
 };

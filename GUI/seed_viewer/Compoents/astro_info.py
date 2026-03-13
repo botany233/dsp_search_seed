@@ -177,7 +177,7 @@ class GalaxyInfo(InfoBase):
         self.title_label.setText("星系信息")
         self.sub_title_label.setText(f"{data.star_num}星")
 
-        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid))
+        self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
         star_type_nums = [0] * 14
         for star in data.stars:
@@ -195,8 +195,7 @@ class StarInfo(InfoBase):
         self.sub_title_label.setText(data.type)
 
 
-        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid))
-
+        self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
         other_label = CaptionLabel(f'''\
 戴森球半径：{data.dyson_radius:.0f}m
@@ -218,23 +217,33 @@ class PlanetInfo(InfoBase):
         sub_title_text.extend(data.singularity_str)
         self.add_subtitle(sub_title_text)
 
-        self.add_veins(get_veins_list(data.veins_point, data.gas_veins, data.liquid, data.is_gas))
+        self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid, data.is_gas))
         other_label = CaptionLabel(f'''\
 风能利用率：{data.wind:.0%}
 光能利用率：{data.lumino:.0%}''')
         self.main_layout.addWidget(other_label)
 
-def get_veins_list(veins: list[int], gas_veins: list[float], liquid: list[int]|int, is_gas = False) -> list[str]:
+def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: list[float], liquid: list[int]|int, is_gas = False) -> list[str]:
     text = []
+
+    is_infinite_resource = all(i*1000000000 == j for i, j in zip(veins_point[:6], veins_amount[:6]))
 
     if not is_gas:
         for i in range(6):
-            text.append(f"{vein_names_c[i]}：{veins[i]}")
+            if is_infinite_resource:
+                text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
+            else:
+                text.append(f"{vein_names_c[i]}：{veins_point[i]}({veins_amount[i]})")
+        
+        if veins_point[6] > 0:
+            text.append(f"{vein_names_c[6]}：{veins_amount[6]/25000:.2f}/s")
 
-        for i in range(6, 14):
-            if veins[i] > 0:
-                text.append(f"{vein_names_c[i]}：{veins[i]}")
-
+        for i in range(7, 14):
+            if veins_point[i] > 0:
+                if is_infinite_resource:
+                    text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
+                else:
+                    text.append(f"{vein_names_c[i]}：{veins_point[i]}({veins_amount[i]})")
         if isinstance(liquid, int):
             if liquid == 1:
                 text.append("水：海洋")

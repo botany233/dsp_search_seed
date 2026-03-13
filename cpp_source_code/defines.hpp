@@ -140,34 +140,6 @@ const uint16_t star_veins_mask[] = {
 	0x0000,
 	0x0000
 };
-//const int themeres[] = {
-//    0x00000000,
-//    0x000088e6,
-//    0x00060000,
-//    0x00060000,
-//    0x00020001,
-//    0x00020001,
-//    0x00000276,
-//    0x0000057e,
-//    0x0000a8ee,
-//    0x0000167e,
-//    0x0000957e,
-//    0x0000133e,
-//    0x0000166e,
-//    0x0001007e,
-//    0x0000aae6,
-//    0x0000a8fe,
-//    0x0000a0c0,
-//    0x0000127e,
-//    0x0000a8ee,
-//    0x0000167e,
-//    0x0000137e,
-//    0x00060000,
-//    0x000028fe,
-//    0x00001856,
-//    0x0000137e,
-//    0x00002cfe
-//};
 const uint8_t planet_theme_to_type[25] = {
 	1,23,23,2,2,3,4,5,6,7,
 	8,9,10,11,12,13,14,15,16,17,
@@ -235,95 +207,11 @@ public:
 	std::vector<int> gasItems;
 	std::vector<float> gasSpeeds;
 	std::string display_name;
-	//PlanetRawData data;
 	Quaternion runtimeOrbitRotation;
 	Quaternion runtimeSystemRotation;
 	Vector3 birthPoint;
 	Vector3 birthResourcePoint0;
 	Vector3 birthResourcePoint1;
-
-	//void GenBirthPoints(int _birthSeed,const VectorLF3& star_uPosition)
-	//{
-	//	DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
-	//	Pose pose = PredictPose(85.0);
-	//	Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - pose.position * 40000.0);
-	//	vector.Normalize();
-	//	Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
-	//	Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
-	//	int i = 0;
-	//	int num;
-	//	for(num = 256; i < num; i++)
-	//	{
-	//		float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-	//		float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-	//		Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
-	//		vector2.Normalize();
-	//		birthPoint = vector2 * (realRadius() + 0.2f + 1.45f);
-	//		normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
-	//		normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
-	//		bool flag = false;
-	//		for(int j = 0; j < 10; j++)
-	//		{
-	//			float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-	//			float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-	//			Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
-	//			Vector2 vector4 = -vector3;
-	//			float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-	//			float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-	//			vector4.x += num4;
-	//			vector4.y += num5;
-	//			Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
-	//			Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
-	//			birthResourcePoint0 = Vector3::Normalize(normalized3);
-	//			birthResourcePoint1 = Vector3::Normalize(normalized4);
-	//			float num6 = realRadius() + 0.2f;
-	//			if(data.QueryHeight(vector2) > num6 && data.QueryHeight(normalized3) > num6 && data.QueryHeight(normalized4) > num6)
-	//			{
-	//				Vector3 vpos = normalized3 + normalized * 0.03f;
-	//				Vector3 vpos2 = normalized3 - normalized * 0.03f;
-	//				Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
-	//				Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
-	//				Vector3 vpos5 = normalized4 + normalized * 0.03f;
-	//				Vector3 vpos6 = normalized4 - normalized * 0.03f;
-	//				Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
-	//				Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
-	//				if(data.QueryHeight(vpos) > num6 && data.QueryHeight(vpos2) > num6 && data.QueryHeight(vpos3) > num6 && data.QueryHeight(vpos4) > num6 && data.QueryHeight(vpos5) > num6 && data.QueryHeight(vpos6) > num6 && data.QueryHeight(vpos7) > num6 && data.QueryHeight(vpos8) > num6)
-	//				{
-	//					flag = true;
-	//					break;
-	//				}
-	//			}
-	//		}
-	//		if(flag)
-	//		{
-	//			break;
-	//		}
-	//	}
-	//	if(i >= num)
-	//	{
-	//		birthPoint = Vector3(0.0f,realRadius() + 5.0f,0.0f);
-	//	}
-	//}
-
-	//Pose PredictPose(double time)
-	//{
-	//	double num = time / orbitalPeriod + (double)orbitPhase / 360.0;
-	//	int num2 = (int)(num + 0.1);
-	//	num -= (double)num2;
-	//	num *= Math.PI * 2.0;
-	//	double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
-	//	int num4 = (int)(num3 + 0.1);
-	//	num3 = (num3 - (double)num4) * 360.0;
-	//	Vector3 position = Maths::QRotate(runtimeOrbitRotation,Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius));
-	//	if(orbitAroundPlanet != NULL)
-	//	{
-	//		Pose pose = orbitAroundPlanet->PredictPose(time);
-	//		position.x += pose.position.x;
-	//		position.y += pose.position.y;
-	//		position.z += pose.position.z;
-	//	}
-	//	return Pose(position,runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
-	//}
 
 	inline float realRadius() {
 		return radius * scale;

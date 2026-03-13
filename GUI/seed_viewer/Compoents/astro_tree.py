@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
     QTreeWidget,
 )
 from qfluentwidgets import TreeWidget, CaptionLabel, BodyLabel
-from CApi import GalaxyData, StarData, PlanetData
+from CApi import GalaxyData, StarData, PlanetData, resource_text_C
 from GUI import vein_names, singularity
 
 from GUI.Widgets import WaitRing
@@ -114,8 +114,9 @@ class GalaxyTreeWidgetItem(QTreeWidgetItem):
         self.galaxy_data = galaxy_data
 
         show_text = []
-        show_text.append(str(galaxy_data.seed))
+        show_text.append(str(galaxy_data.seed_id))
         show_text.append(str(galaxy_data.star_num))
+        show_text.append(resource_text_C[round(galaxy_data.resource_rate, 1)])
 
         self.setText(0, "星系")
         

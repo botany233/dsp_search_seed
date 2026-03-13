@@ -4,6 +4,31 @@
 #include "LDB.hpp"
 LDB_CLASS LDB;
 
+#include "NameGen.hpp"
+NameGen_t NameGen;
+const std::string vformat(const char* const zcFormat,...) {
+	va_list vaArgs;
+	va_start(vaArgs,zcFormat);
+	va_list vaArgsCopy;
+	va_copy(vaArgsCopy,vaArgs);
+	const int iLen = std::vsnprintf(NULL,0,zcFormat,vaArgsCopy);
+	va_end(vaArgsCopy);
+	std::vector<char> zc(iLen + 1);
+	std::vsnprintf(zc.data(),zc.size(),zcFormat,vaArgs);
+	va_end(vaArgs);
+	return std::string(zc.data(),iLen);
+}
+
+std::string ReplaceString(std::string subject,const std::string& search,
+	const std::string& replace) {
+	size_t pos = 0;
+	while((pos = subject.find(search,pos)) != std::string::npos) {
+		subject.replace(pos,search.length(),replace);
+		pos += replace.length();
+	}
+	return subject;
+}
+
 #include "PlanetRawData.hpp"
 Vector3 PlanetRawData::vertices[161604];
 int PlanetRawData::indexMap[60000];

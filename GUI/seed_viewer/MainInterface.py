@@ -5,7 +5,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDi
 from PySide6.QtCore import Qt
 from qfluentwidgets import BodyLabel, PushButton
 
-from CApi import GetDataManager
+from CApi import GetDataManager, resource_rate_c
 from config import cfg
 from logger import log
 from .Compoents import *
@@ -43,6 +43,12 @@ class ViewerInterface(QFrame):
         self.leftLayout = QVBoxLayout(self.leftWidget)
 
         self.leftLayout.setContentsMargins(0, 0, 0, 0)
+
+        resource_rate_layout = QHBoxLayout()
+        resource_rate_layout.addWidget(BodyLabel("资源倍率："))
+        self.resource_rate_combo = ResourceRateComboBox()
+        resource_rate_layout.addWidget(self.resource_rate_combo)
+        self.leftLayout.addLayout(resource_rate_layout)
 
         self.seed_scroll = SeedScroll(self.seed_list)
         self.leftLayout.addWidget(self.seed_scroll)
@@ -168,33 +174,35 @@ class ViewerInterface(QFrame):
             return
 
         seed_id, star_num = select_seed[0]
-        if self.current_select == (seed_id, star_num):
+        resource_rate = resource_rate_c[self.resource_rate_combo.currentText()]
+        if self.current_select == (seed_id, star_num, resource_rate):
             return
-        self.current_select = (seed_id, star_num)
+        self.current_select = (seed_id, star_num, resource_rate)
 
-        if (seed_id, star_num) in self.seed_buffer:
-            galaxy_data = self.seed_buffer[(seed_id, star_num)]
+        if (seed_id, star_num, resource_rate) in self.seed_buffer:
+            galaxy_data = self.seed_buffer[(seed_id, star_num, resource_rate)]
             self.astro_tree.fresh(galaxy_data)
             self.astro_tree.wait_ring.stop()
             return
 
         self.astro_tree.wait_ring.start()
-        if (seed_id, star_num) in self.getting_seed:
+        if (seed_id, star_num, resource_rate) in self.getting_seed:
             return
-        self.getting_seed.add((seed_id, star_num))
-        self.get_data_manager.add_task(seed_id, star_num)
+        self.getting_seed.add((seed_id, star_num, resource_rate))
+
+        self.get_data_manager.add_task(seed_id, star_num, resource_rate)
         while True:
             results = self.get_data_manager.get_results()
             for result in results:
-                data_seed, data_star_num = result.seed, result.star_num
+                data_seed, data_star_num, data_resource_rate = result.seed_id, result.star_num, round(result.resource_rate, 1)
                 if len(self.seed_buffer) >= self.max_buffer:
                     self.seed_buffer.pop(next(iter(self.seed_buffer)))
-                self.seed_buffer[(data_seed, data_star_num)] = result
-                self.getting_seed.remove((data_seed, data_star_num))
-                if self.current_select == (data_seed, data_star_num):
+                self.seed_buffer[(data_seed, data_star_num, data_resource_rate)] = result
+                self.getting_seed.remove((data_seed, data_star_num, data_resource_rate))
+                if self.current_select == (data_seed, data_star_num, data_resource_rate):
                     self.astro_tree.fresh(result)
                     self.astro_tree.wait_ring.stop()
-            if (seed_id, star_num) not in self.getting_seed:
+            if (seed_id, star_num, resource_rate) not in self.getting_seed:
                 break
             QApplication.processEvents()
 

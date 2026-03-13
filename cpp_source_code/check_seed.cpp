@@ -26,13 +26,14 @@ static uint16_t get_has_veins(const uint16_t *veins_point) {
 	return has_veins;
 }
 
-GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
+GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 {
 	GalaxyData galaxy_data;
 	GalaxyClass g;
-	g.CreateGalaxy(seed,star_num,0);
-	galaxy_data.seed = seed;
-	galaxy_data.star_num = star_num;
+	g.CreateGalaxy(seed.seed_id,seed.star_num,seed.resource_rate,0);
+	galaxy_data.seed_id = seed.seed_id;
+	galaxy_data.star_num = seed.star_num;
+	galaxy_data.resource_rate = seed.resource_rate;
 	for(StarClass& star : g.stars)
 	{
 		StarData star_data;
@@ -82,28 +83,29 @@ GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 					star_data.gas_veins[i] += planet_data.gas_veins[i];
 			} else {
 				planet_data.is_gas = false;
-				int veins_group[14] = {0};
+				//int veins_group[14] = {0};
 				int veins_point[14] = {0};
+				uint64_t veins_amount[14] = {0};
 				if(quick) {
-					g.MyGenerateVeins(star,planet,veins_group,veins_point);
+					g.MyGenerateVeins(star,planet,veins_point,veins_amount);
 				}
 				else {
 					std::unique_ptr planet_algorithm = PlanetAlgorithmManager(planet.algoId);
-					planet_algorithm->get_veins(star,planet,g.birthPlanetId,veins_group,veins_point);
+					planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
 				}
 				for(int i = 0; i < 14; i++) {
-					planet_data.veins_group[i] = veins_group[i];
 					planet_data.veins_point[i] = veins_point[i];
-					star_data.veins_group[i] += veins_group[i];
+					planet_data.veins_amount[i] = veins_amount[i];
 					star_data.veins_point[i] += veins_point[i];
+					star_data.veins_amount[i] += veins_amount[i];
 				}
 			}
 			star_data.planets.push_back(planet_data);
 		}
 		for(int i = 0; i < 14; i++)
 		{
-			galaxy_data.veins_group[i] += star_data.veins_group[i];
 			galaxy_data.veins_point[i] += star_data.veins_point[i];
+			galaxy_data.veins_amount[i] += star_data.veins_amount[i];
 		}
 		for(int i = 0; i < 3; i++)
 		{
@@ -129,8 +131,9 @@ GalaxyData get_galaxy_data(int seed,int star_num,bool quick)
 bool check_seed_level_4(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	//cout << galaxy.seed << " " << galaxy.starCount << " level4 check start" << endl;
-	memset(galaxy.veins_group,0,sizeof(galaxy.veins_group));
+	//memset(galaxy.veins_group,0,sizeof(galaxy.veins_group));
 	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
+	memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
 	return check_galaxy_level_4(galaxy,galaxy_condition);
 }
 
@@ -168,11 +171,11 @@ bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 		return true;
 }
 
-bool check_seed_level_1(int seed,int star_num,const GalaxyCondition& galaxy_condition,int check_level)
+bool check_seed_level_1(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	//cout << seed << " " << star_num << " level1 check start" << endl;
 	GalaxyClassSimple galaxy;
-	galaxy.CreateStars(seed,star_num);
+	galaxy.CreateStars(seed.seed_id,seed.star_num,seed.resource_rate);
 	if(!check_galaxy_level_1(galaxy,galaxy_condition))
 		return false;
 	else if(check_level>1)

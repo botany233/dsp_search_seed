@@ -4,33 +4,14 @@
 
 #include <cstdarg>
 #include <set>
+#include <string.h>
 
 #include "defines.hpp"
 #include "util.hpp"
-#include <string.h>
 
-const std::string vformat(const char* const zcFormat, ...) {
-    va_list vaArgs;
-    va_start(vaArgs, zcFormat);
-    va_list vaArgsCopy;
-    va_copy(vaArgsCopy, vaArgs);
-    const int iLen = std::vsnprintf(NULL, 0, zcFormat, vaArgsCopy);
-    va_end(vaArgsCopy);
-    std::vector<char> zc(iLen + 1);
-    std::vsnprintf(zc.data(), zc.size(), zcFormat, vaArgs);
-    va_end(vaArgs);
-    return std::string(zc.data(), iLen);
-}
+const std::string vformat(const char* const zcFormat,...);
 
-std::string ReplaceString(std::string subject, const std::string& search,
-    const std::string& replace) {
-    size_t pos = 0;
-    while ((pos = subject.find(search, pos)) != std::string::npos) {
-        subject.replace(pos, search.length(), replace);
-        pos += replace.length();
-    }
-    return subject;
-}
+std::string ReplaceString(std::string subject,const std::string& search,const std::string& replace);
 
 struct NameGen_t
 {
@@ -336,4 +317,6 @@ struct NameGen_t
         num %= black_hole_name_formatsLength;
         return vformat(black_hole_name_formats[num], num2, num3, num4);
     }
-}NameGen;
+};
+
+extern NameGen_t NameGen;

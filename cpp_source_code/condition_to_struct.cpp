@@ -1,5 +1,6 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
+#include <cstdint>
 
 #include "data_struct.hpp"
 
@@ -14,8 +15,8 @@ static PlanetCondition planet_condition_to_struct(py::dict planet_condition) {
 	new_planet_condition.liquid = planet_condition["liquid"].cast<uint8_t>();
 	new_planet_condition.singularity = planet_condition["singularity"].cast<uint8_t>();
 	new_planet_condition.need_veins = planet_condition["need_veins"].cast<uint16_t>();
-	new_planet_condition.veins_group = planet_condition["veins_group"].cast<vector<int>>();
-	new_planet_condition.veins_point = planet_condition["veins_point"].cast<vector<int>>();
+	new_planet_condition.veins_point = planet_condition["veins_point"].cast<vector<uint16_t>>();
+	new_planet_condition.veins_amount = planet_condition["veins_amount"].cast<vector<uint64_t>>();
 	auto moon_conditions = planet_condition["moons"].cast<py::list>();
 	for(auto moon_condition :moon_conditions) {
 		new_planet_condition.moons.push_back(planet_condition_to_struct(moon_condition.cast<py::dict>()));
@@ -30,8 +31,8 @@ static StarCondition star_condition_to_struct(py::dict star_condition) {
 	new_star_condition.distance = star_condition["distance"].cast<float>();
 	new_star_condition.dyson_lumino = star_condition["dyson_lumino"].cast<float>();
 	new_star_condition.need_veins = star_condition["need_veins"].cast<uint16_t>();
-	new_star_condition.veins_group = star_condition["veins_group"].cast<vector<int>>();
-	new_star_condition.veins_point = star_condition["veins_point"].cast<vector<int>>();
+	new_star_condition.veins_point = star_condition["veins_point"].cast<vector<uint16_t>>();
+	new_star_condition.veins_amount = star_condition["veins_amount"].cast<vector<uint64_t>>();
 	auto planet_conditions = star_condition["planets"].cast<py::list>();
 	for(auto planet_condition : planet_conditions) {
 		new_star_condition.planets.push_back(planet_condition_to_struct(planet_condition.cast<py::dict>()));
@@ -42,8 +43,8 @@ static StarCondition star_condition_to_struct(py::dict star_condition) {
 GalaxyCondition galaxy_condition_to_struct(py::dict galaxy_condition) {
 	GalaxyCondition new_galaxy_condition = GalaxyCondition();
 	new_galaxy_condition.need_veins = galaxy_condition["need_veins"].cast<uint16_t>();
-	new_galaxy_condition.veins_group = galaxy_condition["veins_group"].cast<vector<int>>();
-	new_galaxy_condition.veins_point = galaxy_condition["veins_point"].cast<vector<int>>();
+	new_galaxy_condition.veins_point = galaxy_condition["veins_point"].cast<vector<uint16_t>>();
+	new_galaxy_condition.veins_amount = galaxy_condition["veins_amount"].cast<vector<uint64_t>>();
 	auto star_conditions = galaxy_condition["stars"].cast<py::list>();
 	for(auto star_condition : star_conditions) {
 		new_galaxy_condition.stars.push_back(star_condition_to_struct(star_condition.cast<py::dict>()));

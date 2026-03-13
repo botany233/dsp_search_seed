@@ -63,29 +63,17 @@ int get_gpu_max_worker() {
 	return OpenCLManager::get_max_worker();
 }
 
-vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,const GalaxyCondition& galaxy_condition,int check_level)
+vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+	const GalaxyCondition& galaxy_condition,int check_level)
 {
 	vector<string> result;
-	for(int seed = start_seed;seed < end_seed;seed++)
+	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
 	{
 		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
 		{
-			if(check_seed_level_1(seed,star_num,galaxy_condition,check_level))
-				result.push_back(to_string(seed) + "," + to_string(star_num));
+			if(check_seed_level_1(SeedStruct(seed_id,star_num,resource_rate),galaxy_condition,check_level))
+				result.push_back(to_string(seed_id) + "," + to_string(star_num));
 		}
-	}
-	return result;
-}
-
-vector<string> check_precise(const vector<int>& seed_vector,const vector<int>& star_num_vector,const GalaxyCondition& galaxy_condition,int check_level)
-{
-	vector<string> result;
-	for(int i = 0; i<seed_vector.size(); i++)
-	{
-		int seed = seed_vector[i];
-		int star_num = star_num_vector[i];
-		if(check_seed_level_1(seed,star_num,galaxy_condition,check_level))
-			result.push_back(to_string(seed) + "," + to_string(star_num));
 	}
 	return result;
 }
@@ -130,14 +118,12 @@ static bool is_need_planet(const GalaxyCondition& galaxy_condition)
 }
 
 int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
-	if(is_need_veins(galaxy_condition))
-	{
+	if(is_need_veins(galaxy_condition)) {
 		if(quick)
 			return 3;
 		else
 			return 4;
-	} else
-	{
+	} else {
 		if(is_need_planet(galaxy_condition))
 			return 2;
 		else
@@ -145,25 +131,21 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 	}
 }
 
-vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,const py::dict& galaxy_condition_dict,bool quick)
+vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+	const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = get_condition_level(galaxy_condition,quick);
-	return check_batch(start_seed,end_seed,start_star_num,end_star_num,galaxy_condition,check_level);
-}
-
-vector<string> check_precise_c(const vector<int>& seed_vector,const vector<int>& star_num_vector,const py::dict& galaxy_condition_dict,bool quick)
-{
-	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-	int check_level = get_condition_level(galaxy_condition,quick);
-	return check_precise(seed_vector,star_num_vector,galaxy_condition,check_level);
+	return check_batch(start_seed,end_seed,start_star_num,end_star_num,resource_rate,galaxy_condition,check_level);
 }
 
 PYBIND11_MODULE(search_seed,m) {
 	py::class_<SeedStruct>(m,"Seed")
 		.def(py::init<>())
+		.def(py::init<int,int,float>())
 		.def_readwrite("seed_id",&SeedStruct::seed_id)
-		.def_readwrite("star_num",&SeedStruct::star_num);
+		.def_readwrite("star_num",&SeedStruct::star_num)
+		.def_readwrite("resource_rate",&SeedStruct::resource_rate);
 	py::class_<PlanetCondition>(m,"PlanetCondition")
 		.def(py::init<>())
 		.def_readwrite("satisfy_num",&PlanetCondition::satisfy_num)
@@ -172,8 +154,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("liquid",&PlanetCondition::liquid)
 		.def_readwrite("singularity",&PlanetCondition::singularity)
 		.def_readwrite("need_veins",&PlanetCondition::need_veins)
-		.def_readwrite("veins_group",&PlanetCondition::veins_group)
 		.def_readwrite("veins_point",&PlanetCondition::veins_point)
+		.def_readwrite("veins_amount",&PlanetCondition::veins_amount)
 		.def_readwrite("moons",&PlanetCondition::moons);;
 	py::class_<StarCondition>(m,"StarCondition")
 		.def(py::init<>())
@@ -182,14 +164,14 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("distance",&StarCondition::distance)
 		.def_readwrite("dyson_lumino",&StarCondition::dyson_lumino)
 		.def_readwrite("need_veins",&StarCondition::need_veins)
-		.def_readwrite("veins_group",&StarCondition::veins_group)
 		.def_readwrite("veins_point",&StarCondition::veins_point)
+		.def_readwrite("veins_amount",&StarCondition::veins_amount)
 		.def_readwrite("planets",&StarCondition::planets);
 	py::class_<GalaxyCondition>(m,"GalaxyCondition")
 		.def(py::init<>())
 		.def_readwrite("need_veins",&GalaxyCondition::need_veins)
-		.def_readwrite("veins_group",&GalaxyCondition::veins_group)
 		.def_readwrite("veins_point",&GalaxyCondition::veins_point)
+		.def_readwrite("veins_amount",&GalaxyCondition::veins_amount)
 		.def_readwrite("stars",&GalaxyCondition::stars)
 		.def_readwrite("planets",&GalaxyCondition::planets);
 	py::class_<PlanetData>(m,"PlanetData")
@@ -206,8 +188,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("liquid",&PlanetData::liquid)
 		.def_readwrite("is_gas",&PlanetData::is_gas)
 		.def_readwrite("dsp_level",&PlanetData::dsp_level)
-		.def_readwrite("veins_group",&PlanetData::veins_group)
 		.def_readwrite("veins_point",&PlanetData::veins_point)
+		.def_readwrite("veins_amount",&PlanetData::veins_amount)
 		.def_readwrite("gas_veins",&PlanetData::gas_veins)
 		.def_readwrite("moons",&PlanetData::moons);
 	py::class_<StarData>(m,"StarData")
@@ -221,17 +203,18 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readwrite("distance",&StarData::distance)
 		.def_readwrite("pos",&StarData::pos)
 		.def_readwrite("planets",&StarData::planets)
-		.def_readwrite("veins_group",&StarData::veins_group)
 		.def_readwrite("veins_point",&StarData::veins_point)
+		.def_readwrite("veins_amount",&StarData::veins_amount)
 		.def_readwrite("gas_veins",&StarData::gas_veins)
 		.def_readwrite("liquid",&StarData::liquid);
 	py::class_<GalaxyData>(m,"GalaxyData")
 		.def(py::init<>())
-		.def_readwrite("seed",&GalaxyData::seed)
+		.def_readwrite("seed_id",&GalaxyData::seed_id)
 		.def_readwrite("star_num",&GalaxyData::star_num)
+		.def_readwrite("resource_rate",&GalaxyData::resource_rate)
 		.def_readwrite("stars",&GalaxyData::stars)
-		.def_readwrite("veins_group",&GalaxyData::veins_group)
 		.def_readwrite("veins_point",&GalaxyData::veins_point)
+		.def_readwrite("veins_amount",&GalaxyData::veins_amount)
 		.def_readwrite("gas_veins",&GalaxyData::gas_veins)
 		.def_readwrite("liquid",&GalaxyData::liquid);
 	py::class_<SeedManager>(m,"SeedManager")
@@ -248,7 +231,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("shutdown",&GetDataManager::shutdown)
 		.def("get_results",&GetDataManager::get_results);
 	py::class_<CheckPreciseManager>(m,"CheckPreciseManager")
-		.def(py::init<SeedManager&,const py::dict &,bool,int>())
+		.def(py::init<SeedManager&,float,const py::dict &,bool,int>())
 		.def("run",&CheckPreciseManager::run)
 		.def("is_running",&CheckPreciseManager::is_running)
 		.def("shutdown",&CheckPreciseManager::shutdown)
@@ -258,7 +241,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("get_last_result",&CheckPreciseManager::get_last_result)
 		.def("get_results",&CheckPreciseManager::get_results);
 	py::class_<CheckBatchManager>(m,"CheckBatchManager")
-		.def(py::init<int,int,int,int,const py::dict&,bool,int>())
+		.def(py::init<int,int,int,int,float,const py::dict&,bool,int>())
 		.def("run", &CheckBatchManager::run)
 		.def("is_running",&CheckBatchManager::is_running)
 		.def("shutdown", &CheckBatchManager::shutdown)
@@ -283,7 +266,6 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("set_gpu_max_worker_c",&set_gpu_max_worker,py::arg("max_worker"));
 	m.def("get_gpu_max_worker_c",&get_gpu_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
-	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed_id"),py::arg("star_num"),py::arg("quick"));
-	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("galaxy_condition"),py::arg("quick"));
-	m.def("check_precise_c",&check_precise_c,py::arg("seed_vector"),py::arg("star_num_vector"),py::arg("galaxy_condition"),py::arg("quick"));
+	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
+	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_rate"),py::arg("galaxy_condition"),py::arg("quick"));
 }

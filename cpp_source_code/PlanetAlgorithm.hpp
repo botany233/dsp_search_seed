@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "astro_class.hpp"
+#include "DSPGen.hpp"
 #include "util.hpp"
 #include "Maths.hpp"
 #include "Vector3.hpp"
@@ -23,6 +24,8 @@
 #include "PlanetRawData.hpp"
 #include "LDB.hpp"
 #include "defines.hpp"
+
+#include <iomanip>
 
 #pragma warning(disable:4267)
 #pragma warning(disable:4244)
@@ -190,12 +193,22 @@ public:
 	}
 };
 
+static GalaxyClassSimple galaxy_to_simple(const GalaxyClass& galaxy) {
+	GalaxyClassSimple galaxy_simple;
+	galaxy_simple.resource_multiplier = galaxy.resource_multiplier;
+	galaxy_simple.is_infinite_resource = galaxy.is_infinite_resource;
+	galaxy_simple.is_rare_resource = galaxy.is_rare_resource;
+	galaxy_simple.birthPlanetId = galaxy.birthPlanetId;
+	return galaxy_simple;
+}
+
 static StarClassSimple star_to_simple(const StarClass& star) {
 	StarClassSimple star_simple;
 	star_simple.type = star.type;
 	star_simple.index = star.index;
 	star_simple.spectr = star.spectr;
 	star_simple.uPosition = star.uPosition;
+	star_simple.resourceCoef = star.resourceCoef;
 	return star_simple;
 }
 
@@ -239,10 +252,12 @@ public:
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
-	void get_veins(const StarClass& star,const PlanetClass& planet,const int birthPlanetId,int* veins_group,int* veins_point)
+	void get_veins(const GalaxyClass& galaxy,const StarClass& star,const PlanetClass& planet,int* veins_point,uint64_t* veins_amount)
 	{
-		StarClassSimple star_simple = star_to_simple(star);
 		PlanetClassSimple planet_simple = planet_to_simple(planet);
+		StarClassSimple star_simple = star_to_simple(star);
+		GalaxyClassSimple galaxy_simple = galaxy_to_simple(galaxy);
+		star_simple.galaxy = &galaxy_simple;
 		planet_simple.star = &star_simple;
 		PlanetClassSimple planet_simple_orbit;
 		if(planet.orbitAroundPlanet != nullptr) {
@@ -250,10 +265,10 @@ public:
 			planet_simple.orbitAroundPlanet = &planet_simple_orbit;
 		}
 		this->GenerateTerrain(planet_simple);
-		this->GenerateVeins(planet_simple,birthPlanetId);
+		this->GenerateVeins(planet_simple,galaxy.birthPlanetId);
 		for(int i=0; i < 14; i++) {
-			veins_group[i] = planet_simple.veins_group[i];
 			veins_point[i] = planet_simple.veins_point[i];
+			veins_amount[i] = planet_simple.veins_amount[i];
 		}
 	}
 	
@@ -272,6 +287,7 @@ public:
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
+		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
 			for(int i = 0; i < copy_size; ++i) {
@@ -282,6 +298,12 @@ public:
 			int copy_size = themeProto.VeinCount.size();
 			for(int i = 0; i < copy_size; ++i) {
 				array2[i + 1] = themeProto.VeinCount[i];
+			}
+		}
+		if(!themeProto.VeinOpacity.empty()) {
+			int copy_size = themeProto.VeinOpacity.size();
+			for(int i = 0; i < copy_size; ++i) {
+				array3[i + 1] = themeProto.VeinOpacity[i];
 			}
 		}
 		float p = 1.0f;
@@ -332,6 +354,7 @@ public:
 				array[9]++;
 			}
 			array2[9] = 0.7f;
+			array3[9] = 1.0f;
 			array[10]++;
 			array[10]++;
 			for(int k = 1; k < 12; k++)
@@ -343,6 +366,7 @@ public:
 				array[10]++;
 			}
 			array2[10] = 0.7f;
+			array3[10] = 1.0f;
 			array[12]++;
 			for(int l = 1; l < 12; l++)
 			{
@@ -353,6 +377,7 @@ public:
 				array[12]++;
 			}
 			array2[12] = 0.7f;
+			array3[12] = 0.3f;
 			break;
 		}
 		case EStarType::NeutronStar:
@@ -368,6 +393,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		case EStarType::BlackHole:
@@ -383,6 +409,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		}
@@ -392,16 +419,17 @@ public:
 			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
 			float num4 = themeProto.RareSettings[n * 4 + 2];
 			float num5 = themeProto.RareSettings[n * 4 + 3];
-			float num6 = num5;
+			//float num6 = num5;
 			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
 			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
+			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
 			if(!(dotNet35Random.NextDouble() < (double)num3))
 			{
 				continue;
 			}
 			array[num2]++;
 			array2[num2] = num5;
+			array3[num2] = num5;
 			for(int num7 = 1; num7 < 12; num7++)
 			{
 				if(dotNet35Random.NextDouble() >= (double)num4)
@@ -415,6 +443,14 @@ public:
 		if(flag)
 		{
 			planet.GenBirthPoints(birthSeed,star.uPosition);
+		}
+		float num8 = star.resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star.galaxy->is_rare_resource) {
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
 		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
@@ -513,7 +549,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			planet.veins_group[vein_point_type-1]++;
+			//planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -530,9 +566,11 @@ public:
 			{
 				vein_point_num = 1;
 			}
+			float num20 = array3[vein_point_type];
 			if(flag && vein_group_index < 2)
 			{
 				vein_point_num = 6;
+				num20 = 0.2f;
 			}
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
@@ -582,10 +620,33 @@ public:
 			//	}
 			//	std::cout << std::endl;
 			//}
+			float num25 = num8;
+			if(eVeinType2 == EVeinType::Oil)
+				num25 = Mathf.Pow(num8,0.5f);
+			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			if(num26 < 20)
+				num26 = 20;
+			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
+			int minValue = num26 - num27;
+			int maxValue = num26 + num27 + 1;
 			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
 			{
 				Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				dotNet35Random2.Next();
+				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
+				if(eVeinType2 != EVeinType::Oil)
+					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
+				else
+				{
+					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
+					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
+				}
+				if(vein_amount < 1)
+					vein_amount = 1;
+				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
+					vein_amount = 1000000000;
+				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
 				//TODO: 这里对油井坐标未变换！
 				//if(vein.type == EVeinType::Oil)
@@ -600,10 +661,11 @@ public:
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
+					planet.veins_amount[vein_point_type-1] += vein_amount;
 				}
 			}
 		}
-		//std::cout << "矿脉生成完成" << std::endl;
+		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
 		tmp_vecs.clear();
 		//if(planet.id == 201)
 		//{
@@ -1313,12 +1375,13 @@ public:
 		dotNet35Random.Next();
 		dotNet35Random.Next();
 		dotNet35Random.Next();
-		dotNet35Random.Next();
+		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& data = planet.data;
+		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
+		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
 			for(int i = 0; i < copy_size; ++i) {
@@ -1331,40 +1394,46 @@ public:
 				array2[i + 1] = themeProto.VeinCount[i];
 			}
 		}
+		if(!themeProto.VeinOpacity.empty()) {
+			int copy_size = themeProto.VeinOpacity.size();
+			for(int i = 0; i < copy_size; ++i) {
+				array3[i + 1] = themeProto.VeinOpacity[i];
+			}
+		}
 		float p = 1.0f;
 		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
 		{
 		case EStarType::MainSeqStar:
-		switch(spectr)
-		{
-		case ESpectrType::M:
-		p = 2.5f;
-		break;
-		case ESpectrType::K:
-		p = 1.0f;
-		break;
-		case ESpectrType::G:
-		p = 0.7f;
-		break;
-		case ESpectrType::F:
-		p = 0.6f;
-		break;
-		case ESpectrType::A:
-		p = 1.0f;
-		break;
-		case ESpectrType::B:
-		p = 0.4f;
-		break;
-		case ESpectrType::O:
-		p = 1.6f;
-		break;
-		}
-		break;
+			switch(spectr)
+			{
+			case ESpectrType::M:
+				p = 2.5f;
+				break;
+			case ESpectrType::K:
+				p = 1.0f;
+				break;
+			case ESpectrType::G:
+				p = 0.7f;
+				break;
+			case ESpectrType::F:
+				p = 0.6f;
+				break;
+			case ESpectrType::A:
+				p = 1.0f;
+				break;
+			case ESpectrType::B:
+				p = 0.4f;
+				break;
+			case ESpectrType::O:
+				p = 1.6f;
+				break;
+			}
+			break;
 		case EStarType::GiantStar:
-		p = 2.5f;
-		break;
+			p = 2.5f;
+			break;
 		case EStarType::WhiteDwarf:
 		{
 			p = 3.5f;
@@ -1379,6 +1448,7 @@ public:
 				array[9]++;
 			}
 			array2[9] = 0.7f;
+			array3[9] = 1.0f;
 			array[10]++;
 			array[10]++;
 			for(int k = 1; k < 12; k++)
@@ -1390,6 +1460,7 @@ public:
 				array[10]++;
 			}
 			array2[10] = 0.7f;
+			array3[10] = 1.0f;
 			array[12]++;
 			for(int l = 1; l < 12; l++)
 			{
@@ -1400,6 +1471,7 @@ public:
 				array[12]++;
 			}
 			array2[12] = 0.7f;
+			array3[12] = 0.3f;
 			break;
 		}
 		case EStarType::NeutronStar:
@@ -1415,6 +1487,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		case EStarType::BlackHole:
@@ -1430,6 +1503,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		}
@@ -1439,16 +1513,17 @@ public:
 			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
 			float num4 = themeProto.RareSettings[n * 4 + 2];
 			float num5 = themeProto.RareSettings[n * 4 + 3];
-			float num6 = num5;
+			//float num6 = num5;
 			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
 			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
+			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
 			if(!(dotNet35Random.NextDouble() < (double)num3))
 			{
 				continue;
 			}
 			array[num2]++;
 			array2[num2] = num5;
+			array3[num2] = num5;
 			for(int num7 = 1; num7 < 12; num7++)
 			{
 				if(dotNet35Random.NextDouble() >= (double)num4)
@@ -1459,6 +1534,14 @@ public:
 			}
 		}
 		bool flag = birthPlanetId == planet.id;
+		float num8 = star.resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star.galaxy->is_rare_resource) {
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
+		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
 		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
@@ -1493,7 +1576,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					if(eVeinType == EVeinType::Bamboo && data.QueryHeight(target_pos) > planet.realRadius() - 4.0f)
+					if(eVeinType == EVeinType::Bamboo && rawData.QueryHeight(target_pos) > planet.realRadius() - 4.0f)
 					{
 						continue;
 					}
@@ -1532,7 +1615,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			planet.veins_group[vein_point_type-1]++;
+			//planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -1542,6 +1625,7 @@ public:
 			{
 				vein_point_num = 1;
 			}
+			float num20 = array3[vein_point_type];
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
 			{
@@ -1580,10 +1664,33 @@ public:
 					break;
 				}
 			}
+			float num25 = num8;
+			if(eVeinType2 == EVeinType::Oil)
+				num25 = Mathf.Pow(num8,0.5f);
+			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			if(num26 < 20)
+				num26 = 20;
+			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
+			int minValue = num26 - num27;
+			int maxValue = num26 + num27 + 1;
 			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
 			{
 				//Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				dotNet35Random2.Next();
+				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
+				if(eVeinType2 != EVeinType::Oil)
+					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
+				else
+				{
+					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
+					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
+				}
+				if(vein_amount < 1)
+					vein_amount = 1;
+				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
+					vein_amount = 1000000000;
+				//dotNet35Random2.Next();
 				//Vector3 vein_pos = normalized + vector5;
 				//TODO: 这里对油井未对齐！
 				//if(vein.type == EVeinType::Oil)
@@ -1592,6 +1699,7 @@ public:
 				//}
 				//float num29 = data.QueryHeight(vein_pos);
 				planet.veins_point[vein_point_type-1]++;
+				planet.veins_amount[vein_point_type-1] += vein_amount;
 			}
 		}
 		tmp_vecs.clear();
@@ -2065,10 +2173,11 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& data = planet.data;
+		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
+		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
 			for(int i = 0; i < copy_size; ++i) {
@@ -2079,6 +2188,12 @@ public:
 			int copy_size = themeProto.VeinCount.size();
 			for(int i = 0; i < copy_size; ++i) {
 				array2[i + 1] = themeProto.VeinCount[i];
+			}
+		}
+		if(!themeProto.VeinOpacity.empty()) {
+			int copy_size = themeProto.VeinOpacity.size();
+			for(int i = 0; i < copy_size; ++i) {
+				array3[i + 1] = themeProto.VeinOpacity[i];
 			}
 		}
 		float p = 1.0f;
@@ -2129,6 +2244,7 @@ public:
 				array[9]++;
 			}
 			array2[9] = 0.7f;
+			array3[9] = 1.0f;
 			array[10]++;
 			array[10]++;
 			for(int k = 1; k < 12; k++)
@@ -2140,6 +2256,7 @@ public:
 				array[10]++;
 			}
 			array2[10] = 0.7f;
+			array3[10] = 1.0f;
 			array[12]++;
 			for(int l = 1; l < 12; l++)
 			{
@@ -2150,6 +2267,7 @@ public:
 				array[12]++;
 			}
 			array2[12] = 0.7f;
+			array3[12] = 0.3f;
 			break;
 		}
 		case EStarType::NeutronStar:
@@ -2165,6 +2283,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		case EStarType::BlackHole:
@@ -2180,6 +2299,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		}
@@ -2189,16 +2309,17 @@ public:
 			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
 			float num4 = themeProto.RareSettings[n * 4 + 2];
 			float num5 = themeProto.RareSettings[n * 4 + 3];
-			float num6 = num5;
+			//float num6 = num5;
 			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
 			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
+			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
 			if(!(dotNet35Random.NextDouble() < (double)num3))
 			{
 				continue;
 			}
 			array[num2]++;
 			array2[num2] = num5;
+			array3[num2] = num5;
 			for(int num7 = 1; num7 < 12; num7++)
 			{
 				if(dotNet35Random.NextDouble() >= (double)num4)
@@ -2209,38 +2330,21 @@ public:
 			}
 		}
 		bool flag = birthPlanetId == planet.id;
-		//if(flag)
-		//{
-		//	planet.GenBirthPoints(data,birthSeed);
-		//}
+		float num8 = star.resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star.galaxy->is_rare_resource) {
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
+		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
-		if(false)
-		{
-
-		}
-		//if(flag)
-		//{
-		//	birthPoint = planet.birthPoint;
-		//	birthPoint.Normalize();
-		//	birthPoint *= 0.75f;
-		//}
-		else
-		{
-			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.Normalize();
-			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
-		}
-		//if(flag)
-		//{
-		//	veinVectorTypes[0] = EVeinType::Iron;
-		//	veinVectors[0] = planet.birthResourcePoint0;
-		//	veinVectorTypes[1] = EVeinType::Copper;
-		//	veinVectors[1] = planet.birthResourcePoint1;
-		//	veinVectorCount = 2;
-		//}
+		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.Normalize();
+		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -2268,7 +2372,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = data.QueryHeight(target_pos);
+					float target_height = rawData.QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || ((int)eVeinType <= 2 && target_height > planet.radius + 0.7f) || ((eVeinType == EVeinType::Silicium || eVeinType == EVeinType::Titanium) && target_height <= planet.radius + 0.7f))
 					{
 						continue;
@@ -2308,7 +2412,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			planet.veins_group[vein_point_type-1]++;
+			//planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -2318,10 +2422,7 @@ public:
 			{
 				vein_point_num = 1;
 			}
-			//if(flag && vein_group_index < 2)
-			//{
-			//	vein_point_num = 6;
-			//}
+			float num20 = array3[vein_point_type];
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
 			{
@@ -2360,20 +2461,44 @@ public:
 					break;
 				}
 			}
+			float num25 = num8;
+			if(eVeinType2 == EVeinType::Oil)
+				num25 = Mathf.Pow(num8,0.5f);
+			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			if(num26 < 20)
+				num26 = 20;
+			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
+			int minValue = num26 - num27;
+			int maxValue = num26 + num27 + 1;
 			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
 			{
 				Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				dotNet35Random2.Next();
+				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
+				if(eVeinType2 != EVeinType::Oil)
+					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
+				else
+				{
+					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
+					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
+				}
+				if(vein_amount < 1)
+					vein_amount = 1;
+				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
+					vein_amount = 1000000000;
+				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
 				//TODO: 这里对油井未对齐！
 				//if(vein.type == EVeinType::Oil)
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = data.QueryHeight(vein_pos);
+				float num29 = rawData.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
+					planet.veins_amount[vein_point_type-1] += vein_amount;
 				}
 			}
 		}
@@ -2484,10 +2609,11 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& data = planet.data;
+		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
+		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
 			for(int i = 0; i < copy_size; ++i) {
@@ -2498,6 +2624,12 @@ public:
 			int copy_size = themeProto.VeinCount.size();
 			for(int i = 0; i < copy_size; ++i) {
 				array2[i + 1] = themeProto.VeinCount[i];
+			}
+		}
+		if(!themeProto.VeinOpacity.empty()) {
+			int copy_size = themeProto.VeinOpacity.size();
+			for(int i = 0; i < copy_size; ++i) {
+				array3[i + 1] = themeProto.VeinOpacity[i];
 			}
 		}
 		float p = 1.0f;
@@ -2548,6 +2680,7 @@ public:
 				array[9]++;
 			}
 			array2[9] = 0.7f;
+			array3[9] = 1.0f;
 			array[10]++;
 			array[10]++;
 			for(int k = 1; k < 12; k++)
@@ -2559,6 +2692,7 @@ public:
 				array[10]++;
 			}
 			array2[10] = 0.7f;
+			array3[10] = 1.0f;
 			array[12]++;
 			for(int l = 1; l < 12; l++)
 			{
@@ -2569,6 +2703,7 @@ public:
 				array[12]++;
 			}
 			array2[12] = 0.7f;
+			array3[12] = 0.3f;
 			break;
 		}
 		case EStarType::NeutronStar:
@@ -2584,6 +2719,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		case EStarType::BlackHole:
@@ -2599,6 +2735,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		}
@@ -2608,16 +2745,17 @@ public:
 			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
 			float num4 = themeProto.RareSettings[n * 4 + 2];
 			float num5 = themeProto.RareSettings[n * 4 + 3];
-			float num6 = num5;
+			//float num6 = num5;
 			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
 			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
+			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
 			if(!(dotNet35Random.NextDouble() < (double)num3))
 			{
 				continue;
 			}
 			array[num2]++;
 			array2[num2] = num5;
+			array3[num2] = num5;
 			for(int num7 = 1; num7 < 12; num7++)
 			{
 				if(dotNet35Random.NextDouble() >= (double)num4)
@@ -2628,38 +2766,21 @@ public:
 			}
 		}
 		bool flag = birthPlanetId == planet.id;
-		//if(flag)
-		//{
-		//	planet.GenBirthPoints(data,birthSeed);
-		//}
+		float num8 = star.resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star.galaxy->is_rare_resource) {
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
+		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
-		if(false)
-		{
-
-		}
-		//if(flag)
-		//{
-		//	birthPoint = planet.birthPoint;
-		//	birthPoint.Normalize();
-		//	birthPoint *= 0.75f;
-		//}
-		else
-		{
-			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.Normalize();
-			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
-		}
-		//if(flag)
-		//{
-		//	veinVectorTypes[0] = EVeinType::Iron;
-		//	veinVectors[0] = planet.birthResourcePoint0;
-		//	veinVectorTypes[1] = EVeinType::Copper;
-		//	veinVectors[1] = planet.birthResourcePoint1;
-		//	veinVectorCount = 2;
-		//}
+		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.Normalize();
+		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -2687,7 +2808,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = data.QueryHeight(target_pos);
+					float target_height = rawData.QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || (eVeinType == EVeinType::Fireice && target_height < planet.radius + 1.2f))
 					{
 						continue;
@@ -2727,7 +2848,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			planet.veins_group[vein_point_type-1]++;
+			//planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -2737,10 +2858,7 @@ public:
 			{
 				vein_point_num = 1;
 			}
-			//if(flag && vein_group_index < 2)
-			//{
-			//	vein_point_num = 6;
-			//}
+			float num20 = array3[vein_point_type];
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
 			{
@@ -2779,20 +2897,44 @@ public:
 					break;
 				}
 			}
+			float num25 = num8;
+			if(eVeinType2 == EVeinType::Oil)
+				num25 = Mathf.Pow(num8,0.5f);
+			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			if(num26 < 20)
+				num26 = 20;
+			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
+			int minValue = num26 - num27;
+			int maxValue = num26 + num27 + 1;
 			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
 			{
 				Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				dotNet35Random2.Next();
+				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
+				if(eVeinType2 != EVeinType::Oil)
+					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
+				else
+				{
+					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
+					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
+				}
+				if(vein_amount < 1)
+					vein_amount = 1;
+				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
+					vein_amount = 1000000000;
+				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
 				//TODO: 这里对油井未对齐！
 				//if(vein.type == EVeinType::Oil)
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = data.QueryHeight(vein_pos);
+				float num29 = rawData.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
+					planet.veins_amount[vein_point_type-1] += vein_amount;
 				}
 			}
 		}
@@ -2883,10 +3025,11 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& data = planet.data;
+		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
+		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
 			for(int i = 0; i < copy_size; ++i) {
@@ -2897,6 +3040,12 @@ public:
 			int copy_size = themeProto.VeinCount.size();
 			for(int i = 0; i < copy_size; ++i) {
 				array2[i + 1] = themeProto.VeinCount[i];
+			}
+		}
+		if(!themeProto.VeinOpacity.empty()) {
+			int copy_size = themeProto.VeinOpacity.size();
+			for(int i = 0; i < copy_size; ++i) {
+				array3[i + 1] = themeProto.VeinOpacity[i];
 			}
 		}
 		float p = 1.0f;
@@ -2947,6 +3096,7 @@ public:
 				array[9]++;
 			}
 			array2[9] = 0.7f;
+			array3[9] = 1.0f;
 			array[10]++;
 			array[10]++;
 			for(int k = 1; k < 12; k++)
@@ -2958,6 +3108,7 @@ public:
 				array[10]++;
 			}
 			array2[10] = 0.7f;
+			array3[10] = 1.0f;
 			array[12]++;
 			for(int l = 1; l < 12; l++)
 			{
@@ -2968,6 +3119,7 @@ public:
 				array[12]++;
 			}
 			array2[12] = 0.7f;
+			array3[12] = 0.3f;
 			break;
 		}
 		case EStarType::NeutronStar:
@@ -2983,6 +3135,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		case EStarType::BlackHole:
@@ -2998,6 +3151,7 @@ public:
 				array[14]++;
 			}
 			array2[14] = 0.7f;
+			array3[14] = 0.3f;
 			break;
 		}
 		}
@@ -3007,16 +3161,17 @@ public:
 			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
 			float num4 = themeProto.RareSettings[n * 4 + 2];
 			float num5 = themeProto.RareSettings[n * 4 + 3];
-			float num6 = num5;
+			//float num6 = num5;
 			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
 			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
+			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
 			if(!(dotNet35Random.NextDouble() < (double)num3))
 			{
 				continue;
 			}
 			array[num2]++;
 			array2[num2] = num5;
+			array3[num2] = num5;
 			for(int num7 = 1; num7 < 12; num7++)
 			{
 				if(dotNet35Random.NextDouble() >= (double)num4)
@@ -3027,38 +3182,21 @@ public:
 			}
 		}
 		bool flag = birthPlanetId == planet.id;
-		//if(flag)
-		//{
-		//	planet.GenBirthPoints(data,birthSeed);
-		//}
+		float num8 = star.resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star.galaxy->is_rare_resource) {
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
+		}
 		veinVectorCount = 0;
 		Vector3 birthPoint;
-		if(false)
-		{
-
-		}
-		//if(flag)
-		//{
-		//	birthPoint = planet.birthPoint;
-		//	birthPoint.Normalize();
-		//	birthPoint *= 0.75f;
-		//}
-		else
-		{
-			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.Normalize();
-			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
-		}
-		//if(flag)
-		//{
-		//	veinVectorTypes[0] = EVeinType::Iron;
-		//	veinVectors[0] = planet.birthResourcePoint0;
-		//	veinVectorTypes[1] = EVeinType::Copper;
-		//	veinVectors[1] = planet.birthResourcePoint1;
-		//	veinVectorCount = 2;
-		//}
+		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+		birthPoint.Normalize();
+		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -3086,7 +3224,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = data.QueryHeight(target_pos);
+					float target_height = rawData.QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || ((int)eVeinType <= 4 && target_height > planet.radius + 0.7f))
 					{
 						continue;
@@ -3126,7 +3264,7 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			planet.veins_group[vein_point_type-1]++;
+			//planet.veins_group[vein_point_type-1]++;
 			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
 			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
 			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
@@ -3136,10 +3274,7 @@ public:
 			{
 				vein_point_num = 1;
 			}
-			//if(flag && vein_group_index < 2)
-			//{
-			//	vein_point_num = 6;
-			//}
+			float num20 = array3[vein_point_type];
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
 			{
@@ -3178,20 +3313,44 @@ public:
 					break;
 				}
 			}
+			float num25 = num8;
+			if(eVeinType2 == EVeinType::Oil)
+				num25 = Mathf.Pow(num8,0.5f);
+			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			if(num26 < 20)
+				num26 = 20;
+			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
+			int minValue = num26 - num27;
+			int maxValue = num26 + num27 + 1;
 			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
 			{
 				Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				dotNet35Random2.Next();
+				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
+				if(eVeinType2 != EVeinType::Oil)
+					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
+				else
+				{
+					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
+					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
+				}
+				if(vein_amount < 1)
+					vein_amount = 1;
+				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
+					vein_amount = 1000000000;
+				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
 				//TODO: 这里对油井未对齐！
 				//if(vein.type == EVeinType::Oil)
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = data.QueryHeight(vein_pos);
+				float num29 = rawData.QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
+					planet.veins_amount[vein_point_type-1] += vein_amount;
 				}
 			}
 		}

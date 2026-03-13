@@ -2,7 +2,7 @@ import inspect
 from .search_seed import GalaxyData, StarData, PlanetData
 
 def data_to_dict(galaxy_data: GalaxyData) -> dict:
-    galaxy_dict = {"stars": [], "planets": []}
+    galaxy_dict = {"stars": []}
     for galaxy_name, galaxy_value in inspect.getmembers(galaxy_data):
         if galaxy_name.startswith("_"):
             continue
@@ -18,23 +18,16 @@ def data_to_dict(galaxy_data: GalaxyData) -> dict:
                             for planet_name, planet_value in inspect.getmembers(planet_data):
                                 if planet_name.startswith("_"):
                                     continue
-                                planet_dict[planet_name] = planet_value
+                                elif planet_name == "moons":
+                                    continue
+                                else:
+                                    planet_dict[planet_name] = planet_value
                             star_dict["planets"].append(planet_dict)
                     else:
                         star_dict[star_name] = star_value
                 galaxy_dict["stars"].append(star_dict)
-        elif galaxy_name == "planets":
-            for planet_data in galaxy_value:
-                planet_dict = {}
-                for planet_name, planet_value in inspect.getmembers(planet_data):
-                    if planet_name.startswith("_"):
-                        continue
-                    planet_dict[planet_name] = planet_value
-                galaxy_dict["planets"].append(planet_dict)
         else:
             galaxy_dict[galaxy_name] = galaxy_value
-    if not galaxy_dict["planets"]:
-        galaxy_dict.pop("planets")
     return galaxy_dict
 
 def dict_to_data(galaxy_dict: dict) -> GalaxyData:

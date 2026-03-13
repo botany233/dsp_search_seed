@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <vector>
 
-#include "defines.hpp"
 #include "LDB.hpp"
 #include "util.hpp"
 #include "quaternion.hpp"
@@ -44,8 +43,9 @@ public:
 	uint32_t type_mask;
 
 	uint16_t has_veins = 0;
-	uint16_t veins_group[14]{0};
+	//uint16_t veins_group[14]{0};
 	uint16_t veins_point[14]{0};
+	uint64_t veins_amount[14]{0};
 	//bool levelized;
 	EPlanetType type;
 	int theme;
@@ -181,6 +181,7 @@ public:
 	int seed;
 	int index;
 	int id; //index+1
+	float resourceCoef = 1.0f;
 	//VectorLF3 position; //单位：光年
 	VectorLF3 uPosition; //单位：米
 	float mass = 1.0f;
@@ -197,11 +198,12 @@ public:
 
 	uint16_t type_mask;
 	uint16_t has_veins = 0;
-	uint16_t upper_veins_group[14]{0};
+	//uint16_t upper_veins_group[14]{0};
 	uint16_t upper_veins_point[14]{0};
-	uint16_t real_veins_group[14]{0};
+	uint64_t upper_veins_amount[14]{0};
+	//uint16_t real_veins_group[14]{0};
 	uint16_t real_veins_point[14]{0};
-	//float resourceCoef = 1.0f;
+	uint64_t real_veins_amount[14]{0};
 	std::vector<PlanetClassSimple> planets;
 	GalaxyClassSimple* galaxy = nullptr;
 
@@ -622,7 +624,7 @@ protected:
 		float num1 = (float)pos.magnitude() / 32.0f;
 		if((double)num1 > 1.0)
 			num1 = Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(num1) + 1.0f) + 1.0f) + 1.0f) + 1.0f) + 1.0f;
-		//star.resourceCoef = Mathf.Pow(7.0f,num1) * 0.6f;
+		star.resourceCoef = Mathf.Pow(7.0f,num1) * 0.6f;
 		DotNet35Random dotNet35Random2(Seed);
 		double r1 = dotNet35Random2.NextDouble();
 		double r2 = dotNet35Random2.NextDouble();
@@ -716,7 +718,7 @@ protected:
 		birthStar.index = 0;
 		birthStar.id = 1;
 		birthStar.seed = seed;
-		//birthStar.resourceCoef = 0.6f;
+		birthStar.resourceCoef = 0.6f;
 		DotNet35Random dotNet35Random1(seed);
 		int seed1 = dotNet35Random1.Next();
 		int Seed = dotNet35Random1.Next();
@@ -759,7 +761,7 @@ protected:
 		return birthStar;
 	}
 
-	int GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
+	void GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
 	{
 
 		std::vector<VectorLF3> tmp_drunk;
@@ -768,8 +770,6 @@ protected:
 		poses.resize(targetCount);
 		for(int i = 0; i < targetCount; i++)
 			poses[i] = tmp_poses[i * 4];
-
-		return (int)poses.size();
 	}
 
 	bool CheckCollision(std::vector<VectorLF3>& pts,VectorLF3& pt,double min_dist)
@@ -1152,37 +1152,47 @@ protected:
 public:
 	int seed;
 	int starCount;
+	//float resource_rate;
+	float resource_multiplier;
+	bool is_rare_resource;
+	bool is_infinite_resource;
 	std::vector<StarClassSimple> stars;
 	int habitableCount;
 	int birthPlanetId;
-	int veins_group[14]{0};
-	int veins_point[14]{0};
-
-	void CreateStars(int galaxySeed,int starCount)
+	//int veins_group[14]{0};
+	uint16_t veins_point[14]{0};
+	uint64_t veins_amount[14]{0};
+	
+	void CreateStars(int galaxySeed,int starNum,float resource_rate)
 	{
+		seed = galaxySeed;
+		starCount = starNum;
+		//resource_rate = resourceRate;
+		resource_multiplier = resource_rate;
+		is_infinite_resource = resource_multiplier >= 99.5f;
+		is_rare_resource = resource_multiplier <= 0.1001f;
+
 		DotNet35Random dotNet35Random(galaxySeed);
 		std::vector<VectorLF3> tmp_poses;
-		int tempPoses = GenerateTempPoses(tmp_poses,dotNet35Random.Next(),starCount,4,2.0,2.3,3.5,0.18);
-		this->seed = galaxySeed;
-		this->starCount = tempPoses;
-		this->stars.resize(tempPoses);
-		this->habitableCount = 0;
+		GenerateTempPoses(tmp_poses,dotNet35Random.Next(),starCount,4,2.0,2.3,3.5,0.18);
+		stars.resize(starCount);
+		habitableCount = 0;
 
 		float num1 = (float)dotNet35Random.NextDouble();
 		float num2 = (float)dotNet35Random.NextDouble();
 		float num3 = (float)dotNet35Random.NextDouble();
 		float num4 = (float)dotNet35Random.NextDouble();
 
-		int num5 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)tempPoses + (double)num1 * 0.300000011920929));
-		int num6 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)tempPoses + (double)num2 * 0.300000011920929));
-		int num7 = Mathf.CeilToInt((float)(0.0160000007599592 * (double)tempPoses + (double)num3 * 0.400000005960464));
-		int num8 = Mathf.CeilToInt((float)(0.0130000002682209 * (double)tempPoses + (double)num4 * 1.39999997615814));
-		int num9 = tempPoses - num5;
+		int num5 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)starCount + (double)num1 * 0.300000011920929));
+		int num6 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)starCount + (double)num2 * 0.300000011920929));
+		int num7 = Mathf.CeilToInt((float)(0.0160000007599592 * (double)starCount + (double)num3 * 0.400000005960464));
+		int num8 = Mathf.CeilToInt((float)(0.0130000002682209 * (double)starCount + (double)num4 * 1.39999997615814));
+		int num9 = starCount - num5;
 		int num10 = num9 - num6;
 		int num11 = num10 - num7;
 		int num12 = (num11 - 1) / num8;
 		int num13 = num12 / 2;
-		for(int index = 0; index < tempPoses; ++index)
+		for(int index = 0; index < starCount; ++index)
 		{
 			int seed = dotNet35Random.Next();
 			if(index == 0)

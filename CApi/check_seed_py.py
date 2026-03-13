@@ -1,6 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
 from multiprocessing import cpu_count
-from collections import deque
 
 from .search_seed import *
 from .const_values import *
@@ -82,21 +81,19 @@ def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) 
             return False
     return True
 
-def check_seed_py(seed: int, star_num: int, galaxy_condition: GalaxyCondition, quick: bool) -> bool:
+def check_seed_py(seed: int, star_num: int, resource_rate: float, galaxy_condition: GalaxyCondition, quick: bool) -> bool:
     if not quick:
-        galaxy_data = get_galaxy_data_c(seed, star_num, True)
-        # planet_data_add_moon(galaxy_data)
+        galaxy_data = get_galaxy_data_c(Seed(seed, star_num, resource_rate), True)
         if not check_galaxy_py(galaxy_data, galaxy_condition):
             return False
-    galaxy_data = get_galaxy_data_c(seed, star_num, quick)
-    # planet_data_add_moon(galaxy_data)
+    galaxy_data = get_galaxy_data_c(Seed(seed, star_num, resource_rate), quick)
     return check_galaxy_py(galaxy_data, galaxy_condition)
 
-def check_batch_py(tasks: list[tuple[int, int]], galaxy_condition: dict, quick: bool) -> list[tuple[int, int]]:
+def check_batch_py(tasks: list[tuple[int, int, float]], galaxy_condition: dict, quick: bool) -> list[tuple[int, int]]:
     galaxy_condition = galaxy_condition_to_struct(galaxy_condition)
     result = []
-    for seed, star_num in tasks:
-        if check_seed_py(seed, star_num, galaxy_condition, quick):
+    for seed, star_num, resource_rate in tasks:
+        if check_seed_py(seed, star_num, resource_rate, galaxy_condition, quick):
             result.append((seed, star_num))
     return result
 
@@ -106,11 +103,11 @@ def init_process(device_id: int, local_size: int):
         print("Set device id failed! Roll back to cpu!")
     set_local_size_c(local_size)
 
-def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int]):
-    def get_task_seed(task_id: int) -> tuple[int, int]:
+def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int], resource_rate: float) -> callable:
+    def get_task_seed(task_id: int) -> tuple[int, int, float]:
         star_num = task_id % (star_nums[1] - star_nums[0] + 1) + star_nums[0]
         seed = task_id // (star_nums[1] - star_nums[0] + 1) + seeds[0]
-        return seed, star_num
+        return seed, star_num, resource_rate
     return get_task_seed
 
 # def check_seeds_py(seeds: tuple[int, int],
@@ -128,17 +125,18 @@ def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int]):
 
 def check_seeds_py(seeds: tuple[int, int],
                    star_nums: tuple[int, int],
+                   resource_rate: float,
                    galaxy_condition: dict,
                    quick: bool,
                    max_thread: int,
                    device_id: int,
                    local_size: int) -> list[tuple[int, int]]:
-    get_task_seed = get_task_seed_wrapper(seeds, star_nums)
+    get_task_seed = get_task_seed_wrapper(seeds, star_nums, resource_rate)
     max_thread = min(max_thread, cpu_count())
     task_num = (seeds[1] - seeds[0] + 1) * (star_nums[1] - star_nums[0] + 1)
     batch_size = min(task_num // (max_thread * 20), 1024)
     with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
-        futures = deque()
+        futures = []
         for task_id in range(0, task_num, batch_size):
             tasks = [get_task_seed(i) for i in range(task_id, min(task_id + batch_size, task_num))]
             futures.append(executor.submit(check_batch_py, tasks, galaxy_condition, quick))
