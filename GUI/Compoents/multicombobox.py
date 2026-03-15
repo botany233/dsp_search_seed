@@ -42,6 +42,16 @@ class MultiComboBoxMenu(ComboBoxMenu):
         self.adjustSize()
         return RoundMenu.exec(self, pos, ani, aniType)
 
+    def _hideMenu(self, isHideBySystem=False):
+        self.isHideBySystem = isHideBySystem
+        if not isHideBySystem:
+            return
+        self.view.clearSelection()
+        if self.isSubMenu:
+            self.hide()
+        else:
+            self.close()
+
 class MultiComboBox(ComboBox):
     def __init__(self, config_key: str, config_obj = None, parent = None):
         super().__init__(parent)
