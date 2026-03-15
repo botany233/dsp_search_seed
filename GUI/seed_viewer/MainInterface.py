@@ -6,8 +6,8 @@ from PySide6.QtCore import Qt
 from qfluentwidgets import BodyLabel, PushButton
 
 from CApi import GetDataManager, resource_rate_c
-from config import cfg
-from logger import log
+# from config import cfg
+# from logger import log
 from .Compoents import *
 from .sort_seed import SortThread
 
@@ -174,35 +174,35 @@ class ViewerInterface(QFrame):
             return
 
         seed_id, star_num = select_seed[0]
-        resource_rate = resource_rate_c[self.resource_rate_combo.currentText()]
-        if self.current_select == (seed_id, star_num, resource_rate):
+        resource_index = resource_rate_c.index(self.resource_rate_combo.currentText())
+        if self.current_select == (seed_id, star_num, resource_index):
             return
-        self.current_select = (seed_id, star_num, resource_rate)
+        self.current_select = (seed_id, star_num, resource_index)
 
-        if (seed_id, star_num, resource_rate) in self.seed_buffer:
-            galaxy_data = self.seed_buffer[(seed_id, star_num, resource_rate)]
+        if (seed_id, star_num, resource_index) in self.seed_buffer:
+            galaxy_data = self.seed_buffer[(seed_id, star_num, resource_index)]
             self.astro_tree.fresh(galaxy_data)
             self.astro_tree.wait_ring.stop()
             return
 
         self.astro_tree.wait_ring.start()
-        if (seed_id, star_num, resource_rate) in self.getting_seed:
+        if (seed_id, star_num, resource_index) in self.getting_seed:
             return
-        self.getting_seed.add((seed_id, star_num, resource_rate))
+        self.getting_seed.add((seed_id, star_num, resource_index))
 
-        self.get_data_manager.add_task(seed_id, star_num, resource_rate)
+        self.get_data_manager.add_task(seed_id, star_num, resource_index)
         while True:
             results = self.get_data_manager.get_results()
             for result in results:
-                data_seed, data_star_num, data_resource_rate = result.seed_id, result.star_num, round(result.resource_rate, 1)
+                data_seed, data_star_num, data_resource_index = result.seed_id, result.star_num, result.resource_index
                 if len(self.seed_buffer) >= self.max_buffer:
                     self.seed_buffer.pop(next(iter(self.seed_buffer)))
-                self.seed_buffer[(data_seed, data_star_num, data_resource_rate)] = result
-                self.getting_seed.remove((data_seed, data_star_num, data_resource_rate))
-                if self.current_select == (data_seed, data_star_num, data_resource_rate):
+                self.seed_buffer[(data_seed, data_star_num, data_resource_index)] = result
+                self.getting_seed.remove((data_seed, data_star_num, data_resource_index))
+                if self.current_select == (data_seed, data_star_num, data_resource_index):
                     self.astro_tree.fresh(result)
                     self.astro_tree.wait_ring.stop()
-            if (seed_id, star_num, resource_rate) not in self.getting_seed:
+            if (seed_id, star_num, resource_index) not in self.getting_seed:
                 break
             QApplication.processEvents()
 

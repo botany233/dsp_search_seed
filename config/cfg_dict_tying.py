@@ -45,8 +45,8 @@ class PlanetCondition(BaseModel):
     dsp_level: str = "无限制"
     satisfy_num: int = 1
 
-    veins_condition: VeinsCondition = VeinsCondition()
     veins_point_condition: VeinsCondition = VeinsCondition()
+    veins_amount_condition: VeinsCondition = VeinsCondition()
     moon_conditions: list['PlanetCondition'] = []
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -59,8 +59,8 @@ class StarCondition(BaseModel):
     distance_level: float = -1.0
     satisfy_num: int = 1
 
-    veins_condition: VeinsCondition = VeinsCondition()
     veins_point_condition: VeinsCondition = VeinsCondition()
+    veins_amount_condition: VeinsCondition = VeinsCondition()
     planet_condition: list[PlanetCondition] = []
     uuid: UUID = Field(default_factory=uuid4)
 
@@ -68,15 +68,16 @@ class GalaxyCondition(BaseModel):
     custom_name: str = "星系条件"
     checked: bool = True
 
-    veins_condition: VeinsCondition = VeinsCondition()
     veins_point_condition: VeinsCondition = VeinsCondition()
+    veins_amount_condition: VeinsCondition = VeinsCondition()
     star_condition: list[StarCondition] = []
     planet_condition: list[PlanetCondition] = []
 
 # csv 导出设置
 class GalaxyExportCondition(BaseModel):
     enable: bool = True
-    veins: bool = True
+    veins_point: bool = True
+    veins_amount: bool = False
     gas_veins: bool = True
     liquid: bool = True
     star_types: bool = True
@@ -88,7 +89,8 @@ class StarExportCondition(BaseModel):
     location: bool = False
     ds_radius: bool = True
     ds_lumino: bool = True
-    veins: bool = True
+    veins_point: bool = True
+    veins_amount: bool = False
     gas_veins: bool = True
     liquid: bool = True
     type: bool = True
@@ -103,7 +105,8 @@ class PlanetExportCondition(BaseModel):
     singularity: bool = True
     dsp_level: bool = True
     liquid: bool = True
-    veins: bool = True
+    veins_point: bool = True
+    veins_amount: bool = False
     gas_veins: bool = True
     planet_type: bool = True
     wind_usage: bool = True
@@ -124,6 +127,7 @@ class GUIConfig(BaseModel):
     galaxy_condition: GalaxyCondition = GalaxyCondition()
     save_name: str = "seed"
     search_mode: int = 0  # 0: 范围搜索, 1: 二次搜索
+    resource_rate: str = "无限"
     quick_check: bool = False
     local_size: int = 256
     device_name: str = "cpu"

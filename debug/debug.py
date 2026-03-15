@@ -27,24 +27,25 @@ def main():
 
     galaxy_conditions = []
     for condition_func in debug_condition_functions:
-        galaxy_condition, seeds, star_nums, resource_rate, task_type = condition_func()
+        galaxy_condition, seeds, star_nums, resource_text, task_type = condition_func()
+        resource_index = resource_rate_c.index(resource_text)
         if task_type & 1:
-            galaxy_conditions.append((f"{condition_func.__name__}_quick", deepcopy(galaxy_condition), seeds, star_nums, resource_rate, True))
+            galaxy_conditions.append((f"{condition_func.__name__}_quick", deepcopy(galaxy_condition), seeds, star_nums, resource_index, True))
         if task_type & 2:
-            galaxy_conditions.append((f"{condition_func.__name__}_standard", galaxy_condition, seeds, star_nums, resource_rate, False))
-    for name, galaxy_condition, seeds, star_nums, resource_rate, quick in galaxy_conditions:
+            galaxy_conditions.append((f"{condition_func.__name__}_standard", galaxy_condition, seeds, star_nums, resource_index, False))
+    for name, galaxy_condition, seeds, star_nums, resource_index, quick in galaxy_conditions:
         galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
 
         if do_python:
             flag = perf_counter()
-            py_results = check_seeds_py(seeds, star_nums, resource_rate, galaxy_condition, quick, cpu_thread, device_id, local_size)
+            py_results = check_seeds_py(seeds, star_nums, resource_index, galaxy_condition, quick, cpu_thread, device_id, local_size)
             with open(py_save_path, "a") as f:
                 f.write(f"{name}:\n")
                 f.writelines(map(lambda x: f"{x[0]}, {x[1]}\n", py_results))
             print(f"{name} 完成: py用时{perf_counter() - flag:.2f}s，找到{len(py_results)}个种子")
 
         flag = perf_counter()
-        check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_rate, galaxy_condition, quick, cpu_thread)
+        check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)
         check_batch_manager.run()
         while check_batch_manager.is_running():
             sleep(0.1)

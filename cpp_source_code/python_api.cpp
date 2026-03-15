@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <iostream>
 
+#include "defines.hpp"
 #include "check_batch.hpp"
 #include "check_seed.hpp"
 #include "data_struct.hpp"
@@ -63,7 +64,7 @@ int get_gpu_max_worker() {
 	return OpenCLManager::get_max_worker();
 }
 
-vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const GalaxyCondition& galaxy_condition,int check_level)
 {
 	vector<string> result;
@@ -71,7 +72,7 @@ vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int en
 	{
 		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
 		{
-			if(check_seed_level_1(SeedStruct(seed_id,star_num,resource_rate),galaxy_condition,check_level))
+			if(check_seed_level_1(SeedStruct(seed_id,star_num,resource_index),galaxy_condition,check_level))
 				result.push_back(to_string(seed_id) + "," + to_string(star_num));
 		}
 	}
@@ -131,12 +132,12 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 	}
 }
 
-vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
 	int check_level = get_condition_level(galaxy_condition,quick);
-	return check_batch(start_seed,end_seed,start_star_num,end_star_num,resource_rate,galaxy_condition,check_level);
+	return check_batch(start_seed,end_seed,start_star_num,end_star_num,resource_index,galaxy_condition,check_level);
 }
 
 PYBIND11_MODULE(search_seed,m) {
@@ -145,7 +146,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def(py::init<int,int,float>())
 		.def_readwrite("seed_id",&SeedStruct::seed_id)
 		.def_readwrite("star_num",&SeedStruct::star_num)
-		.def_readwrite("resource_rate",&SeedStruct::resource_rate);
+		.def_readwrite("resource_index",&SeedStruct::resource_index);
 	py::class_<PlanetCondition>(m,"PlanetCondition")
 		.def(py::init<>())
 		.def_readwrite("satisfy_num",&PlanetCondition::satisfy_num)
@@ -211,6 +212,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def(py::init<>())
 		.def_readwrite("seed_id",&GalaxyData::seed_id)
 		.def_readwrite("star_num",&GalaxyData::star_num)
+		.def_readwrite("resource_index",&GalaxyData::resource_index)
 		.def_readwrite("resource_rate",&GalaxyData::resource_rate)
 		.def_readwrite("stars",&GalaxyData::stars)
 		.def_readwrite("veins_point",&GalaxyData::veins_point)
@@ -231,7 +233,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("shutdown",&GetDataManager::shutdown)
 		.def("get_results",&GetDataManager::get_results);
 	py::class_<CheckPreciseManager>(m,"CheckPreciseManager")
-		.def(py::init<SeedManager&,float,const py::dict &,bool,int>())
+		.def(py::init<SeedManager&,uint8_t,const py::dict &,bool,int>())
 		.def("run",&CheckPreciseManager::run)
 		.def("is_running",&CheckPreciseManager::is_running)
 		.def("shutdown",&CheckPreciseManager::shutdown)
@@ -241,7 +243,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("get_last_result",&CheckPreciseManager::get_last_result)
 		.def("get_results",&CheckPreciseManager::get_results);
 	py::class_<CheckBatchManager>(m,"CheckBatchManager")
-		.def(py::init<int,int,int,int,float,const py::dict&,bool,int>())
+		.def(py::init<int,int,int,int,uint8_t,const py::dict&,bool,int>())
 		.def("run", &CheckBatchManager::run)
 		.def("is_running",&CheckBatchManager::is_running)
 		.def("shutdown", &CheckBatchManager::shutdown)
@@ -267,5 +269,5 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("get_gpu_max_worker_c",&get_gpu_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
-	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_rate"),py::arg("galaxy_condition"),py::arg("quick"));
+	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 }

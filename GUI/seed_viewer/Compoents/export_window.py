@@ -1,5 +1,5 @@
+import os
 from copy import deepcopy
-from os import path
 
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtGui import QColor, QResizeEvent
@@ -15,9 +15,10 @@ from qfluentwidgets import (
     isDarkTheme,
 )
 from GUI.Compoents import ConfigCheckBox
-from CApi import GetDataManager
+from CApi import GetDataManager, resource_rate_c
 from config import cfg
 
+from .combox import ResourceRateComboBox
 from .save_seed_info import save_seed_info
 
 class Ui_MessageBox:
@@ -93,8 +94,12 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.mainLayout.addLayout(self.choiceLayout)
         self._init_button()
 
-        self.title = TitleLabel("选择导出内容")
-        self.choiceLayout.addWidget(self.title, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignLeft)
+        title_layout = QHBoxLayout()
+        title = TitleLabel("选择导出内容")
+        title_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignLeft)
+        self.resource_rate_combox = ResourceRateComboBox()
+        title_layout.addWidget(self.resource_rate_combox, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignRight)
+        self.choiceLayout.addLayout(title_layout)
         self.choiceLayout.addSpacing(20)
 
         self.galaxyFrame = QFrame()
@@ -138,7 +143,7 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
 
         boxs_paras = [
             [("恒星类型", "star_types"), ("行星类型", "planet_types")],
-            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -159,8 +164,8 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         curTitleLayout.addWidget(ConfigCheckBox("创建恒星表", config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
-            [("类型", "type"), ("距离", "distance"), ("坐标", "location"), ("液体", "liquid")],
-            [("亮度", "ds_lumino"), ("戴森球半径", "ds_radius"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+            [("类型", "type"), ("距离", "distance"), ("坐标", "location"), ("亮度", "ds_lumino"), ("戴森球半径", "ds_radius")],
+            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -183,7 +188,7 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         boxs_paras = [
             [("恒星名称", "star_name"), ("恒星类型", "star_type"), ("恒星光度", "star_lumino"), ("恒星距离", "star_distance"), ("恒星坐标", "star_location")],
             [("星球类型", "planet_type"), ("词条", "singularity"), ("戴森球接收", "dsp_level"), ("液体", "liquid")],
-            [("风能利用率", "wind_usage"), ("光能利用率", "light_usage"), ("气体矿脉", "gas_veins"), ("矿脉", "veins")]
+            [("风能利用率", "wind_usage"), ("光能利用率", "light_usage"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -280,6 +285,8 @@ QFrame {
         if not dir_path:
             return False
         
+        resource_index = resource_rate_c.index(self.left_dialog.resource_rate_combox.currentText())
+
         self.is_running = True
         self.left_dialog.progress_text.setText("正在生成任务...")
         self.left_dialog.yesButton.setEnabled(False)
@@ -287,18 +294,19 @@ QFrame {
         finish_num, task_num = 0, len(self.selected_seeds)
         get_data_manager = GetDataManager(cfg.config.max_thread, False, min(32, cfg.config.max_thread))
         for seed_id, star_num in self.selected_seeds:
-            get_data_manager.add_task(seed_id, star_num)
+            get_data_manager.add_task(seed_id, star_num, resource_index)
 
         self.left_dialog.progress_text.setText(f"0/{task_num}(0%)")
         self.left_dialog.progressBar.setValue(0)
         self.left_dialog.progressBar.setMaximum(task_num)
+        QApplication.processEvents()
         while finish_num < task_num and self.is_running:
             results = get_data_manager.get_results()
             if not results:
                 QApplication.processEvents()
                 continue
             for result in results:
-                file_path = path.join(dir_path, f"{result.seed}_{result.star_num}.csv")
+                file_path = os.path.join(dir_path, f"{result.seed_id}_{result.star_num}.csv")
                 save_seed_info(file_path, result, csv_config)
             finish_num += len(results)
             if not self.is_running:

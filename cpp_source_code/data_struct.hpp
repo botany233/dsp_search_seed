@@ -7,10 +7,10 @@ using namespace std;
 
 struct SeedStruct {
 	int seed_id;
-	int star_num;
-	float resource_rate;
-	SeedStruct(): seed_id(0),star_num(0),resource_rate(0.0f) {}
-	SeedStruct(int seed_id,int star_num,float resource_rate): seed_id(seed_id),star_num(star_num),resource_rate(resource_rate) {}
+	uint8_t star_num;
+	uint8_t resource_index;
+	SeedStruct(): seed_id(0),star_num(0),resource_index(0) {}
+	SeedStruct(int seed_id,uint8_t star_num,uint8_t resource_index): seed_id(seed_id),star_num(star_num),resource_index(resource_index) {}
 };
 
 struct PlanetCondition {
@@ -87,7 +87,8 @@ struct StarData {
 
 struct GalaxyData {
 	int seed_id;
-	int star_num;
+	uint8_t star_num;
+	uint8_t resource_index;
 	float resource_rate;
 	vector<StarData> stars;
 	//vector<int> veins_group = vector<int>(14,0);

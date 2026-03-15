@@ -39,7 +39,7 @@ from logger import log
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
 
-from .Compoents import UserLayout, ImportSeedInfo
+from .Compoents import UserLayout, ImportSeedInfo, AutoFixedConfigComboBox
 from .Compoents.Widgets.line_edit import LimitLineEdit
 from .Widgets import SortTreeWidget, WaitRing
 from .Compoents.about_interface import AboutInterface
@@ -48,7 +48,7 @@ from .seed_viewer.MainInterface import ViewerInterface
 from .tutorial import TutorialInterface
 from .setting_interface import SettingInterface
 from GUI.dsp_icons import AppIcons
-from CApi import SeedManager
+from CApi import SeedManager, resource_rate_c
 
 import math
 
@@ -83,7 +83,7 @@ class MainWindow(FluentWindow):
         """)
         self.setWindowTitle("戴森球计划种子搜索查看器 made by 前前&哒哒")
         self.setWindowIcon(AppIcons.LOGO.icon())
-        width: int = 1260
+        width: int = 1320
         height: int = width // 16 * 8
         self.resize(width, height)
 
@@ -192,6 +192,8 @@ class MainWindow(FluentWindow):
         self.input_star_num_start.setMaximumWidth(125)
         self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
         self.input_star_num_end.setMaximumWidth(125)
+        self.label_resource_rate = BodyLabel("资源倍率:")
+        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config, "str", resource_rate_c)
         # self.label_batch_size = BodyLabel("批处理大小:")
         # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         # self.label_thread_num = BodyLabel("进程数:")
@@ -224,6 +226,8 @@ class MainWindow(FluentWindow):
         self.star_to_label = BodyLabel("至")
         self.topLayout.addWidget(self.star_to_label)
         self.topLayout.addWidget(self.input_star_num_end)
+        self.topLayout.addWidget(self.label_resource_rate)
+        self.topLayout.addWidget(self.input_resource_rate)
         # self.topLayout.addWidget(self.label_batch_size)
         # self.topLayout.addWidget(self.input_batch_size)
         # self.topLayout.addWidget(self.label_thread_num)

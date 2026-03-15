@@ -21,6 +21,7 @@ class SortThread(QThread):
         self.main_type_combo = parent.main_type_combo
         self.sub_type_combo = parent.sub_type_combo
         self.quick_sort_switch = parent.quick_sort_switch
+        self.resource_rate_combo = parent.resource_rate_combo
         self.running = False
         self.end_flag = False
 
@@ -35,13 +36,14 @@ class SortThread(QThread):
             self.running = True
             self.label_text.emit("正在生成任务...")
 
+            resource_index = resource_rate_c.index(self.resource_rate_combo.currentText())
             value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
 
             get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
 
             data = self.seed_list.get_all_data()
             for seed_id, star_num, _ in data:
-                get_data_manager.add_task(seed_id, star_num)
+                get_data_manager.add_task(seed_id, star_num, resource_index)
 
                 if self.end_flag:
                     get_data_manager.shutdown()
@@ -58,7 +60,7 @@ class SortThread(QThread):
                     if len(results) > 0:
                         for galaxy_data in results:
                             value = value_func(galaxy_data)
-                            self.seed_list.set_seed_value(galaxy_data.seed, galaxy_data.star_num, value)
+                            self.seed_list.set_seed_value(galaxy_data.seed_id, galaxy_data.star_num, value)
                         finish_num += len(results)
                         self.label_text.emit(f"{finish_num}/{task_num}({finish_num/task_num:.0%})")
                         sleep(0.01)

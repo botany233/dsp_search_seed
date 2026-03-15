@@ -34,16 +34,17 @@ class SearchThread(QThread):
             save_name = gui_cfg.save_name + ".csv"
             max_thread = gui_cfg.max_thread
             quick = gui_cfg.quick_check
+            resource_index = resource_rate_c.index(gui_cfg.resource_rate)
 
             if gui_cfg.search_mode == 0:
                 seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
                 star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
 
                 if not self.end_flag:
-                    self.range_search(galaxy_condition, seeds, star_nums, max_thread, save_name, quick)
+                    self.range_search(galaxy_condition, seeds, star_nums, resource_index, max_thread, save_name, quick)
             else:
                 if not self.end_flag:
-                    self.precise_search(galaxy_condition, max_thread, save_name, quick)
+                    self.precise_search(galaxy_condition, resource_index, max_thread, save_name, quick)
         except Exception as e:
             log.error(f"Search failed: {e}")
         finally:
@@ -54,6 +55,7 @@ class SearchThread(QThread):
 
     def precise_search(self,
                 galaxy_condition: dict,
+                resource_index: int,
                 max_thread: int,
                 save_name: str,
                 quick: bool) -> None:
@@ -65,7 +67,7 @@ class SearchThread(QThread):
         SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
 
         check_precise_manager = CheckPreciseManager(
-            self.seed_manager, galaxy_condition, quick, min(max_thread, cpu_count())
+            self.seed_manager, resource_index, galaxy_condition, quick, min(max_thread, cpu_count())
         )
         check_precise_manager.run()
 
@@ -101,6 +103,7 @@ class SearchThread(QThread):
                galaxy_condition: dict,
                seeds: tuple[int, int],
                star_nums: tuple[int, int],
+               resource_index: int,
                max_thread: int,
                save_name: str,
                quick: bool) -> None:
@@ -112,7 +115,7 @@ class SearchThread(QThread):
         SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
 
         check_batch_manager = CheckBatchManager(
-            seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1,
+            seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index,
             galaxy_condition, quick, min(max_thread, cpu_count())
         )
         check_batch_manager.run()

@@ -3,7 +3,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from qfluentwidgets import TitleLabel, BodyLabel, CaptionLabel, getFont, isDarkTheme
 from .astro_tree import GalaxyTreeWidgetItem, StarTreeWidgetItem, PlanetTreeWidgetItem
-from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c
+from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c, resource_rate_c
 
 from GUI.Compoents.Widgets import GlowLabelBase
 from GUI.dsp_icons import DSPIcons
@@ -233,17 +233,17 @@ def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: l
             if is_infinite_resource:
                 text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
             else:
-                text.append(f"{vein_names_c[i]}：{veins_point[i]}({veins_amount[i]})")
+                text.append(f"{vein_names_c[i]}：{veins_point[i]}({get_amount_str(veins_amount[i])})")
         
         if veins_point[6] > 0:
-            text.append(f"{vein_names_c[6]}：{veins_amount[6]/25000:.2f}/s")
+            text.append(f"{vein_names_c[6]}：{veins_point[6]}({veins_amount[6]/25000:.2f}/s)")
 
         for i in range(7, 14):
             if veins_point[i] > 0:
                 if is_infinite_resource:
                     text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
                 else:
-                    text.append(f"{vein_names_c[i]}：{veins_point[i]}({veins_amount[i]})")
+                    text.append(f"{vein_names_c[i]}：{veins_point[i]}({get_amount_str(veins_amount[i])})")
         if isinstance(liquid, int):
             if liquid == 1:
                 text.append("水：海洋")
@@ -262,3 +262,15 @@ def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: l
     if gas_veins[2] > 0:
         text.append(f"可燃冰：{gas_veins[2]:.2f}/s")
     return text
+
+def get_amount_str(num: int) -> str:
+    if num >= 1e12:
+        return f"{num/1e12:.2f}T"
+    elif num >= 1e9:
+        return f"{num/1e9:.2f}B"
+    elif num >= 1e6:
+        return f"{num/1e6:.2f}M"
+    elif num >= 1e3:
+        return f"{num/1e3:.2f}k"
+    else:
+        return str(num)

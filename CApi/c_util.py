@@ -11,8 +11,8 @@ def init_process(device_id: int, local_size: int):
 
 def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     galaxy_condition = del_empty_condition(galaxy_condition)
-    galaxy_condition["veins_point"] = change_veins_legal(galaxy_condition["veins_point"])
-    galaxy_condition["veins_amount"] = change_veins_legal(galaxy_condition["veins_amount"])
+    galaxy_condition["veins_point"] = change_veins_legal(galaxy_condition.get("veins_point", {}))
+    galaxy_condition["veins_amount"] = change_veins_legal(galaxy_condition.get("veins_amount", {}))
     galaxy_condition["need_veins"] = get_need_veins(galaxy_condition)
     galaxy_condition["stars"] = [change_star_condition_legal(star_condition) for star_condition in galaxy_condition.get("stars", [])]
     galaxy_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in galaxy_condition.get("planets", [])]
@@ -23,8 +23,8 @@ def change_star_condition_legal(star_condition:dict) -> dict:
     star_condition["type"] = get_star_type_mask(star_condition["type"]) if "type" in star_condition else (1<<16)-1
     star_condition["distance"] = star_condition["distance"] if "distance" in star_condition else 1000
     star_condition["dyson_lumino"] = star_condition["dyson_lumino"] if "dyson_lumino" in star_condition else 0
-    star_condition["veins_point"] = change_veins_legal(star_condition["veins_point"])
-    star_condition["veins_amount"] = change_veins_legal(star_condition["veins_amount"])
+    star_condition["veins_point"] = change_veins_legal(star_condition.get("veins_point", {}))
+    star_condition["veins_amount"] = change_veins_legal(star_condition.get("veins_amount", {}))
     star_condition["need_veins"] = get_need_veins(star_condition)
     star_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in star_condition.get("planets", [])]
     return star_condition
@@ -35,8 +35,8 @@ def change_planet_condition_legal(planet_condition:dict) -> dict:
     planet_condition["type"] = get_planet_type_mask(planet_condition["type"]) if "type" in planet_condition else (1<<32)-1
     planet_condition["liquid"] = liquid_types_c.index(planet_condition["liquid"]) + 1 if "liquid" in planet_condition else 0
     planet_condition["singularity"] = get_singularity_mask(planet_condition["singularity"]) if "singularity" in planet_condition else 0
-    planet_condition["veins_point"] = change_veins_legal(planet_condition["veins_point"])
-    planet_condition["veins_amount"] = change_veins_legal(planet_condition["veins_amount"])
+    planet_condition["veins_point"] = change_veins_legal(planet_condition.get("veins_point", {}))
+    planet_condition["veins_amount"] = change_veins_legal(planet_condition.get("veins_amount", {}))
     planet_condition["need_veins"] = get_need_veins(planet_condition)
     planet_condition["moons"] = [change_planet_condition_legal(moon_condition) for moon_condition in planet_condition.get("moons", [])]
     return planet_condition
@@ -47,7 +47,7 @@ def change_veins_legal(veins:dict) -> list[int]:
 def get_need_veins(condition: dict) -> int:
     need_veins = 0
     for i in range(14):
-        if condition["veins_group"][i] > 0 or condition["veins_point"][i] > 0:
+        if condition["veins_point"][i] > 0 or condition["veins_amount"][i] > 0:
             need_veins |= (1 << i)
     return need_veins
 

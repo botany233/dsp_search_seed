@@ -3,14 +3,14 @@ from PySide6.QtWidgets import QHBoxLayout, QFrame, QGridLayout, QWidget
 from PySide6.QtCore import QEvent, QRectF
 from PySide6.QtGui import QPainter
 
-from CApi import resource_rate_c
 from GUI import vein_names, planet_types, star_types
+from CApi import resource_rate_c
 
 custom_types = ["例子：种子号", "例子：恒星数", "自定义1", "自定义2", "自定义3"]
 
 sort_types = {
-    "矿簇": vein_names,
-    "矿脉": vein_names,
+    "矿脉数量": vein_names,
+    "矿脉储量": vein_names,
     "行星类别": planet_types,
     "恒星类别": star_types,
     "自定义": custom_types
@@ -19,9 +19,9 @@ sort_types = {
 class ResourceRateComboBox(ComboBox):
     def __init__(self):
         super().__init__()
-        self.addItems(resource_rate_c.keys())
+        self.addItems(resource_rate_c)
         self.setCurrentIndex(len(resource_rate_c) - 1)
-        max_width = max(self.fontMetrics().horizontalAdvance(text) for text in resource_rate_c.keys())
+        max_width = max(self.fontMetrics().horizontalAdvance(text) for text in resource_rate_c)
         self.setMinimumWidth(max_width + 45)
 
 class MainTypeComboBox(ComboBox):

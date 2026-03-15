@@ -18,7 +18,7 @@ vector<string> get_device_info_c();
 bool get_support_double_c();
 void set_gpu_max_worker(int max_worker);
 int get_gpu_max_worker();
-vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const GalaxyCondition& galaxy_condition,int check_level);
-vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const py::dict& galaxy_condition_dict,bool quick);

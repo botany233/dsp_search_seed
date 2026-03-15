@@ -756,6 +756,7 @@ protected:
 		birthStar.dysonRadius = birthStar.orbitScaler * 0.28f;
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
+		birthStar.dysonRadius = round(birthStar.dysonRadius * 800) * 100;
 		birthStar.galaxy = this;
 		birthStar.set_type_mask();
 		return birthStar;

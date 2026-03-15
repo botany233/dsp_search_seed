@@ -14,9 +14,9 @@ def check_planet_py(planet_data: PlanetData, planet_condition: PlanetCondition) 
     if (planet_condition.singularity & planet_data.singularity) != planet_condition.singularity:
         return False
     if planet_condition.need_veins:
-        if any(planet_data.veins_group[i] < planet_condition.veins_group[i] for i in range(14)):
-            return False
         if any(planet_data.veins_point[i] < planet_condition.veins_point[i] for i in range(14)):
+            return False
+        if any(planet_data.veins_amount[i] < planet_condition.veins_amount[i] for i in range(14)):
             return False
     for moon_condition in planet_condition.moons:
         left_satisfy_num = moon_condition.satisfy_num
@@ -37,9 +37,9 @@ def check_star_py(star_data: StarData, star_condition: StarCondition) -> bool:
     if star_condition.dyson_lumino > star_data.dyson_lumino:
         return False
     if star_condition.need_veins:
-        if any(star_data.veins_group[i] < star_condition.veins_group[i] for i in range(14)):
-            return False
         if any(star_data.veins_point[i] < star_condition.veins_point[i] for i in range(14)):
+            return False
+        if any(star_data.veins_amount[i] < star_condition.veins_amount[i] for i in range(14)):
             return False
     for planet_condition in star_condition.planets:
         left_satisfy_num = planet_condition.satisfy_num
@@ -54,9 +54,9 @@ def check_star_py(star_data: StarData, star_condition: StarCondition) -> bool:
 
 def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) -> bool:
     if galaxy_condition.need_veins:
-        if any(galaxy_data.veins_group[i] < galaxy_condition.veins_group[i] for i in range(14)):
-            return False
         if any(galaxy_data.veins_point[i] < galaxy_condition.veins_point[i] for i in range(14)):
+            return False
+        if any(galaxy_data.veins_amount[i] < galaxy_condition.veins_amount[i] for i in range(14)):
             return False
     for star_condition in galaxy_condition.stars:
         left_satisfy_num = star_condition.satisfy_num
@@ -81,20 +81,20 @@ def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) 
             return False
     return True
 
-def check_seed_py(seed: int, star_num: int, resource_rate: float, galaxy_condition: GalaxyCondition, quick: bool) -> bool:
+def check_seed_py(seed: Seed, galaxy_condition: GalaxyCondition, quick: bool) -> bool:
     if not quick:
-        galaxy_data = get_galaxy_data_c(Seed(seed, star_num, resource_rate), True)
+        galaxy_data = get_galaxy_data_c(seed, True)
         if not check_galaxy_py(galaxy_data, galaxy_condition):
             return False
-    galaxy_data = get_galaxy_data_c(Seed(seed, star_num, resource_rate), quick)
+    galaxy_data = get_galaxy_data_c(seed, quick)
     return check_galaxy_py(galaxy_data, galaxy_condition)
 
-def check_batch_py(tasks: list[tuple[int, int, float]], galaxy_condition: dict, quick: bool) -> list[tuple[int, int]]:
+def check_batch_py(tasks: list[tuple[int, int, int]], galaxy_condition: dict, quick: bool) -> list[tuple[int, int]]:
     galaxy_condition = galaxy_condition_to_struct(galaxy_condition)
     result = []
-    for seed, star_num, resource_rate in tasks:
-        if check_seed_py(seed, star_num, resource_rate, galaxy_condition, quick):
-            result.append((seed, star_num))
+    for seed_id, star_num, resource_index in tasks:
+        if check_seed_py(Seed(seed_id, star_num, resource_index), galaxy_condition, quick):
+            result.append((seed_id, star_num))
     return result
 
 def init_process(device_id: int, local_size: int):
@@ -103,11 +103,11 @@ def init_process(device_id: int, local_size: int):
         print("Set device id failed! Roll back to cpu!")
     set_local_size_c(local_size)
 
-def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int], resource_rate: float) -> callable:
-    def get_task_seed(task_id: int) -> tuple[int, int, float]:
+def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int], resource_index: int) -> callable:
+    def get_task_seed(task_id: int) -> tuple[int, int, int]:
         star_num = task_id % (star_nums[1] - star_nums[0] + 1) + star_nums[0]
         seed = task_id // (star_nums[1] - star_nums[0] + 1) + seeds[0]
-        return seed, star_num, resource_rate
+        return seed, star_num, resource_index
     return get_task_seed
 
 # def check_seeds_py(seeds: tuple[int, int],
@@ -125,16 +125,16 @@ def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int], re
 
 def check_seeds_py(seeds: tuple[int, int],
                    star_nums: tuple[int, int],
-                   resource_rate: float,
+                   resource_index: int,
                    galaxy_condition: dict,
                    quick: bool,
                    max_thread: int,
                    device_id: int,
                    local_size: int) -> list[tuple[int, int]]:
-    get_task_seed = get_task_seed_wrapper(seeds, star_nums, resource_rate)
+    get_task_seed = get_task_seed_wrapper(seeds, star_nums, resource_index)
     max_thread = min(max_thread, cpu_count())
     task_num = (seeds[1] - seeds[0] + 1) * (star_nums[1] - star_nums[0] + 1)
-    batch_size = min(task_num // (max_thread * 20), 1024)
+    batch_size = max(1, min(task_num // (max_thread * 20), 1024))
     with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
         futures = []
         for task_id in range(0, task_num, batch_size):
@@ -142,9 +142,11 @@ def check_seeds_py(seeds: tuple[int, int],
             futures.append(executor.submit(check_batch_py, tasks, galaxy_condition, quick))
 
         results = []
-        for future in futures:
+        for i, future in enumerate(futures):
+            print(f"当前进度{i}/{len(futures)}", end="\r")
             result = future.result()
             results.extend(result)
+        print(" " * 50, end="\r")
     return results
 
 __all__ = ["check_seed_py", "check_seeds_py"]

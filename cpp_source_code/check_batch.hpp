@@ -11,6 +11,7 @@
 #include <chrono>
 #include <memory>
 
+#include "defines.hpp"
 #include "data_struct.hpp"
 #include "check_seed.hpp"
 #include "python_api.hpp"
@@ -69,10 +70,10 @@ public:
 		shutdown();
 	}
 
-	void add_task(int seed_id,int star_num,float resource_rate) {
+	void add_task(int seed_id,uint8_t star_num,uint8_t resource_index) {
 		{
 			lock_guard<mutex> lck(task_mtx);
-			tasks.emplace(seed_id,star_num,resource_rate);
+			tasks.emplace(seed_id,star_num,resource_index);
 		}
 		on_task_generated.notify_one();
 	}
@@ -116,7 +117,7 @@ protected:
 	GalaxyCondition galaxy_condition;
 	int max_thread;
 	int check_level;
-	float resource_rate;
+	uint8_t resource_index;
 
 	mutex result_mtx;
 	vector<SeedStruct> result = vector<SeedStruct>(0);
@@ -128,7 +129,7 @@ protected:
 				this_thread::sleep_for(chrono::milliseconds(20));
 			if(stop.load())
 				break;
-			vector<SeedStruct> batch_seeds = seed_manager->get_seeds(1024,resource_rate);
+			vector<SeedStruct> batch_seeds = seed_manager->get_seeds(1024,resource_index);
 			if(batch_seeds.size()==0)
 				break;
 			lock_guard<mutex> lck(task_mtx);
@@ -167,12 +168,12 @@ protected:
 		working_num.fetch_add(-1);
 	}
 public:
-	CheckPreciseManager(SeedManager& seed_manager,float resource_rate,
+	CheckPreciseManager(SeedManager& seed_manager,uint8_t resource_index,
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
 	{
-		galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		check_level = get_condition_level(galaxy_condition,quick);
-		this->resource_rate = resource_rate;
+		this->galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
+		this->check_level = get_condition_level(galaxy_condition,quick);
+		this->resource_index = resource_index;
 		this->max_thread = max_thread;
 		this->seed_manager = &seed_manager;
 	}
@@ -246,7 +247,7 @@ protected:
 	int end_seed;
 	int start_star_num;
 	int end_star_num;
-	float resource_rate;
+	uint8_t resource_index;
 	size_t task_num;
 	int max_thread;
 
@@ -262,7 +263,7 @@ protected:
 
 			int seed_id = start_seed + current_task_id / (end_star_num - start_star_num);
 			int star_num = start_star_num + current_task_id % (end_star_num - start_star_num);
-			SeedStruct task = SeedStruct(seed_id,star_num,resource_rate);
+			SeedStruct task = SeedStruct(seed_id,star_num,resource_index);
 
 			if(check_seed_level_1(task,galaxy_condition,check_level)) {
 				lock_guard<mutex> lck(mtx);
@@ -273,32 +274,32 @@ protected:
 		working_num.fetch_add(-1);
 	}
 public:
-	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
 	{
-		galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		check_level = get_condition_level(galaxy_condition,quick);
+		this->galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
+		this->check_level = get_condition_level(galaxy_condition,quick);
 		this->start_seed = start_seed;
 		this->end_seed = end_seed;
 		this->start_star_num = start_star_num;
 		this->end_star_num = end_star_num;
-		this->resource_rate = resource_rate;
+		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
+		this->task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
 	}
 
-	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,float resource_rate,
+	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 		const GalaxyCondition& galaxy_condition,bool quick,int max_thread)
 	{
 		this->galaxy_condition = galaxy_condition;
-		check_level = get_condition_level(galaxy_condition,quick);
+		this->check_level = get_condition_level(galaxy_condition,quick);
 		this->start_seed = start_seed;
 		this->end_seed = end_seed;
 		this->start_star_num = start_star_num;
 		this->end_star_num = end_star_num;
-		this->resource_rate = resource_rate;
+		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
+		this->task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
 	}
 
 	~CheckBatchManager() {
@@ -342,7 +343,7 @@ public:
 	SeedStruct get_last_result() {
 		lock_guard<mutex> lck(mtx);
 		if(result.empty())
-			return SeedStruct(-1,-1,0.0f);
+			return SeedStruct(-1,0,0);
 		return result.back();
 	}
 

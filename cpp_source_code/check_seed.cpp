@@ -30,10 +30,12 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 {
 	GalaxyData galaxy_data;
 	GalaxyClass g;
-	g.CreateGalaxy(seed.seed_id,seed.star_num,seed.resource_rate,0);
+	float resource_rate = resource_rates[seed.resource_index];
+	g.CreateGalaxy(seed.seed_id,seed.star_num,resource_rate,0);
 	galaxy_data.seed_id = seed.seed_id;
 	galaxy_data.star_num = seed.star_num;
-	galaxy_data.resource_rate = seed.resource_rate;
+	galaxy_data.resource_rate = resource_rate;
+	galaxy_data.resource_index = seed.resource_index;
 	for(StarClass& star : g.stars)
 	{
 		StarData star_data;
@@ -173,9 +175,9 @@ bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 
 bool check_seed_level_1(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level)
 {
-	//cout << seed << " " << star_num << " level1 check start" << endl;
+	//cout << seed.seed_id << " " << (int)seed.star_num << " level1 check start" << endl;
 	GalaxyClassSimple galaxy;
-	galaxy.CreateStars(seed.seed_id,seed.star_num,seed.resource_rate);
+	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
 	if(!check_galaxy_level_1(galaxy,galaxy_condition))
 		return false;
 	else if(check_level>1)

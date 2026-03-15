@@ -13,16 +13,16 @@ def get_mask(mask_pras: list) -> list[bool]:
     return mask
 
 def get_planet_text(galaxy: GalaxyData, cfg: PlanetExportCondition) -> str:
-    mask_para = [cfg.star_name, cfg.star_type, cfg.star_lumino, cfg.star_distance, (cfg.star_location, 3), True, cfg.planet_type, cfg.singularity, cfg.dsp_level, cfg.liquid, cfg.wind_usage, cfg.light_usage, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins, len(vein_names_c))]
+    mask_para = [cfg.star_name, cfg.star_type, cfg.star_lumino, cfg.star_distance, (cfg.star_location, 3), True, cfg.planet_type, cfg.singularity, cfg.dsp_level, cfg.liquid, cfg.wind_usage, cfg.light_usage, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins_point, len(vein_names_c)), (cfg.veins_amount, len(vein_names_c))]
     mask = get_mask(mask_para)
 
     dsp_name = [""] + dsp_level_c
     liquid_name = [""] + liquid_types_c
 
-    full_data = [["恒星名称", "恒星类型", "恒星亮度", "恒星距离", *[f"恒星坐标_{i}" for i in "xyz"], "名称", "类型", "词条", "戴森球接收", "液体", "风能利用率", "光能利用率", *gas_veins_c, *vein_names_c]]
+    full_data = [["恒星名称", "恒星类型", "恒星亮度", "恒星距离", *[f"恒星坐标_{i}" for i in "xyz"], "名称", "类型", "词条", "戴森球接收", "液体", "风能利用率", "光能利用率", *gas_veins_c, *vein_names_c, *vein_names_c]]
     for star in galaxy.stars:
         for planet in star.planets:
-            planet_data = [star.name, star.type, round(star.dyson_lumino,3), round(star.distance,2), *star.pos, planet.name, planet.type, "|".join(planet.singularity_str), dsp_name[planet.dsp_level], liquid_name[planet.liquid], f"{planet.wind:.0%}", f"{planet.lumino:.0%}", *map(lambda x: round(x,3),planet.gas_veins), *planet.veins_point]
+            planet_data = [star.name, star.type, round(star.dyson_lumino,3), round(star.distance,2), *star.pos, planet.name, planet.type, "|".join(planet.singularity_str), dsp_name[planet.dsp_level], liquid_name[planet.liquid], f"{planet.wind:.0%}", f"{planet.lumino:.0%}", *map(lambda x: round(x,3),planet.gas_veins), *planet.veins_point, *planet.veins_amount]
             full_data.append(planet_data)
 
     full_data = [",".join(map(str, (i for i, j in zip(line, mask) if j))) for line in full_data]
@@ -30,11 +30,11 @@ def get_planet_text(galaxy: GalaxyData, cfg: PlanetExportCondition) -> str:
     return text + "\n"
 
 def get_star_text(galaxy: GalaxyData, cfg: StarExportCondition) -> str:
-    mask_para = [True, cfg.type, cfg.distance, (cfg.location, 3), (cfg.liquid, len(liquid_types_c)+1), cfg.ds_lumino, cfg.ds_radius, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins, len(vein_names_c))]
+    mask_para = [True, cfg.type, cfg.distance, (cfg.location, 3), (cfg.liquid, len(liquid_types_c)+1), cfg.ds_lumino, cfg.ds_radius, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins_point, len(vein_names_c)), (cfg.veins_amount, len(vein_names_c))]
     mask = get_mask(mask_para)
-    full_data = [["名称", "类型", "距离", *[f"坐标_{i}" for i in "xyz"], "无液体", *liquid_types_c, "亮度", "戴森球半径", *gas_veins_c, *vein_names_c]]
+    full_data = [["名称", "类型", "距离", *[f"坐标_{i}" for i in "xyz"], "无液体", *liquid_types_c, "亮度", "戴森球半径", *gas_veins_c, *vein_names_c, *vein_names_c]]
     for star in galaxy.stars:
-        star_data = [star.name, star.type, round(star.distance,2), *star.pos, *star.liquid, round(star.dyson_lumino,3), star.dyson_radius, *map(lambda x: round(x,3),star.gas_veins), *star.veins_point]
+        star_data = [star.name, star.type, round(star.distance,2), *star.pos, *star.liquid, round(star.dyson_lumino,3), star.dyson_radius, *map(lambda x: round(x,3),star.gas_veins), *star.veins_point, *star.veins_amount]
         full_data.append(star_data)
 
     full_data = [",".join(map(str, (i for i, j in zip(line, mask) if j))) for line in full_data]
@@ -44,8 +44,9 @@ def get_star_text(galaxy: GalaxyData, cfg: StarExportCondition) -> str:
 def get_galaxy_text(galaxy: GalaxyData, cfg: GalaxyExportCondition) -> str:
     data = [
         [
-            ("种子id", galaxy.seed),
+            ("种子id", galaxy.seed_id),
             ("恒星数", galaxy.star_num),
+            ("资源倍率", resource_rate_c[galaxy.resource_index]),
         ],
     ]
     if cfg.star_types:
@@ -69,8 +70,10 @@ def get_galaxy_text(galaxy: GalaxyData, cfg: GalaxyExportCondition) -> str:
             group.extend((i, round(j,3)) for i, j in zip(gas_veins_c, galaxy.gas_veins))
         data.append(group)
     
-    if cfg.veins:
+    if cfg.veins_point:
         data.append([(key, value) for key, value in zip(vein_names_c, galaxy.veins_point)])
+    if cfg.veins_amount:
+        data.append([(key, value) for key, value in zip(vein_names_c, galaxy.veins_amount)])
 
     text = ""
     for piece in data:

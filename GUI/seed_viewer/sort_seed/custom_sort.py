@@ -14,7 +14,7 @@ def handle_custom_sort(subtype: str):
 
 #例子：使用种子号作为种子价值
 def get_seed_value(galaxy_data: GalaxyData) -> int:
-    return galaxy_data.seed
+    return galaxy_data.seed_id
 
 #例子：使用恒星数量作为种子价值
 def get_star_num_value(galaxy_data: GalaxyData) -> int:

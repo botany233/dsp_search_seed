@@ -1,34 +1,109 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-from copy import deepcopy
 from time import perf_counter, sleep
 
 from CApi import *
-from benchmark_condition import debug_condition_functions
 
-cpu_thread = 20
-gpu_thread = 4
-device_id = 1
-local_size = 256
+galaxy_condition_raw = {
+    "condition": {
+        # "stars": [
+        #     {
+        #         "satisfy_num": 1,
+        #         "type": [
+        #             "红巨星",
+        #             "白巨星",
+        #             "M型恒星",
+        #             "白矮星",
+        #             "O型恒星"
+        #         ],
+        #         "distance": 52.70539795443552,
+        #         "dyson_lumino": 1.3063370313991023,
+        #         "planets": [
+        #             {
+        #                 "satisfy_num": 1,
+        #                 "type": [
+        #                     "冰巨星",
+        #                     "冰原冻土",
+        #                     "高产气巨",
+        #                     "熔岩"
+        #                 ]
+        #             }
+        #         ]
+        #     },
+        #     {
+        #         "satisfy_num": 3,
+        #         "type": [
+        #             "白矮星",
+        #             "黑洞",
+        #             "F型恒星",
+        #             "蓝巨星",
+        #             "O型恒星"
+        #         ],
+        #         "dyson_lumino": 1.015780060456507
+        #     }
+        # ],
+        "planets": [
+            {
+                "satisfy_num": 1,
+                "dsp_level": "全接收",
+                "type": [
+                    # "极寒冻土",
+                    # "气态巨星",
+                    "橙晶荒漠",
+                    # "热带草原"
+                ]
+            }
+        ]
+    },
+    "seeds": [
+        0,
+        99999
+    ],
+    "star_nums": [
+        64,
+        64
+    ],
+    "resource_index": 9,
+    "quick": True
+}
 
-set_device_id_c(device_id)
-set_local_size_c(local_size)
-set_gpu_max_worker_c(gpu_thread)
+def main():
+    cpu_thread = 20
+    gpu_thread = 4
+    device_id = 0
+    local_size = 256
 
-galaxy_condition = {"stars": [{"type": "蓝巨星", "satisfy_num": 3}]}
+    c_save_path = os.path.join(os.path.dirname(__file__), "debug_results_c.csv")
+    py_save_path = os.path.join(os.path.dirname(__file__), "debug_results_py.csv")
+    set_device_id_c(device_id)
+    set_local_size_c(local_size)
+    set_gpu_max_worker_c(gpu_thread)
 
-seeds = (0, 100000)
-star_nums = (64, 64)
-quick = False
+    galaxy_condition = galaxy_condition_raw["condition"]
+    seeds = galaxy_condition_raw["seeds"]
+    star_nums = galaxy_condition_raw["star_nums"]
+    resource_index = galaxy_condition_raw["resource_index"]
+    quick = galaxy_condition_raw["quick"]
 
-galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
-check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, galaxy_condition, quick, cpu_thread)
-check_batch_manager.run()
-while check_batch_manager.is_running():
-    sleep(0.1)
-result = check_batch_manager.get_results()
-result = sorted(result, key=lambda x: x.seed_id * 33 + x.star_num)
-print(f"找到{len(result)}个种子")
-for i in result:
-    print(f"{i.seed_id}, {i.star_num}")
+    galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
+
+    flag = perf_counter()
+    py_results = check_seeds_py(seeds, star_nums, resource_index, galaxy_condition, quick, cpu_thread, device_id, local_size)
+    with open(py_save_path, "w") as f:
+        f.writelines(map(lambda x: f"{x[0]}, {x[1]}\n", py_results))
+    print(f"py完成: 用时{perf_counter() - flag:.2f}s，找到{len(py_results)}个种子")
+
+    flag = perf_counter()
+    check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)
+    check_batch_manager.run()
+    while check_batch_manager.is_running():
+        sleep(0.1)
+    c_results = check_batch_manager.get_results()
+    c_results = sorted(c_results, key=lambda x: x.seed_id * 33 + x.star_num)
+    with open(c_save_path, "w") as f:
+        f.writelines(map(lambda x: f"{x.seed_id}, {x.star_num}\n", c_results))
+    print(f"cpp完成: 用时{perf_counter() - flag:.2f}s，找到{len(c_results)}个种子")
+
+if __name__ == "__main__":
+    main()

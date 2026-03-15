@@ -107,15 +107,28 @@ class SeedScroll(TableWidget):
         for table_row, (seed_id, star_num, sort_value) in enumerate(data):
             self.setItem(table_row, 0, QTableWidgetItem(str(seed_id)))
             self.setItem(table_row, 1, QTableWidgetItem(str(star_num)))
-            self.setItem(table_row, 2, QTableWidgetItem(str(sort_value)))
+            self.setItem(table_row, 2, QTableWidgetItem(self.get_sort_value_str(sort_value)))
             if table_row % 100 == 0:
                 QApplication.processEvents()
         self.clearSelection()
 
+    @staticmethod
+    def get_sort_value_str(num: float|int) -> str:
+        if num >= 1e12:
+            return f"{num/1e12:.2f}T"
+        elif num >= 1e9:
+            return f"{num/1e9:.2f}B"
+        elif num >= 1e6:
+            return f"{num/1e6:.2f}M"
+        elif num >= 1e3:
+            return f"{num/1e3:.2f}k"
+        else:
+            return str(num)
+
     def _export_select(self) -> None:
-        # if self.selected_num <= 0:
-        #     return
         selected_seeds = self.get_select_seed()
+        if len(selected_seeds) == 0:
+            return
         window = ExportWindow(self.parent().parent(), selected_seeds)
         window.show()
             # data = window.data

@@ -145,6 +145,9 @@ const uint8_t planet_theme_to_type[25] = {
 	8,9,10,11,12,13,14,15,16,17,
 	22,18,19,20,21
 };
+const float resource_rates[] = {
+	0.1f,0.3f,0.5f,0.8f,1.0f,1.5f,2.0f,3.0f,5.0f,8.0f,100.0f
+};
 
 class Pose {
 public:

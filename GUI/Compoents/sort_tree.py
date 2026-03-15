@@ -539,20 +539,20 @@ class GalaxyTreeLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿簇",
-            config_obj=config_obj,
-            config_key="veins_condition",
-            items=VeinsName().model_dump(),
-            obj_name="星系矿簇筛选",
-            description="设置星系内最少有多少对应矿簇, 不填写则不限制",
-        )
-        self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉",
+            buttonText="矿脉数量",
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
-            obj_name="星系矿脉筛选",
-            description="设置星系内最少有多少对应矿脉, 不填写则不限制",
+            obj_name="星系矿脉数量筛选",
+            description="设置星系内最少有多少对应矿脉数量, 不填写则不限制",
+        )
+        self.veinsPointConditionButton = SettingsTreeLeave(
+            buttonText="矿脉储量",
+            config_obj=config_obj,
+            config_key="veins_amount_condition",
+            items=VeinsName().model_dump(),
+            obj_name="星系矿脉储量筛选",
+            description="设置星系内最少有多少对应矿脉储量, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         self.mainLayout.addWidget(self.veinsPointConditionButton)
@@ -589,20 +589,20 @@ class StarTreeLeave(LeaveBase):
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿簇",
-            config_obj=config_obj,
-            config_key="veins_condition",
-            items=VeinsName().model_dump(),
-            obj_name="恒星系矿簇筛选",
-            description="设置恒星系内最少有多少对应矿簇, 不填写则不限制",
-        )
-        self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉",
+            buttonText="矿脉数量",
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
-            obj_name="恒星系矿脉筛选",
-            description="设置恒星系内最少有多少对应矿脉, 不填写则不限制",
+            obj_name="恒星系矿脉数量筛选",
+            description="设置恒星系内最少有多少对应矿脉数量, 不填写则不限制",
+        )
+        self.veinsPointConditionButton = SettingsTreeLeave(
+            buttonText="矿脉储量",
+            config_obj=config_obj,
+            config_key="veins_amount_condition",
+            items=VeinsName().model_dump(),
+            obj_name="恒星系矿脉储量筛选",
+            description="设置恒星系内最少有多少对应矿脉储量, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         # self.veinsConditionButton.setToolTip("设置恒星系矿簇条件")
@@ -657,20 +657,20 @@ class PlanetTreeLeave(LeaveBase):
         self.hitStarNumLineEdit.setFixedHeight(28)
 
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿簇",
-            config_obj=config_obj,
-            config_key="veins_condition",
-            items=VeinsName().model_dump(),
-            obj_name="星球矿簇筛选",
-            description="设置星球内最少有多少对应矿簇, 不填写则不限制",
-        )
-        self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉",
+            buttonText="矿脉数量",
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
-            obj_name="星球矿脉筛选",
-            description="设置星球内最少有多少对应矿脉, 不填写则不限制",
+            obj_name="星球矿脉数量筛选",
+            description="设置星球内最少有多少对应矿脉数量, 不填写则不限制",
+        )
+        self.veinsPointConditionButton = SettingsTreeLeave(
+            buttonText="矿脉储量",
+            config_obj=config_obj,
+            config_key="veins_amount_condition",
+            items=VeinsName().model_dump(),
+            obj_name="星球矿脉储量筛选",
+            description="设置星球内最少有多少对应矿脉储量, 不填写则不限制",
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         self.mainLayout.addWidget(self.veinsPointConditionButton)
