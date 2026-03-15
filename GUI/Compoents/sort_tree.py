@@ -27,7 +27,7 @@ from qfluentwidgets import (
 
 from .combox import AutoFixedComboBox
 from .Widgets.line_edit import LimitLineEdit
-
+from .multicombobox import MultiComboBox
 
 from config import cfg
 from logger import log
@@ -43,12 +43,14 @@ from .. import star_types, planet_types, singularity, liquid, dsp_level
 from GUI.dsp_icons import AppIcons
 
 
-star_types = ["无限制"] + star_types
-planet_types = ["无限制"] + planet_types
-moon_parent_planet_types = ["无限制", "气态巨星", "高产气巨", "冰巨星"]
-moon_planet_types = ["无限制"] + [i for i in planet_types if i not in moon_parent_planet_types]
+# star_types = ["无限制"] + star_types
+# planet_types = ["无限制"] + planet_types
+# moon_parent_planet_types = ["无限制", "气态巨星", "高产气巨", "冰巨星"]
+# moon_planet_types = ["无限制"] + [i for i in planet_types if i not in moon_parent_planet_types]
+moon_parent_planet_types = ["气态巨星", "高产气巨", "冰巨星"]
+moon_planet_types = [i for i in planet_types if i not in moon_parent_planet_types]
 liquid = ["无限制"] + liquid
-singularity = ["无限制"] + singularity
+# singularity = ["无限制"] + singularity
 moon_parent_singularity = [s for s in singularity if s != "卫星"]
 moon_singularity = [s for s in singularity if s not in ["卫星", "多卫星", "潮汐锁定"]]
 dsp_level = ["无限制"] + dsp_level
@@ -565,7 +567,8 @@ class StarTreeLeave(LeaveBase):
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.starTypeLabel = BodyLabel("恒星类型")
         self.mainLayout.addWidget(self.starTypeLabel)
-        self.starTypeComboBox = AutoFixedComboBox(config_key="star_type")
+        # self.starTypeComboBox = AutoFixedComboBox(config_key="star_type")
+        self.starTypeComboBox = MultiComboBox("star_type", self.config_obj)
         self.starTypeComboBox.addItems(star_types)
         self.mainLayout.addWidget(self.starTypeComboBox)
         self.luminosityLabel = BodyLabel("光度级别")
@@ -622,12 +625,14 @@ class PlanetTreeLeave(LeaveBase):
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.planetTypeLabel = BodyLabel("星球类型")
         self.mainLayout.addWidget(self.planetTypeLabel)
-        self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
+        # self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
+        self.planetTypeComboBox = MultiComboBox("planet_type", self.config_obj)
         self.planetTypeComboBox.addItems(planet_types)
         self.mainLayout.addWidget(self.planetTypeComboBox)
         self.singularityLabel = BodyLabel("特点")
         self.mainLayout.addWidget(self.singularityLabel)
-        self.singularityComboBox = AutoFixedComboBox(config_key="singularity")
+        # self.singularityComboBox = AutoFixedComboBox(config_key="singularity")
+        self.singularityComboBox = MultiComboBox("singularity", self.config_obj)
         self.singularityComboBox.addItems(singularity)
         self.mainLayout.addWidget(self.singularityComboBox)
         self.liquidLabel = BodyLabel("液体")

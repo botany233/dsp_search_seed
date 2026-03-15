@@ -38,8 +38,10 @@ class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
     checked: bool = True
 
-    planet_type: str = "无限制"
-    singularity: str = "无限制"
+    # planet_type: str = "无限制"
+    planet_type: list[str] = []
+    # singularity: str = "无限制"
+    singularity: list[str] = []
     liquid_type: str = "无限制"
 
     dsp_level: str = "无限制"
@@ -54,7 +56,8 @@ class StarCondition(BaseModel):
     custom_name: str = "恒星系条件"
     checked: bool = True
 
-    star_type: str = "无限制"
+    # star_type: str = "无限制"
+    star_type: list[str] = []
     lumino_level: float = 0.0
     distance_level: float = -1.0
     satisfy_num: int = 1

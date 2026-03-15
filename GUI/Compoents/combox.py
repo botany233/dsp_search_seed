@@ -20,7 +20,7 @@ class ConfigComboBox(ComboBox):
         self.fresh()
 
         self.currentIndexChanged.connect(self._on_currentIndexChanged)
-    
+
     def fresh(self) -> None:
         config_value = getattr(self.config_obj, self.config_key)
         index = self.findText(str(config_value))
