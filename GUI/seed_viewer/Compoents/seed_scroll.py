@@ -115,15 +115,27 @@ class SeedScroll(TableWidget):
     @staticmethod
     def get_sort_value_str(num: float|int) -> str:
         if num >= 1e12:
-            return f"{num/1e12:.2f}T"
+            unit = "T"
+            num /= 1e12
         elif num >= 1e9:
-            return f"{num/1e9:.2f}B"
+            unit = "G"
+            num /= 1e9
         elif num >= 1e6:
-            return f"{num/1e6:.2f}M"
+            unit = "M"
+            num /= 1e6
         elif num >= 1e3:
-            return f"{num/1e3:.2f}k"
+            unit = "k"
+            num /= 1e3
         else:
-            return str(num)
+            unit = ""
+
+        if num >= 100:
+            num = f"{num:.0f}"
+        elif num >= 10:
+            num = f"{num:.1f}"
+        else:
+            num = f"{num:.2f}"
+        return f"{num}{unit}"
 
     def _export_select(self) -> None:
         selected_seeds = self.get_select_seed()

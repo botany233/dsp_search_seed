@@ -60,6 +60,8 @@ class MultiComboBox(ComboBox):
             self.selected_texts.remove(item_text)
         else:
             self.selected_texts.add(item_text)
+            if item_text == "气态巨星":
+                self.selected_texts.add("高产气巨")
         self.save_config()
         self.updateText()
 

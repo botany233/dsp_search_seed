@@ -194,7 +194,6 @@ class StarInfo(InfoBase):
 
         self.sub_title_label.setText(data.type)
 
-
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
         other_label = CaptionLabel(f'''\
@@ -256,21 +255,33 @@ def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: l
                 text.append(f"硫酸：{liquid[2]}")
 
     if gas_veins[0] > 0:
-        text.append(f"氢：{gas_veins[0]:.2f}/s")
+        text.append(f"氢：{gas_veins[0]:.4f}/s")
     if gas_veins[1] > 0:
-        text.append(f"重氢：{gas_veins[1]:.2f}/s")
+        text.append(f"重氢：{gas_veins[1]:.4f}/s")
     if gas_veins[2] > 0:
-        text.append(f"可燃冰：{gas_veins[2]:.2f}/s")
+        text.append(f"可燃冰：{gas_veins[2]:.4f}/s")
     return text
 
 def get_amount_str(num: int) -> str:
     if num >= 1e12:
-        return f"{num/1e12:.2f}T"
+        unit = "T"
+        num /= 1e12
     elif num >= 1e9:
-        return f"{num/1e9:.2f}B"
+        unit = "G"
+        num /= 1e9
     elif num >= 1e6:
-        return f"{num/1e6:.2f}M"
+        unit = "M"
+        num /= 1e6
     elif num >= 1e3:
-        return f"{num/1e3:.2f}k"
+        unit = "k"
+        num /= 1e3
     else:
-        return str(num)
+        unit = ""
+    
+    if num >= 100:
+        num = f"{num:.0f}"
+    elif num >= 10:
+        num = f"{num:.1f}"
+    else:
+        num = f"{num:.2f}"
+    return f"{num}{unit}"

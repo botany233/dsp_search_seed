@@ -62,8 +62,8 @@ def get_star_type_mask(star_type:str|list[str]) -> int:
 def get_planet_type_mask(planet_type:str|list[str]) -> int:
     if isinstance(planet_type, str):
         planet_type = [planet_type]
-    if "气态巨星" in planet_type and "高产气巨" not in planet_type:
-        planet_type.append("高产气巨")
+    # if "气态巨星" in planet_type and "高产气巨" not in planet_type:
+    #     planet_type.append("高产气巨")
     result = 0
     for pt in planet_type:
         result |= 1 << planet_types_c.index(pt)
