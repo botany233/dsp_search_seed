@@ -114,7 +114,9 @@ class SeedScroll(TableWidget):
 
     @staticmethod
     def get_sort_value_str(num: float|int) -> str:
-        if num >= 1e12:
+        if num > 1e15:
+            return f"{num:.1e}"
+        elif num >= 1e12:
             unit = "T"
             num /= 1e12
         elif num >= 1e9:

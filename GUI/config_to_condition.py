@@ -26,7 +26,7 @@ def config_to_star_condition(star_cfg: StarCondition) -> dict:
             star_condition["veins_point"] = veins_point
         if (veins_amount := get_veins_dict(star_cfg.veins_amount_condition)):
             star_condition["veins_amount"] = veins_amount
-        if star_cfg.star_type != "无限制":
+        if len(star_cfg.star_type) > 0:
             star_condition["type"] = star_cfg.star_type
         if star_cfg.distance_level >= 0:
             star_condition["distance"] = star_cfg.distance_level
@@ -44,13 +44,15 @@ def config_to_planet_condition(planet_cfg: PlanetCondition) -> dict:
             planet_condition["veins_point"] = veins_point
         if (veins_amount := get_veins_dict(planet_cfg.veins_amount_condition)):
             planet_condition["veins_amount"] = veins_amount
-        if planet_cfg.planet_type != "无限制":
+        if len(planet_cfg.planet_type) > 0:
             planet_condition["type"] = planet_cfg.planet_type
-        if planet_cfg.singularity != "无限制":
-            if planet_cfg.singularity == "潮汐锁定":
-                planet_condition["singularity"] = "潮汐锁定永昼永夜"
-            else:
-                planet_condition["singularity"] = planet_cfg.singularity
+        if len(planet_cfg.singularity) > 0:
+            planet_condition["singularity"] = []
+            for singularity in planet_cfg.singularity:
+                if singularity == "潮汐锁定":
+                    planet_condition["singularity"].append("潮汐锁定永昼永夜")
+                else:
+                    planet_condition["singularity"].append(singularity)
         if planet_cfg.liquid_type != "无限制":
             planet_condition["liquid"] = planet_cfg.liquid_type
         if planet_cfg.dsp_level != "无限制":

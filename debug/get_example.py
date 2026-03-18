@@ -5,7 +5,7 @@ import json
 
 from CApi import *
 
-galaxy_data = search_seed.get_galaxy_data_c(Seed(233, 32, 1.0), False)
+galaxy_data = search_seed.get_galaxy_data_c(Seed(593, 64, 10), True)
 galaxy_dict = data_to_dict(galaxy_data)
 galaxy_json = json.dumps(galaxy_dict, ensure_ascii=False, indent=4)
 with open("example.json", "w", encoding="utf-8") as f:

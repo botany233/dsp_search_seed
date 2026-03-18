@@ -7,58 +7,16 @@ from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        # "stars": [
-        #     {
-        #         "satisfy_num": 1,
-        #         "type": [
-        #             "红巨星",
-        #             "白巨星",
-        #             "M型恒星",
-        #             "白矮星",
-        #             "O型恒星"
-        #         ],
-        #         "distance": 52.70539795443552,
-        #         "dyson_lumino": 1.3063370313991023,
-        #         "planets": [
-        #             {
-        #                 "satisfy_num": 1,
-        #                 "type": [
-        #                     "冰巨星",
-        #                     "冰原冻土",
-        #                     "高产气巨",
-        #                     "熔岩"
-        #                 ]
-        #             }
-        #         ]
-        #     },
-        #     {
-        #         "satisfy_num": 3,
-        #         "type": [
-        #             "白矮星",
-        #             "黑洞",
-        #             "F型恒星",
-        #             "蓝巨星",
-        #             "O型恒星"
-        #         ],
-        #         "dyson_lumino": 1.015780060456507
-        #     }
-        # ],
-        "planets": [
+        "stars": [
             {
                 "satisfy_num": 1,
-                "dsp_level": "全接收",
-                "type": [
-                    # "极寒冻土",
-                    # "气态巨星",
-                    "橙晶荒漠",
-                    # "热带草原"
-                ]
-            }
-        ]
+                "distance": 1.0,
+            },
+        ],
     },
     "seeds": [
         0,
-        99999
+        9999
     ],
     "star_nums": [
         64,
