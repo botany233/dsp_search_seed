@@ -283,6 +283,8 @@ class SettingInterface(SmoothScrollArea):
 
         self.expanded = True
 
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+
         self.scrollWidget = QFrame()
         self.setWidget(self.scrollWidget)
         self.setWidgetResizable(True)
