@@ -8,7 +8,7 @@ class LimitLineEdit(LineEdit):
         self,
         config_key: str,
         config_obj: Any = None,
-        type_input: Literal["int", "float", "str"] = "int",
+        type_input: Literal["int", "float", "str", "liquid_float"] = "int",
         min_value: int|float|None = None,
         max_value: int|float|None = None,
         default_value: int|float|str = "",
@@ -34,6 +34,8 @@ class LimitLineEdit(LineEdit):
         config_value = getattr(self.config_obj, self.config_key)
         if config_value == self.default_value and self.empty_invisible:
             self.setText("")
+        elif self.type_input == "liquid_float":
+            self.setText(str(round(config_value / 25000, 2)))
         else:
             self.setText(str(config_value))
 
@@ -42,6 +44,8 @@ class LimitLineEdit(LineEdit):
             if self.type_input == "int":
                 return int(text)
             elif self.type_input == "float":
+                return float(text)
+            elif self.type_input == "liquid_float":
                 return float(text)
             else:
                 return text
@@ -62,6 +66,9 @@ class LimitLineEdit(LineEdit):
             return
 
         value = self._type_convert(text)
+        if self.type_input == "liquid_float" and value is not None:
+            assert isinstance(value, float)
+            value = round(value, 2)
         if value is None:
             self.setPlaceholderText("请输入有效数字")
             self.setText("")
@@ -77,6 +84,9 @@ class LimitLineEdit(LineEdit):
                 self.setText("")
             else:
                 self.setText(str(value))
+            if self.type_input == "liquid_float":
+                assert isinstance(value, float)
+                value = round(value * 25000)
             setattr(self.config_obj, self.config_key, value)
             cfg.save()
 
@@ -86,7 +96,7 @@ class LabelWithLimitLineEdit(LimitLineEdit):
         config_key: str,
         config_obj: Any = None,
         label: str = "You should give me even a foo as least",
-        type_input: Literal["int"] | Literal["float"] | Literal["str"] = "int",
+        type_input: Literal["int"] | Literal["float"] | Literal["str"] | Literal["liquid_float"]= "int",
         min_value: int | float | None = None,
         max_value: int | float | None = None,
         default_value: int|float|str = "",

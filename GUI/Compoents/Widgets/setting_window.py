@@ -108,12 +108,16 @@ class SettingsWindow(QFrame):
             # condition = self.config_obj.veins_condition
             condition = getattr(self.config_obj, self.config_key)
 
+            veins_key = veinsKeyDict.get(item, item)
+            type_input = "int"
+            if veins_key == "oil":
+                type_input = "liquid_float"
 
             line_edit = LabelWithLimitLineEdit(
-                veinsKeyDict.get(item, item),
+                veins_key,
                 condition,
                 label=item,
-                type_input="int",
+                type_input=type_input,
                 min_value=0,
                 default_value=0
             )
