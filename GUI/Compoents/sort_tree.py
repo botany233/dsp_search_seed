@@ -376,6 +376,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
     def addMoonLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "MoonTreeWidgetItem":
         if new_planet_condition is None:
             new_planet_condition = PlanetCondition()
+            new_planet_condition.custom_name = "卫星条件"
             self.config_obj.moon_conditions.append(new_planet_condition)
             cfg.save()
 
