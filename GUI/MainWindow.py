@@ -355,6 +355,7 @@ class MainWindow(FluentWindow):
             self.userLayout.progressBar.setMaximum(self.seed_manager.get_seeds_count())
         self.userLayout.seedInfoLabel.setText("")
         log.debug(self.userLayout.progressBar.maximum())
+        self.search_thread.end_flag = False
         self.search_thread.start()
         self.button_stop.setEnabled(True)
 

@@ -1,4 +1,4 @@
-from time import sleep
+from time import sleep, perf_counter
 from typing import Literal
 from multiprocessing import cpu_count
 
@@ -68,7 +68,6 @@ class GPUBenchmarkThread(QThread):
     def __init__(self, parent):
         super().__init__(parent)
         self.mutex = QMutex()
-        self.running = False
         self.end_flag = False
 
         self.cpu_thread = 8
@@ -79,14 +78,11 @@ class GPUBenchmarkThread(QThread):
     def terminate(self) -> None:
         self.end_flag = True
 
-    def isRunning(self) -> bool:
-        return self.running
-
     def run(self):
         try:
             if not self.mutex.try_lock():
+                log.error("Failed to start GPU benchmark thread: mutex is locked")
                 return
-            self.running = True
 
             gpu_benchmark = GPUBenchmark(self.cpu_thread)
             gpu_benchmark.run()
@@ -96,18 +92,20 @@ class GPUBenchmarkThread(QThread):
                 set_gpu_max_worker_c(gpu_thread)
                 sleep(0.3)
                 gpu_benchmark.reset()
-                sleep(self.test_time)
+                tag = perf_counter()
+                while perf_counter() - tag < self.test_time:
+                    if self.end_flag:
+                        break
+                    sleep(0.1)
+                if self.end_flag:
+                    gpu_benchmark.shutdown()
+                    break
                 speed = gpu_benchmark.get_speed()
                 GPUBenchmarkMessages.result.emit(gpu_thread, speed)
-
-                if self.end_flag:
-                    break
         except Exception as e:
             log.error(f"GPU benchmark failed: {e}")
         finally:
             self.mutex.unlock()
-            self.end_flag = False
-            self.running = False
             GPUBenchmarkMessages.end.emit()
 
 class GPUBenchmarkMessageBox(MessageBoxBase):
@@ -178,11 +176,17 @@ QScrollArea > QWidget > QLabel {
         self.test_thread.gpu_thread_start = self.gpu_thread_start.value
         self.test_thread.gpu_thread_end = self.gpu_thread_end.value
         self.test_thread.test_time = self.test_time.value
+        self.test_thread.end_flag = False
         self.test_thread.start()
         return False
 
     def __on_test_end(self):
         self.yesButton.setEnabled(True)
+
+    def reject(self):
+        self.test_thread.terminate()
+        self.test_thread.wait()
+        super().reject()
 
     def __update_text(self, gpu_thread: int, speed: float):
         self.test_result.append((gpu_thread, speed))

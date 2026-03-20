@@ -148,6 +148,7 @@ class ViewerInterface(QFrame):
         self.stop_button.setEnabled(True)
         self.delete_button.setEnabled(False)
         self.add_button.setEnabled(False)
+        self.sort_thread.end_flag = False
         self.sort_thread.start()
 
     def __on_stop_button_clicked(self) -> None:

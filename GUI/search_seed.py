@@ -13,20 +13,15 @@ class SearchThread(QThread):
     def __init__(self, seed_manager: SeedManager, parent=None):
         super().__init__(parent)
         self.mutex = QMutex()
-        self.running = False
         self.end_flag = False
         self.seed_manager = seed_manager
 
     def terminate(self) -> None:
         self.end_flag = True
 
-    def isRunning(self) -> bool:
-        return self.running
-
     def run(self):
         try:
             self.mutex.lock()
-            self.running = True
 
             gui_cfg = cfg.copy()
             galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
@@ -49,8 +44,6 @@ class SearchThread(QThread):
             log.error(f"Search failed: {e}")
         finally:
             self.mutex.unlock()
-            self.end_flag = False
-            self.running = False
             SearchMessages.searchEnd.emit()
 
     def precise_search(self,

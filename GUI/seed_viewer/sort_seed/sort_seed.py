@@ -22,18 +22,13 @@ class SortThread(QThread):
         self.sub_type_combo = parent.sub_type_combo
         self.quick_sort_switch = parent.quick_sort_switch
         self.resource_rate_combo = parent.resource_rate_combo
-        self.running = False
         self.end_flag = False
 
     def terminate(self) -> None:
         self.end_flag = True
 
-    def isRunning(self) -> bool:
-        return self.running
-
     def run(self):
         try:
-            self.running = True
             self.label_text.emit("正在生成任务...")
 
             resource_index = resource_rate_c.index(self.resource_rate_combo.currentText())
@@ -74,6 +69,4 @@ class SortThread(QThread):
         except Exception as e:
             log.error(f"Sort failed: {e}")
         finally:
-            self.end_flag = False
-            self.running = False
             self.finished.emit()
