@@ -15,7 +15,7 @@ class SettingsWindow(QFrame):
         self,
         parent=None,
         items: list[str] = ["wa", "al", "aw", "la", "lw", "la"],
-        context: SettingsTreeLeave | None = None,
+        context: SettingsTreeLeave | None = None
     ):
         super().__init__(parent)
 
@@ -97,6 +97,7 @@ class SettingsWindow(QFrame):
         count = len(items)
         itemsEachLine = int(sqrt(count)) + 1
         j = 0
+        is_veins_amount = "储量" in self.context.settingsButton.text()
         for i, item in enumerate(items):
             if i % itemsEachLine == 0 and i != 0:
                 j += 1
@@ -110,8 +111,11 @@ class SettingsWindow(QFrame):
 
             veins_key = veinsKeyDict.get(item, item)
             type_input = "int"
-            if veins_key == "oil":
-                type_input = "liquid_float"
+            if is_veins_amount:
+                if veins_key == "oil":
+                    type_input = "liquid_float"
+                if item == "油":
+                    item = "油(单位: /s)"
 
             line_edit = LabelWithLimitLineEdit(
                 veins_key,
