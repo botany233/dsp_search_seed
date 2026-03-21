@@ -213,6 +213,7 @@ class ViewerInterface(QFrame):
     def __on_delete_button_clicked(self) -> None:
         data = self.seed_scroll.get_select_seed(True)
         self.seed_list.del_seeds(data)
+        self.seed_text.fresh()
 
     def __on_export_button_clicked(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(

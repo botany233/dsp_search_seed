@@ -97,8 +97,12 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         title_layout = QHBoxLayout()
         title = TitleLabel("选择导出内容")
         title_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignLeft)
+        resource_rate_layout = QHBoxLayout()
+        resource_rate_layout.addWidget(BodyLabel("资源倍率: "))
         self.resource_rate_combox = ResourceRateComboBox()
-        title_layout.addWidget(self.resource_rate_combox, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignRight)
+        resource_rate_layout.addWidget(self.resource_rate_combox)
+        title_layout.addLayout(resource_rate_layout)
+        title_layout.setAlignment(resource_rate_layout, Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignRight)
         self.choiceLayout.addLayout(title_layout)
         self.choiceLayout.addSpacing(20)
 

@@ -20,7 +20,7 @@ class SeedScroll(TableWidget):
         self.setEditTriggers(TableWidget.NoEditTriggers)
         self.setItemDelegate(TableItemDelegate(self))
         self.setColumnCount(3)
-        self.setHorizontalHeaderLabels(["种子", "恒星数", "排序值"])
+        self.setHorizontalHeaderLabels(["种子id", "恒星数", "排序值"])
         self.verticalHeader().hide()
         self.setColumnWidth(0, 105)
         self.setColumnWidth(1, 60)
@@ -91,11 +91,11 @@ class SeedScroll(TableWidget):
     #         self.setItem(row, 1, QTableWidgetItem(str(star_num)))
     #         self.setItem(row, 2, QTableWidgetItem(str(sort_value)))
 
-    def add_row(self, seed: int, star_num: int) -> None:
+    def add_row(self, seed_id: int, star_num: int) -> None:
         locker = QMutexLocker(self.mutex)
         row_count = self.rowCount()
         self.setRowCount(row_count + 1)
-        self.setItem(row_count, 0, QTableWidgetItem(str(seed)))
+        self.setItem(row_count, 0, QTableWidgetItem(str(seed_id)))
         self.setItem(row_count, 1, QTableWidgetItem(str(star_num)))
         self.setItem(row_count, 2, QTableWidgetItem(str(0)))
 
@@ -114,9 +114,12 @@ class SeedScroll(TableWidget):
 
     @staticmethod
     def get_sort_value_str(num: float|int) -> str:
+        if isinstance(num, int) and num < 1e6:
+            return str(num)
         if num > 1e15:
             return f"{num:.1e}"
-        elif num >= 1e12:
+
+        if num >= 1e12:
             unit = "T"
             num /= 1e12
         elif num >= 1e9:
