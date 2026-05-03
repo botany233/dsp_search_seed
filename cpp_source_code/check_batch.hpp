@@ -30,7 +30,7 @@ protected:
 	atomic<bool> stop = false;
 
 	int max_thread;
-	bool quick;
+	int level;
 	int max_cache;
 
 	mutex result_mtx;
@@ -49,17 +49,17 @@ protected:
 			tasks.pop();
 			task_lck.unlock();
 
-			GalaxyData galaxy_data = get_galaxy_data(current_task,quick);
+			GalaxyData galaxy_data = get_galaxy_data(current_task,level);
 			unique_lock<mutex> lck(result_mtx);
 			on_result_clear.wait(lck,[this]() { return result.size() < max_cache || stop.load(); });
 			result.push_back(galaxy_data);
 		}
 	}
 public:
-	GetDataManager(int max_thread,bool quick,int max_cache=1024)
+	GetDataManager(int max_thread,int level,int max_cache=1024)
 	{
 		this->max_thread = max_thread;
-		this->quick = quick;
+		this->level = level;
 		this->max_cache = max_cache;
 		for(int i=0;i<max_thread;i++) {
 			search_threads.push_back(thread(&GetDataManager::search_func,this));
@@ -109,10 +109,10 @@ protected:
 	mutex task_mtx;
 	queue<SeedStruct> tasks;
 	atomic<int> working_num = 0;
-	atomic<size_t> finish_task_num = 0;
 	atomic<bool> finish = false;
 	atomic<bool> stop = false;
-
+	atomic<size_t> finish_task_num = 0;
+	
 	SeedManager* seed_manager = nullptr;
 	GalaxyCondition galaxy_condition;
 	int max_thread;

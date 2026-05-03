@@ -43,6 +43,7 @@ public:
 	uint32_t type_mask;
 
 	uint16_t has_veins = 0;
+	bool need_generate_veins = false;
 	//uint16_t veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
@@ -1220,10 +1221,10 @@ public:
 		}
 	}
 
-	void CreatePlanets()
+	void CreatePlanets(int need_generate_planet_index)
 	{
-		for(StarClassSimple& star: stars)
-			CreateStarPlanets(star);
+		for(int i=0;i<need_generate_planet_index;i++)
+			CreateStarPlanets(stars[i]);
 	}
 
 };

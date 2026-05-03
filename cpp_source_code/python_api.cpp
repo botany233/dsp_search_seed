@@ -29,41 +29,6 @@ void do_init()
 	RandomTable::GenerateSphericNormal();
 };
 
-bool set_device_id_c(int device_id) {
-	return OpenCLManager::init_device(device_id);
-}
-
-int get_device_id_c() {
-	if(OpenCLManager::SUPPORT_GPU)
-		return OpenCLManager::device_id;
-	else
-		return -1;
-}
-
-void set_local_size_c(int local_size) {
-	OpenCLManager::set_local_size(local_size);
-}
-
-int get_local_size_c() {
-	return OpenCLManager::local_size;
-}
-
-vector<string> get_device_info_c() {
-	return OpenCLManager::devices_info;
-}
-
-bool get_support_double_c() {
-	return OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE;
-}
-
-void set_gpu_max_worker(int max_worker) {
-	OpenCLManager::set_max_worker(max_worker);
-}
-
-int get_gpu_max_worker() {
-	return OpenCLManager::get_max_worker();
-}
-
 vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const GalaxyCondition& galaxy_condition,int check_level)
 {
@@ -259,14 +224,14 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("reset",&GPUBenchmark::reset)
 		.def("get_speed",&GPUBenchmark::get_speed);
 	m.def("do_init_c",&do_init);
-	m.def("set_device_id_c",&set_device_id_c,py::arg("device_id"));
-	m.def("get_device_id_c",&get_device_id_c);
-	m.def("set_local_size_c",&set_local_size_c,py::arg("local_size"));
-	m.def("get_local_size_c",&get_local_size_c);
-	m.def("get_device_info_c",&get_device_info_c);
-	m.def("get_support_double_c",&get_support_double_c);
-	m.def("set_gpu_max_worker_c",&set_gpu_max_worker,py::arg("max_worker"));
-	m.def("get_gpu_max_worker_c",&get_gpu_max_worker);
+	m.def("set_device_id_c",&OpenCLManager::set_device_id,py::arg("device_id"));
+	m.def("get_device_id_c",&OpenCLManager::get_device_id);
+	m.def("set_local_size_c",&OpenCLManager::set_local_size,py::arg("local_size"));
+	m.def("get_local_size_c",&OpenCLManager::get_local_size);
+	m.def("get_device_info_c",&OpenCLManager::get_devices_info);
+	m.def("get_support_double_c",&OpenCLManager::get_support_double);
+	m.def("set_gpu_max_worker_c",&OpenCLManager::set_max_worker,py::arg("max_worker"));
+	m.def("get_gpu_max_worker_c",&OpenCLManager::get_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));

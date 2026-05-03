@@ -35,7 +35,7 @@ public:
 	}
 	
 	void del_seed(int seed_id,int star_num) {
-		size_t index = seed_id * 33 + star_num - 32;
+		size_t index = (size_t)seed_id * 33 + star_num - 32;
 		uint64_t mask = uint64_t(1) << (index % 64);
 		lock_guard<shared_mutex> lck(data_mtx);
 		uint64_t& seed_entry = seeds[index / 64];
@@ -53,6 +53,7 @@ public:
 	void clear() {
 		lock_guard<shared_mutex> lck(data_mtx);
 		seeds.assign(LENGTH,0);
+		seed_num = 0;
 	}
 
 	void reset_index() {

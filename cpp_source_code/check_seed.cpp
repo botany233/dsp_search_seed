@@ -26,12 +26,16 @@ static uint16_t get_has_veins(const uint16_t *veins_point) {
 	return has_veins;
 }
 
-GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
+GalaxyData get_galaxy_data(const SeedStruct& seed,int level)
 {
 	GalaxyData galaxy_data;
+	galaxy_data.stars.resize(seed.star_num);
 	GalaxyClass g;
 	float resource_rate = resource_rates[seed.resource_index];
-	g.CreateGalaxy(seed.seed_id,seed.star_num,resource_rate,0);
+	g.CreateStars(seed.seed_id,seed.star_num,resource_rate);
+	if(level>1) {
+		g.CreatePlanets();
+	}
 	galaxy_data.seed_id = seed.seed_id;
 	galaxy_data.star_num = seed.star_num;
 	galaxy_data.resource_rate = resource_rate;
@@ -49,81 +53,84 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 		star_data.dyson_lumino = star.dysonLumino();
 		star_data.dyson_radius = round(star.dysonRadius * 800) * 100;
 		star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
-		for(PlanetClass& planet : star.planets)
-		{
-			PlanetData planet_data;
-			planet_data.name = planet.name;
-			planet_data.type = planet.display_name;
-			planet_data.type_id = planet.typeId();
-			planet_data.singularity = planet.singularity;
-			planet_data.singularity_str = planet.GetPlanetSingularityVector();
-			planet_data.seed = planet.seed;
-			planet_data.lumino = planet.luminosity;
-			planet_data.wind = planet.windStrength;
-			planet_data.radius = planet.orbitRadius;
-			if(star_data.dyson_radius > planet.maxorbitRadius * 52083.333f)
-				planet_data.dsp_level = 2;
-			else if((1.041667f-planet.get_ion_enhance())*planet.maxorbitRadius <= 0.00002f * star_data.dyson_radius)
-				planet_data.dsp_level = 1;
-			else
-				planet_data.dsp_level = 0;
-			int real_waterItemId = planet.waterItemId & 3;
-			planet_data.liquid = real_waterItemId;
-			star_data.liquid[real_waterItemId] += 1;
-			if(planet.gasItems.size()) {
-				planet_data.is_gas = true;
-				for(int i = 0; i < 2; i++)
-				{
-					if(planet.gasItems[i] == 1120)
-						planet_data.gas_veins[0] = planet.gasSpeeds[i];
-					else if(planet.gasItems[i] == 1121)
-						planet_data.gas_veins[1] = planet.gasSpeeds[i];
-					else if(planet.gasItems[i] == 1011)
-						planet_data.gas_veins[2] = planet.gasSpeeds[i];
+		if(level>1) {
+			for(PlanetClass& planet : star.planets)
+			{
+				PlanetData planet_data;
+				planet_data.name = planet.name;
+				planet_data.type = planet.display_name;
+				planet_data.type_id = planet.typeId();
+				planet_data.singularity = planet.singularity;
+				planet_data.singularity_str = planet.GetPlanetSingularityVector();
+				planet_data.seed = planet.seed;
+				planet_data.lumino = planet.luminosity;
+				planet_data.wind = planet.windStrength;
+				planet_data.radius = planet.orbitRadius;
+				if(star_data.dyson_radius > planet.maxorbitRadius * 52083.333f)
+					planet_data.dsp_level = 2;
+				else if((1.041667f-planet.get_ion_enhance())*planet.maxorbitRadius <= 0.00002f * star_data.dyson_radius)
+					planet_data.dsp_level = 1;
+				else
+					planet_data.dsp_level = 0;
+				int real_waterItemId = planet.waterItemId & 3;
+				planet_data.liquid = real_waterItemId;
+				star_data.liquid[real_waterItemId] += 1;
+				if(planet.gasItems.size()) {
+					planet_data.is_gas = true;
+					for(int i = 0; i < 2; i++)
+					{
+						if(planet.gasItems[i] == 1120)
+							planet_data.gas_veins[0] = planet.gasSpeeds[i];
+						else if(planet.gasItems[i] == 1121)
+							planet_data.gas_veins[1] = planet.gasSpeeds[i];
+						else if(planet.gasItems[i] == 1011)
+							planet_data.gas_veins[2] = planet.gasSpeeds[i];
+					}
+					for(int i = 0; i < 3; i++)
+						star_data.gas_veins[i] += planet_data.gas_veins[i];
+				} else {
+					planet_data.is_gas = false;
+					if(level>2) {
+						int veins_point[14] = {0};
+						uint64_t veins_amount[14] = {0};
+						if(level>3) {
+							g.MyGenerateVeins(star,planet,veins_point,veins_amount);
+						} else {
+							std::unique_ptr planet_algorithm = PlanetAlgorithmManager(planet.algoId);
+							planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
+						}
+						for(int i = 0; i < 14; i++) {
+							planet_data.veins_point[i] = veins_point[i];
+							planet_data.veins_amount[i] = veins_amount[i];
+							star_data.veins_point[i] += veins_point[i];
+							star_data.veins_amount[i] += veins_amount[i];
+						}
+					}
 				}
-				for(int i = 0; i < 3; i++)
-					star_data.gas_veins[i] += planet_data.gas_veins[i];
-			} else {
-				planet_data.is_gas = false;
-				//int veins_group[14] = {0};
-				int veins_point[14] = {0};
-				uint64_t veins_amount[14] = {0};
-				if(quick) {
-					g.MyGenerateVeins(star,planet,veins_point,veins_amount);
-				}
-				else {
-					std::unique_ptr planet_algorithm = PlanetAlgorithmManager(planet.algoId);
-					planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
-				}
+				star_data.planets.push_back(planet_data);
+			}
+			if(level>2) {
 				for(int i = 0; i < 14; i++) {
-					planet_data.veins_point[i] = veins_point[i];
-					planet_data.veins_amount[i] = veins_amount[i];
-					star_data.veins_point[i] += veins_point[i];
-					star_data.veins_amount[i] += veins_amount[i];
+					galaxy_data.veins_point[i] += star_data.veins_point[i];
+					galaxy_data.veins_amount[i] += star_data.veins_amount[i];
+				}
+				for(int i = 0; i < 3; i++) {
+					galaxy_data.gas_veins[i] += star_data.gas_veins[i];
+					galaxy_data.liquid[i] += star_data.liquid[i];
 				}
 			}
-			star_data.planets.push_back(planet_data);
-		}
-		for(int i = 0; i < 14; i++)
-		{
-			galaxy_data.veins_point[i] += star_data.veins_point[i];
-			galaxy_data.veins_amount[i] += star_data.veins_amount[i];
-		}
-		for(int i = 0; i < 3; i++)
-		{
-			galaxy_data.gas_veins[i] += star_data.gas_veins[i];
-			galaxy_data.liquid[i] += star_data.liquid[i];
 		}
 		galaxy_data.stars.push_back(star_data);
 	}
-	for(StarData& star_data: galaxy_data.stars) {
-		PlanetData* last_gas=nullptr;
-		for(PlanetData& planet_data: star_data.planets) {
-			if(planet_data.is_gas) {
-				last_gas = &planet_data;
-			}
-			else if(planet_data.singularity & 0x40) {
-				last_gas->moons.push_back(planet_data);
+	if(level>1) {
+		for(StarData& star_data: galaxy_data.stars) {
+			PlanetData* last_gas=nullptr;
+			for(PlanetData& planet_data: star_data.planets) {
+				if(planet_data.is_gas) {
+					last_gas = &planet_data;
+				} else if(planet_data.singularity & EPlanetSingularity::Satellite) {
+					last_gas->moons.push_back(planet_data);
+				}
 			}
 		}
 	}
@@ -164,7 +171,8 @@ bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	//cout << galaxy.seed << " " << galaxy.starCount << " level2 check start" << endl;
-	galaxy.CreatePlanets();
+	galaxy.CreatePlanets(get_need_generate_planet_index(galaxy,galaxy_condition));
+	//galaxy.CreatePlanets(galaxy.starCount);
 	if(!check_galaxy_level_2(galaxy,galaxy_condition))
 		return false;
 	else if(check_level>2)

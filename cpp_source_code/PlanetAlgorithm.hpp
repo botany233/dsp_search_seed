@@ -1,10 +1,12 @@
 #pragma once
+#include <atomic>
 #include <vector>
 #include <memory>
 #include <string>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <cstdint>
 #include <mutex>
 #include <glm/glm.hpp>
 #include <CL/opencl.hpp>
@@ -25,8 +27,6 @@
 #include "LDB.hpp"
 #include "defines.hpp"
 
-#include <iomanip>
-
 #pragma warning(disable:4267)
 #pragma warning(disable:4244)
 #pragma warning(disable:4838)
@@ -41,9 +41,10 @@ public:
 	static std::vector<cl::Device> devices;
 	static std::vector<std::string> devices_info;
 	static cl::Context context;
-	static cl::CommandQueue queue;
+	static cl::Device device;
 	static cl::Program program;
 	static cl::Buffer vertices_buffer;
+	static size_t cfg_version;
 	static mutex lock;
 	static int max_worker;
 	static int cur_worker;
@@ -54,12 +55,15 @@ public:
 		if(is_init)
 			return;
 		is_init = true;
-		init_device(-1);
+		cfg_version = 0;
+		set_device_id(-1);
 		set_local_size();
 	}
 
-	static bool init_device(int input_device_id = 0) {
-		SUPPORT_GPU = false;
+	static bool set_device_id(int input_device_id) {
+		lock_guard<mutex> lck(lock);
+		cfg_version++;
+
 		devices.clear();
 		devices_info.clear();
 		std::vector<cl::Platform> platforms;
@@ -75,10 +79,12 @@ public:
 			}
 		}
 		if(input_device_id < 0 || devices.size() <= input_device_id) {
+			SUPPORT_GPU = false;
 			return false;
 		}
+
 		device_id = input_device_id;
-		cl::Device& device = devices[device_id];
+		device = devices[device_id];
 
 		// 检查是否支持double类型
 		SUPPORT_DOUBLE = false;
@@ -110,7 +116,6 @@ public:
 
 		// 创建上下文和命令队列
 		context = cl::Context(device);
-		queue = cl::CommandQueue(context,device);
 
 		// 创建程序
 		cl::Program::Sources sources;
@@ -138,28 +143,38 @@ public:
 			vertices[i*3+1] = PlanetRawData::vertices[i].y;
 			vertices[i*3+2] = PlanetRawData::vertices[i].z;
 		}
-		
 		vertices_buffer = cl::Buffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(float) * vertices.size(),vertices.data());
-		//custom_buffer = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(float) * 512);
-		//perm_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//perm_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//perm_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//perm_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//permMod12_buffer_1 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//permMod12_buffer_2 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//permMod12_buffer_3 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//permMod12_buffer_4 = cl::Buffer(context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-		//heightData_buffer = cl::Buffer(context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
-		//debugData_buffer = cl::Buffer(context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 
 		SUPPORT_GPU = true;
 		return true;
 	}
 
+	static int get_device_id() {
+		lock_guard<mutex> lck(lock);
+		if(SUPPORT_GPU)
+			return device_id;
+		else
+			return -1;
+	}
+
 	static void set_local_size(int size = 32) {
-		if(size < 32)
-			size = 32;
-		local_size = size;
+		lock_guard<mutex> lck(lock);
+		local_size = max(size,32);
+	}
+
+	static int get_local_size() {
+		lock_guard<mutex> lck(lock);
+		return local_size;
+	}
+
+	static std::vector<std::string> get_devices_info() {
+		lock_guard<mutex> lck(lock);
+		return devices_info;
+	}
+
+	static bool get_support_double() {
+		lock_guard<mutex> lck(lock);
+		return SUPPORT_GPU && SUPPORT_DOUBLE;
 	}
 
 	static void AddSources(cl::Program::Sources& sources,const string& file_name) {
@@ -178,13 +193,16 @@ public:
 		return max_worker;
 	}
 
-	static bool get_worker() {
+	static bool get_worker(bool need_double) {
 		lock_guard<mutex> lck(lock);
-		if(cur_worker < max_worker) {
-			cur_worker++;
-			return true;
-		}
-		return false;
+		if(!SUPPORT_GPU)
+			return false;
+		if(need_double && !SUPPORT_DOUBLE)
+			return false;
+		if(cur_worker>=max_worker)
+			return false;
+		cur_worker++;
+		return true;
 	}
 
 	static void return_worker() {
@@ -192,6 +210,48 @@ public:
 		cur_worker--;
 	}
 };
+
+class ThreadLocalBuffers {
+public:
+	cl::CommandQueue queue;
+	cl::Buffer custom_buffer;
+	cl::Buffer perm_buffer_1;
+	cl::Buffer perm_buffer_2;
+	cl::Buffer perm_buffer_3;
+	cl::Buffer perm_buffer_4;
+	cl::Buffer permMod12_buffer_1;
+	cl::Buffer permMod12_buffer_2;
+	cl::Buffer permMod12_buffer_3;
+	cl::Buffer permMod12_buffer_4;
+	cl::Buffer heightData_buffer;
+	//cl::Buffer debugData_buffer;
+	size_t local_cfg_version = 0;
+
+	void check_init() {
+		lock_guard<mutex> lck(OpenCLManager::lock);
+		if(local_cfg_version != OpenCLManager::cfg_version) {
+			queue = cl::CommandQueue(OpenCLManager::context,OpenCLManager::device);
+			custom_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(float) * 512);
+			perm_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			perm_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			perm_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			perm_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			permMod12_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			permMod12_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			permMod12_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			permMod12_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
+			heightData_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
+			local_cfg_version = OpenCLManager::cfg_version;
+		}
+	}
+};
+
+inline ThreadLocalBuffers& get_tls_buffers() {
+	static thread_local ThreadLocalBuffers tls;
+	tls.check_init();
+	return tls;
+}
 
 static GalaxyClassSimple galaxy_to_simple(const GalaxyClass& galaxy) {
 	GalaxyClassSimple galaxy_simple;
@@ -736,35 +796,34 @@ public:
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(true)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
-			cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 			//kernel.setArg(7,debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			//OpenCLManager::queue.enqueueReadBuffer(debugData_buffer,CL_TRUE,0,
 			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
@@ -817,36 +876,35 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num7);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
 			float custom[4] = {planet.radius,num,num2,num3};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -895,40 +953,36 @@ public:
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(true)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
 			float custom[2] = {planet.radius,modX};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 			//kernel.setArg(7,OpenCLManager::debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			//OpenCLManager::queue.enqueueReadBuffer(OpenCLManager::debugData_buffer,CL_TRUE,0,
-			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
-
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1002,7 +1056,7 @@ public:
 		int num6 = dotNet35Random.Next();
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
 			float custom[401];
@@ -1023,31 +1077,30 @@ public:
 				custom[i+1] = dotNet35Random.NextDouble() * 0.4 + 0.20000000298023224;
 			}
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1125,33 +1178,32 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num2);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
 
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1215,33 +1267,32 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num2);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1315,33 +1366,32 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num11);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
 
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1719,32 +1769,31 @@ public:
 		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,permMod12_buffer_1);
-			kernel.setArg(4,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.permMod12_buffer_1);
+			kernel.setArg(4,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1804,36 +1853,35 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num11);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
 			float custom[3] = {planet.radius,modX,modY};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -1910,7 +1958,7 @@ public:
 		int num8 = dotNet35Random.Next();
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
 			float custom[61];
@@ -1937,39 +1985,38 @@ public:
 				custom[i+51] = Remap(0.0,1.0,1.0,2.0,dotNet35Random.NextDouble());
 			}
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_4,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_4,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,perm_buffer_3);
-			kernel.setArg(5,perm_buffer_4);
-			kernel.setArg(6,permMod12_buffer_1);
-			kernel.setArg(7,permMod12_buffer_2);
-			kernel.setArg(8,permMod12_buffer_3);
-			kernel.setArg(9,permMod12_buffer_4);
-			kernel.setArg(10,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.perm_buffer_3);
+			kernel.setArg(5,tls.perm_buffer_4);
+			kernel.setArg(6,tls.permMod12_buffer_1);
+			kernel.setArg(7,tls.permMod12_buffer_2);
+			kernel.setArg(8,tls.permMod12_buffer_3);
+			kernel.setArg(9,tls.permMod12_buffer_4);
+			kernel.setArg(10,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -2102,40 +2149,39 @@ public:
 		SimplexNoise simplexNoise3 = SimplexNoise(num9);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
 			float custom[5] = {planet.radius,num4,num5,num6,modY};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,perm_buffer_3);
-			kernel.setArg(5,permMod12_buffer_1);
-			kernel.setArg(6,permMod12_buffer_2);
-			kernel.setArg(7,permMod12_buffer_3);
-			kernel.setArg(8,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.perm_buffer_3);
+			kernel.setArg(5,tls.permMod12_buffer_1);
+			kernel.setArg(6,tls.permMod12_buffer_2);
+			kernel.setArg(7,tls.permMod12_buffer_3);
+			kernel.setArg(8,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -2538,36 +2584,35 @@ public:
 		SimplexNoise simplexNoise2 = SimplexNoise(num5);
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
 			float custom[3] = {planet.radius,num,modY};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,perm_buffer_2);
-			kernel.setArg(4,permMod12_buffer_1);
-			kernel.setArg(5,permMod12_buffer_2);
-			kernel.setArg(6,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.perm_buffer_2);
+			kernel.setArg(4,tls.permMod12_buffer_1);
+			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {
@@ -2960,32 +3005,31 @@ public:
 		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		PlanetRawData& data = planet.data;
 		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::get_worker()) {
+		if(OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
-			cl::Buffer custom_buffer(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(custom),custom);
-			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			ThreadLocalBuffers& tls = get_tls_buffers();
+			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,custom_buffer);
-			kernel.setArg(2,perm_buffer_1);
-			kernel.setArg(3,permMod12_buffer_1);
-			kernel.setArg(4,heightData_buffer);
+			kernel.setArg(1,tls.custom_buffer);
+			kernel.setArg(2,tls.perm_buffer_1);
+			kernel.setArg(3,tls.permMod12_buffer_1);
+			kernel.setArg(4,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil(161604.0/local_size) * local_size;
-			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			OpenCLManager::queue.finish();
+			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
+			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
 						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
 			OpenCLManager::return_worker();
 		} else {

@@ -171,7 +171,7 @@ void PlanetClassSimple::MyGenerateVeins()
 		for(int i=0;i<14;i++)
 		{
 			if(i==6) continue;
-			veins_amount[i] = veins_point[i] * 1000000000;
+			veins_amount[i] = (uint64_t)veins_point[i] * 1000000000;
 		}
 	}
 
