@@ -33,11 +33,24 @@ class MultiComboBoxMenu(ComboBoxMenu):
         # Removing 'checkableListWidget' to avoid the text offset caused by Checkable style
         # and revert back to combobox native feel
         self.view.setObjectName('comboListWidget')
+        
+        original_adjustSize = self.view.adjustSize
+        view = self.view
+        
+        def _view_adjustSize_patched(pos=None, aniType=MenuAnimationType.NONE):
+            if pos is None and hasattr(view, '_exec_pos'):
+                pos = view._exec_pos
+                aniType = getattr(view, '_exec_aniType', MenuAnimationType.NONE)
+            original_adjustSize(pos, aniType)
+            
+        self.view.adjustSize = _view_adjustSize_patched
 
     def _adjustItemText(self, item, action):
         return super()._adjustItemText(item, action)
 
     def exec(self, pos, ani=True, aniType=MenuAnimationType.DROP_DOWN):
+        self.view._exec_pos = pos
+        self.view._exec_aniType = aniType
         self.view.adjustSize(pos, aniType)
         self.adjustSize()
         return RoundMenu.exec(self, pos, ani, aniType)

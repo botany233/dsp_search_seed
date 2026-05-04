@@ -42,15 +42,15 @@ public:
 	bool is_real_veins = false;
 	uint32_t type_mask;
 
+	//bool levelized;
+	EPlanetType type;
+	int theme;
+	int algoId;
 	uint16_t has_veins = 0;
 	bool need_generate_veins = false;
 	//uint16_t veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
-	//bool levelized;
-	EPlanetType type;
-	int theme;
-	int algoId;
 	double mod_x;
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
@@ -196,6 +196,7 @@ public:
 	float orbitScaler = 1.0f;
 	int planetCount;
 	float distance;
+	//bool need_generate_planets = false;
 
 	uint16_t type_mask;
 	uint16_t has_veins = 0;

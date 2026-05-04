@@ -148,13 +148,14 @@ bool check_seed_level_4(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
 {
 	//cout << galaxy.seed << " " << galaxy.starCount << " level3 check start" << endl;
+	tag_need_veins_galaxy(galaxy,galaxy_condition);
 	for(StarClassSimple& star : galaxy.stars)
 	{
 		for(PlanetClassSimple& planet : star.planets)
 		{
 			if(planet.type == EPlanetType::Gas)
 				planet.is_real_veins = true;
-			else
+			else if(planet.need_generate_veins)
 				planet.MyGenerateVeins();
 		}
 		star.has_veins = get_has_veins(star.upper_veins_point);

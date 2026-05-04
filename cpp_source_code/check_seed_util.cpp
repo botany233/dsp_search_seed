@@ -226,6 +226,52 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	return true;
 }
 
+void tag_need_veins_planet(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition) {
+	if(planet_condition.need_veins && check_planet_level_2(planet_data,planet_condition))
+		planet_data.need_generate_veins = true;
+	for(const PlanetCondition& moon_condition: planet_condition.moons) {
+		for(PlanetClassSimple* moon_ptr: planet_data.moons) {
+			tag_need_veins_planet(*moon_ptr,moon_condition);
+		}
+	}
+}
+
+void tag_need_veins_star(StarClassSimple& star_data,const StarCondition& star_condition) {
+	if(star_condition.need_veins && check_star_level_2(star_data,star_condition)) {
+		for(PlanetClassSimple& planet_data: star_data.planets) {
+			if(star_condition.need_veins & planet_data.has_veins)
+				planet_data.need_generate_veins = true;
+		}
+	}
+	for(const PlanetCondition& planet_condition: star_condition.planets) {
+		for(PlanetClassSimple& planet_data: star_data.planets) {
+			tag_need_veins_planet(planet_data,planet_condition);
+		}
+	}
+}
+
+void tag_need_veins_galaxy(GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition) {
+	if(galaxy_condition.need_veins) {
+		for(StarClassSimple& star_data: galaxy_data.stars) {
+			for(PlanetClassSimple& planet_data: star_data.planets) {
+				if(galaxy_condition.need_veins & planet_data.has_veins)
+					planet_data.need_generate_veins = true;
+			}
+		}
+	}
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		for(StarClassSimple& star_data: galaxy_data.stars) {
+			tag_need_veins_star(star_data,star_condition);
+		}
+	}
+	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
+		for(StarClassSimple& star_data: galaxy_data.stars) {
+			for(PlanetClassSimple& planet_data: star_data.planets)
+				tag_need_veins_planet(planet_data,planet_condition);
+		}
+	}
+}
+
 static bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
 	if(planet_condition.dsp_level > planet_data.dsp_level)

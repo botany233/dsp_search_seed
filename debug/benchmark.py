@@ -17,7 +17,7 @@ from benchmark_condition import benchmark_condition_functions
 
 cpu_thread = 20
 gpu_thread = 4
-device_id = 0
+device_id = -1
 local_size = 256
 
 set_device_id_c(device_id)
@@ -40,7 +40,7 @@ for condition_func in benchmark_condition_functions:
 for name, galaxy_condition, seeds, star_nums, quick in galaxy_conditions:
     galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
     flag = perf_counter()
-    check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, galaxy_condition, quick, cpu_thread)
+    check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, 10, galaxy_condition, quick, cpu_thread)
     check_batch_manager.run()
     while check_batch_manager.is_running():
         sleep(0.1)
