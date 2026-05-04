@@ -10,7 +10,7 @@ from debug_condition import debug_condition_functions
 def main():
     cpu_thread = 20
     gpu_thread = 4
-    device_id = 0
+    device_id = 1
     local_size = 256
 
     do_python = 1

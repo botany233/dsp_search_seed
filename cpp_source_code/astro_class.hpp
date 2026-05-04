@@ -768,21 +768,23 @@ protected:
 
 		std::vector<VectorLF3> tmp_drunk;
 		std::vector<VectorLF3> tmp_poses;
-		RandomPoses(tmp_poses,tmp_drunk,seed,targetCount * iterCount,minDist,minStepLen,maxStepLen,flatten);
+		int maxCount = targetCount * iterCount;
+		tmp_drunk.reserve(maxCount);
+		tmp_poses.reserve(maxCount);
+		RandomPoses(tmp_poses,tmp_drunk,seed,maxCount,minDist,minStepLen,maxStepLen,flatten);
 		poses.resize(targetCount);
 		for(int i = 0; i < targetCount; i++)
 			poses[i] = tmp_poses[i * 4];
 	}
 
-	bool CheckCollision(std::vector<VectorLF3>& pts,VectorLF3& pt,double min_dist)
+	bool CheckCollision(const std::vector<VectorLF3>& pts,const VectorLF3& pt,double min_dist_square) const
 	{
-		double num1 = min_dist * min_dist;
 		for(auto& pt1 : pts)
 		{
 			double num2 = pt.x - pt1.x;
 			double num3 = pt.y - pt1.y;
 			double num4 = pt.z - pt1.z;
-			if(num2 * num2 + num3 * num3 + num4 * num4 < num1)
+			if(num2 * num2 + num3 * num3 + num4 * num4 < min_dist_square)
 				return true;
 		}
 		return false;
@@ -790,6 +792,7 @@ protected:
 
 	void RandomPoses(std::vector<VectorLF3>& tmp_poses,std::vector<VectorLF3>& tmp_drunk,int seed,int maxCount,double minDist,double minStepLen,double maxStepLen,double flatten)
 	{
+		double minDistSquare = minDist * minDist;
 		DotNet35Random dotNet35Random(seed);
 		double num1 = dotNet35Random.NextDouble();
 		tmp_poses.push_back(VectorLF3::zero());
@@ -816,7 +819,7 @@ protected:
 					double num11 = Math.Sqrt(d);
 					double num12 = (num10 * (maxStepLen - minStepLen) + minDist) / num11;
 					VectorLF3 pt(num7 * num12,num8 * num12,num9 * num12);
-					if(!CheckCollision(tmp_poses,pt,minDist))
+					if(!CheckCollision(tmp_poses,pt,minDistSquare))
 					{
 						tmp_drunk.push_back(pt);
 						tmp_poses.push_back(pt);
@@ -847,7 +850,7 @@ protected:
 							double num19 = Math.Sqrt(d);
 							double num20 = (num18 * (maxStepLen - minStepLen) + minDist) / num19;
 							VectorLF3 pt(tmp_drunk[index].x + num15 * num20,tmp_drunk[index].y + num16 * num20,tmp_drunk[index].z + num17 * num20);
-							if(!CheckCollision(tmp_poses,pt,minDist))
+							if(!CheckCollision(tmp_poses,pt,minDistSquare))
 							{
 								tmp_drunk[index] = pt;
 								tmp_poses.push_back(pt);

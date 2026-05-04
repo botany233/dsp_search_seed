@@ -135,7 +135,7 @@ int get_need_generate_planet_index(const GalaxyClassSimple& galaxy_data,const Ga
 		for(int i=result;i<galaxy_data.starCount;i++) {
 			const StarClassSimple& star_data = galaxy_data.stars[i];
 			if(check_star_level_1(star_data,star_condition)) {
-				result = i;
+				result = i+1;
 			}
 		}
 	}

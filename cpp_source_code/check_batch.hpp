@@ -56,10 +56,10 @@ protected:
 		}
 	}
 public:
-	GetDataManager(int max_thread,int level,int max_cache=1024)
+	GetDataManager(int max_thread,bool quick,int max_cache=1024)
 	{
 		this->max_thread = max_thread;
-		this->level = level;
+		this->level = quick?3:4;
 		this->max_cache = max_cache;
 		for(int i=0;i<max_thread;i++) {
 			search_threads.push_back(thread(&GetDataManager::search_func,this));

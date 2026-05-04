@@ -7,22 +7,20 @@ from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        "stars": [
-            {
-                "satisfy_num": 1,
-                "distance": 1.0,
-            },
-        ],
+        "stars":[
+            {"distance": 10, "type": "蓝巨星", "satisfy_num": 1},
+            {"distance": 15, "type": "O型恒星", "satisfy_num": 2, "dyson_lumino": 2.4}
+        ]
     },
     "seeds": [
-        0,
-        9999
+        5092,
+        5092
     ],
     "star_nums": [
         64,
         64
     ],
-    "resource_index": 9,
+    "resource_index": 10,
     "quick": True
 }
 

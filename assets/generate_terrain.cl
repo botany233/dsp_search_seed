@@ -248,24 +248,6 @@ float CurveEvaluate(float t)
 	return pow(1.0f - t,3.0f) + pow(1.0f - t,2.0f) * 3.0f * t;
 }
 
-kernel void GenerateTerrain0(
-	float planet_radius,
-	global unsigned short* heightData
-) {
-	local float local_planet_radius;
-	int gid = get_global_id(0);
-	int lid = get_local_id(0);
-	if(lid==0) {
-		local_planet_radius = planet_radius;
-	}
-	barrier(CLK_LOCAL_MEM_FENCE);
-
-	if(gid >= 161604) {
-		return;
-	}
-	heightData[gid] = (unsigned short)(local_planet_radius * 100.0f);
-}
-
 kernel void GenerateTerrain2(
 	global const float* vertices,
 	global const float* custom,

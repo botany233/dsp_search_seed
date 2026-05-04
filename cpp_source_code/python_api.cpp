@@ -97,6 +97,11 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 	}
 }
 
+GalaxyData get_galaxy_data_c(SeedStruct seed,bool quick) {
+	int level = quick?3:4;
+	return get_galaxy_data(seed,level);
+}
+
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const py::dict& galaxy_condition_dict,bool quick)
 {
@@ -233,6 +238,6 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("set_gpu_max_worker_c",&OpenCLManager::set_max_worker,py::arg("max_worker"));
 	m.def("get_gpu_max_worker_c",&OpenCLManager::get_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
-	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
+	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("quick"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 }

@@ -29,7 +29,6 @@ static uint16_t get_has_veins(const uint16_t *veins_point) {
 GalaxyData get_galaxy_data(const SeedStruct& seed,int level)
 {
 	GalaxyData galaxy_data;
-	galaxy_data.stars.resize(seed.star_num);
 	GalaxyClass g;
 	float resource_rate = resource_rates[seed.resource_index];
 	g.CreateStars(seed.seed_id,seed.star_num,resource_rate);
@@ -94,10 +93,10 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,int level)
 						int veins_point[14] = {0};
 						uint64_t veins_amount[14] = {0};
 						if(level>3) {
-							g.MyGenerateVeins(star,planet,veins_point,veins_amount);
-						} else {
 							std::unique_ptr planet_algorithm = PlanetAlgorithmManager(planet.algoId);
 							planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
+						} else {
+							g.MyGenerateVeins(star,planet,veins_point,veins_amount);
 						}
 						for(int i = 0; i < 14; i++) {
 							planet_data.veins_point[i] = veins_point[i];
@@ -183,6 +182,7 @@ bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 
 bool check_seed_level_1(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level)
 {
+	//cout << "start check " << seed.seed_id << " " << (int)seed.star_num << " in level " << check_level << endl;
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level1 check start" << endl;
 	GalaxyClassSimple galaxy;
 	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
