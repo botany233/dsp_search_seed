@@ -11,7 +11,7 @@ from debug_random_condition import get_random_debug_condition
 
 def main(test_num: int, load_condition: bool = False):
     cpu_thread = 20
-    gpu_thread = 4
+    gpu_thread = 8
     device_id = 1
     local_size = 256
 
