@@ -584,7 +584,7 @@ class StarTreeLeave(LeaveBase):
 
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
-        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=255, default_value=1, empty_invisible=False)
+        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
         self.distanceLineEdit.setMaximumHeight(28)
         self.distanceLineEdit.setFixedHeight(28)
@@ -656,7 +656,7 @@ class PlanetTreeLeave(LeaveBase):
         # self.fullReceivePlanetSwitch.set_config(config_obj=config_obj, config_key="is_on_dsp")
         self.hitStarNumLabel = BodyLabel("符合数量")
         self.mainLayout.addWidget(self.hitStarNumLabel)
-        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=255, default_value=1, empty_invisible=False)
+        self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
 
         self.hitStarNumLineEdit.setMaximumHeight(28)

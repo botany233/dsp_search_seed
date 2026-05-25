@@ -68,7 +68,10 @@ class UserLayout(QVBoxLayout):
 
     def _update_progress(self, finish_task: int, total_task: int, use_time: float):
         if finish_task < total_task:
-            self.progressBar.setValue(finish_task)
+            if total_task > 1000000000:
+                self.progressBar.setValue(finish_task // 10)
+            else:
+                self.progressBar.setValue(finish_task)
 
             progress_str = f"搜索进度: {finish_task}/{total_task}({finish_task * 100 // total_task}%)"
             remain_time_str = self.get_remain_time_str(finish_task, total_task, use_time)

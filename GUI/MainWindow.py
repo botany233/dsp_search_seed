@@ -350,11 +350,15 @@ class MainWindow(FluentWindow):
         log.info("开始搜索")
         self.button_start.setEnabled(False)
         if cfg.config.search_mode == 0:
-            self.userLayout.progressBar.setMaximum((seeds[1]-seeds[0]+1)*(star_nums[1]-star_nums[0]+1))
+            task_num = (seeds[1]-seeds[0]+1)*(star_nums[1]-star_nums[0]+1)
         else:
-            self.userLayout.progressBar.setMaximum(self.seed_manager.get_seeds_count())
+            task_num = self.seed_manager.get_seeds_count()
+        if task_num > 1000000000:
+            self.userLayout.progressBar.setMaximum(task_num // 10)
+        else:
+            self.userLayout.progressBar.setMaximum(task_num)
         self.userLayout.seedInfoLabel.setText("")
-        log.debug(self.userLayout.progressBar.maximum())
+        # log.debug(self.userLayout.progressBar.maximum())
         self.search_thread.end_flag = False
         self.search_thread.start()
         self.button_stop.setEnabled(True)
