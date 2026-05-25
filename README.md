@@ -1,3 +1,5 @@
+[English](./README_EN.md) | [简体中文](./README.md)
+
 # 戴森球计划种子搜索&查看器
 
 ## 搜索器特点
