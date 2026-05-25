@@ -112,6 +112,9 @@ protected:
 	atomic<bool> finish = false;
 	atomic<bool> stop = false;
 	atomic<size_t> finish_task_num = 0;
+	atomic<bool> wait = false;
+	mutex wait_mtx;
+	condition_variable cv_wait;
 	
 	SeedManager* seed_manager = nullptr;
 	GalaxyCondition galaxy_condition;
@@ -142,6 +145,10 @@ protected:
 
 	void search_func() {
 		while(true) {
+			if(wait.load()) {
+				unique_lock<mutex> lck(wait_mtx);
+				cv_wait.wait(lck, [this]() { return !wait.load() || stop.load(); });
+			}
 			bool is_empty = false;
 			SeedStruct current_task;
 			{
@@ -182,6 +189,15 @@ public:
 		shutdown();
 	}
 
+	void start_wait() {
+		wait.store(true);
+	}
+
+	void end_wait() {
+		wait.store(false);
+		cv_wait.notify_all();
+	}
+
 	void run() {
 		task_thread = thread(&CheckPreciseManager::task_generator,this);
 		for(int i=0;i<max_thread;i++) {
@@ -196,6 +212,7 @@ public:
 
 	void shutdown() {
 		stop.store(true);
+		cv_wait.notify_all();
 		if(task_thread.joinable())
 			task_thread.join();
 		task_thread = thread();
@@ -228,8 +245,11 @@ public:
 	}
 
 	vector<SeedStruct> get_results() {
+		vector<SeedStruct> return_result;
 		lock_guard<mutex> lck(result_mtx);
-		return result;
+		return_result = move(result);
+		result.clear();
+		return return_result;
 	}
 };
 
@@ -240,6 +260,9 @@ protected:
 	atomic<size_t> task_id = 0;
 	atomic<size_t> finish_task_num = 0;
 	atomic<bool> stop = false;
+	atomic<bool> wait = false;
+	mutex wait_mtx;
+	condition_variable cv_wait;
 
 	GalaxyCondition galaxy_condition;
 	int check_level;
@@ -256,6 +279,11 @@ protected:
 
 	void search_func() {
 		while(true) {
+			if(wait.load()) {
+				unique_lock<mutex> lck(wait_mtx);
+				cv_wait.wait(lck, [this]() { return !wait.load() || stop.load(); });
+			}
+			
 			size_t current_task_id = task_id.fetch_add(1);
 			if(current_task_id >= task_num || stop.load()) {
 				break;
@@ -306,6 +334,15 @@ public:
 		shutdown();
 	}
 
+	void start_wait() {
+		wait.store(true);
+	}
+
+	void end_wait() {
+		wait.store(false);
+		cv_wait.notify_all();
+	}
+
 	void run() {
 		for(int i=0;i<max_thread;i++) {
 			working_num.fetch_add(1);
@@ -319,6 +356,7 @@ public:
 
 	void shutdown() {
 		stop.store(true);
+		cv_wait.notify_all();
 		for(int i=0;i<max_thread;i++) {
 			thread& search_thread = search_threads[i];
 			if(search_thread.joinable())
@@ -348,7 +386,10 @@ public:
 	}
 
 	vector<SeedStruct> get_results() {
+		vector<SeedStruct> return_result;
 		lock_guard<mutex> lck(mtx);
+		return_result = move(result);
+		result.clear();
 		return result;
 	}
 };
