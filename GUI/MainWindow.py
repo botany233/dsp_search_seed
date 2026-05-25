@@ -201,6 +201,10 @@ class MainWindow(FluentWindow):
         self.button_start = PushButton("开始搜索")
         self.button_start.clicked.connect(self.__on_button_start_clicked)
 
+        self.button_wait = PushButton("暂停搜索")
+        self.button_wait.clicked.connect(self.__on_button_wait_clicked)
+        self.button_wait.setEnabled(False)
+
         self.button_stop = PushButton("停止搜索")
         self.button_stop.clicked.connect(self.__on_button_stop_clicked)
         self.button_stop.setEnabled(False)
@@ -236,6 +240,7 @@ class MainWindow(FluentWindow):
         self.middleLayout.addWidget(self.tree_view)
 
         self.buttonLayout.addWidget(self.button_start)
+        self.buttonLayout.addWidget(self.button_wait)
         self.buttonLayout.addWidget(self.button_stop)
 
         self.__recover_condition()
@@ -297,10 +302,6 @@ class MainWindow(FluentWindow):
         else:
             self.titleBar.titleLabel.setHidden(False)
 
-    def _on_search_finish(self):
-        self.button_start.setEnabled(True)
-        self.button_stop.setEnabled(False)
-
     def __on_add_file_button_clicked(self):
         if self.search_thread.isRunning():
             return
@@ -337,7 +338,9 @@ class MainWindow(FluentWindow):
 
     def __on_button_start_clicked(self):
         if self.search_thread.isRunning():
-            log.info("搜索线程已在运行中，请勿重复点击开始按钮")
+            self.search_thread.end_wait()
+            self.button_start.setEnabled(False)
+            self.button_wait.setEnabled(True)
             return
         if cfg.config.search_mode == 1 and self.seed_manager.get_seeds_count() == 0:
             log.info("当前无可搜索种子，请先导入种子文件或修改搜索范围")
@@ -360,13 +363,23 @@ class MainWindow(FluentWindow):
         self.userLayout.seedInfoLabel.setText("")
         # log.debug(self.userLayout.progressBar.maximum())
         self.search_thread.end_flag = False
+        self.search_thread.wait_flag = False
         self.search_thread.start()
         self.button_stop.setEnabled(True)
+        self.button_wait.setEnabled(True)
+
+    def __on_button_wait_clicked(self):
+        self.search_thread.start_wait()
+        self.button_wait.setEnabled(False)
+        self.button_start.setEnabled(True)
 
     def __on_button_stop_clicked(self):
-        if self.search_thread.isRunning():
-            self.search_thread.terminate()
-            log.info("搜索已停止")
+        self.search_thread.terminate()
+
+    def _on_search_finish(self):
+        self.button_start.setEnabled(True)
+        self.button_stop.setEnabled(False)
+        self.button_wait.setEnabled(False)
 
 if __name__ == "__main__":
     import sys

@@ -6,18 +6,27 @@ from time import perf_counter, sleep
 from datetime import datetime
 
 from config import cfg
-from .config_to_condition import config_to_galaxy_condition
 from logger import log
+
+from .config_to_condition import config_to_galaxy_condition
+from .time_record import TimeRecord
 
 class SearchThread(QThread):
     def __init__(self, seed_manager: SeedManager, parent=None):
         super().__init__(parent)
         self.mutex = QMutex()
         self.end_flag = False
+        self.wait_flag = False
         self.seed_manager = seed_manager
 
     def terminate(self) -> None:
         self.end_flag = True
+    
+    def start_wait(self):
+        self.wait_flag = True
+    
+    def end_wait(self):
+        self.wait_flag = False
 
     def run(self):
         try:
@@ -52,12 +61,12 @@ class SearchThread(QThread):
                 max_thread: int,
                 save_name: str,
                 quick: bool) -> None:
-        start_time = perf_counter()
+        time_record = TimeRecord()
         start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         task_num = self.seed_manager.get_seeds_count()
         SearchMessages.new_find_seed.emit(0, -1, -1)
-        SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
+        SearchMessages.search_progress_info.emit(0, task_num, time_record.get_time())
 
         check_precise_manager = CheckPreciseManager(
             self.seed_manager, resource_index, galaxy_condition, quick, min(max_thread, cpu_count())
@@ -65,22 +74,31 @@ class SearchThread(QThread):
         check_precise_manager.run()
 
         result_num = 0
+        last_wait_flag = False
         while check_precise_manager.is_running():
+            sleep(0.1)
+            if self.end_flag:
+                check_precise_manager.shutdown()
+                break
+            if last_wait_flag != self.wait_flag:
+                last_wait_flag = self.wait_flag
+                if self.wait_flag:
+                    check_precise_manager.start_wait()
+                    time_record.pause()
+                else:
+                    check_precise_manager.end_wait()
+                    time_record.resume()
+
             if (new_result_num := check_precise_manager.get_result_num()) > result_num:
                 result_num = new_result_num
                 last_result = check_precise_manager.get_last_result()
                 SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
-            SearchMessages.search_progress_info.emit(check_precise_manager.get_task_progress(), task_num, perf_counter()-start_time)
-
-            if self.end_flag:
-                check_precise_manager.shutdown()
-                break
-            sleep(0.1)
+            SearchMessages.search_progress_info.emit(check_precise_manager.get_task_progress(), task_num, time_record.get_time())
         else:
             result_num = check_precise_manager.get_result_num()
             last_result = check_precise_manager.get_last_result()
             SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
-            SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
+            SearchMessages.search_progress_info.emit(task_num, task_num, time_record.get_time())
 
         results = check_precise_manager.get_results()
         results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)
@@ -100,12 +118,12 @@ class SearchThread(QThread):
                max_thread: int,
                save_name: str,
                quick: bool) -> None:
-        start_time = perf_counter()
+        time_record = TimeRecord()
         start_date_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
         task_num = (seeds[1] - seeds[0] + 1) * (star_nums[1] - star_nums[0] + 1)
         SearchMessages.new_find_seed.emit(0, -1, -1)
-        SearchMessages.search_progress_info.emit(0, task_num, perf_counter()-start_time)
+        SearchMessages.search_progress_info.emit(0, task_num, time_record.get_time())
 
         check_batch_manager = CheckBatchManager(
             seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index,
@@ -114,22 +132,31 @@ class SearchThread(QThread):
         check_batch_manager.run()
 
         result_num = 0
+        last_wait_flag = False
         while check_batch_manager.is_running():
+            sleep(0.1)
+            if self.end_flag:
+                check_batch_manager.shutdown()
+                break
+            if last_wait_flag != self.wait_flag:
+                last_wait_flag = self.wait_flag
+                if self.wait_flag:
+                    check_batch_manager.start_wait()
+                    time_record.pause()
+                else:
+                    check_batch_manager.end_wait()
+                    time_record.resume()
+
             if (new_result_num := check_batch_manager.get_result_num()) > result_num:
                 result_num = new_result_num
                 last_result = check_batch_manager.get_last_result()
                 SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
-            SearchMessages.search_progress_info.emit(check_batch_manager.get_task_progress(), task_num, perf_counter()-start_time)
-
-            if self.end_flag:
-                check_batch_manager.shutdown()
-                break
-            sleep(0.1)
+            SearchMessages.search_progress_info.emit(check_batch_manager.get_task_progress(), task_num, time_record.get_time())
         else:
             result_num = check_batch_manager.get_result_num()
             last_result = check_batch_manager.get_last_result()
             SearchMessages.new_find_seed.emit(result_num, last_result.seed_id, last_result.star_num)
-            SearchMessages.search_progress_info.emit(task_num, task_num, perf_counter()-start_time)
+            SearchMessages.search_progress_info.emit(task_num, task_num, time_record.get_time())
 
         results = check_batch_manager.get_results()
         results = sorted(results, key=lambda x: x.seed_id * 33 + x.star_num)

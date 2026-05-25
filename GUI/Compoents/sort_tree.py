@@ -685,7 +685,7 @@ class PlanetTreeLeave(LeaveBase):
         self.planetTypeComboBox.load_config()
         self.singularityComboBox.load_config()
         self.liquidComboBox.load_config()
-
+        self.dspLevelComboBox.load_config()
 
 class SortTree(TreeWidget):
     def __init__(self, parent=None):
