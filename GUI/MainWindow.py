@@ -86,7 +86,7 @@ class MainWindow(FluentWindow):
         self.setWindowIcon(AppIcons.LOGO.icon())
         # width: int = round(1320 / cfg.config.ui_scale_factor)
         # height: int = round(width * 0.5)
-        width: int = 1500
+        width: int = round(1320 / cfg.config.ui_scale_factor)
         height: int = round(width * 0.5)
         self.resize(width, height)
 

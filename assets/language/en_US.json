@@ -109,7 +109,7 @@
                 "singularity": "Traits",
                 "liquid": "Liquid",
                 "dsp_level": "Dyson Reception",
-                "lumino": "Luminosity Level",
+                "lumino": "Luminosity",
                 "distance": "Max Distance",
                 "satisfy_num": "Required Count"
             },

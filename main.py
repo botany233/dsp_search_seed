@@ -14,10 +14,11 @@ def main():
     #     set_device_id_c(-1)
     # cfg.config.local_size = get_local_size_c()
     # cfg.config.device_id = get_device_id_c()
-    scale_factor = cfg.config.ui_scale_factor
-    # if scale_factor != 1.0:
-    # scale_factor = 0.8
-    os.environ["QT_SCALE_FACTOR"] = str(scale_factor)
+    if cfg.config.language == "en_US":
+        cfg.config.ui_scale_factor = 0.85
+    else:
+        cfg.config.ui_scale_factor = 1.0
+    os.environ["QT_SCALE_FACTOR"] = str(cfg.config.ui_scale_factor)
         # os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "1"
 
     app = QApplication(sys.argv)
