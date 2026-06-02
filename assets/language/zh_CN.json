@@ -146,6 +146,16 @@
                 "star_veins_amount_description": "设置恒星系内最少有多少对应矿脉储量, 不填写则不限制",
                 "planet_veins_point_description": "设置星球内最少有多少对应矿脉数量, 不填写则不限制",
                 "planet_veins_amount_description": "设置星球内最少有多少对应矿脉储量, 不填写则不限制"
+            },
+            "egg": {
+                "init": "eggg",
+                "warn": "（＞д＜）不许点我!!",
+                "found": "(*´∀`*) 呀, 被你发现惹",
+                "button": "(=^▽^=) 我其实是个按钮哦~~",
+                "stop": "(..›ᴗ‹..) 不要再看着我啦~~",
+                "consequence": "￣へ￣ 都是你自找的!!",
+                "forgive": "(￣^￣) 这次放过你",
+                "bye": "(￣^￣) 再见~"
             }
         }
     },

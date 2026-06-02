@@ -84,8 +84,10 @@ class MainWindow(FluentWindow):
         """)
         self.setWindowTitle(tr("search.window_title"))
         self.setWindowIcon(AppIcons.LOGO.icon())
-        width: int = 1320
-        height: int = width // 16 * 8
+        # width: int = round(1320 / cfg.config.ui_scale_factor)
+        # height: int = round(width * 0.5)
+        width: int = 1500
+        height: int = round(width * 0.5)
         self.resize(width, height)
 
         lt_qss = """StackedWidget{background-color: #FCFCFC;}"""

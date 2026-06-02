@@ -146,6 +146,16 @@
                 "star_veins_amount_description": "Set the minimum vein amount required in the star system. Leave empty for no limit.",
                 "planet_veins_point_description": "Set the minimum vein count required on the planet. Leave empty for no limit.",
                 "planet_veins_amount_description": "Set the minimum vein amount required on the planet. Leave empty for no limit."
+            },
+            "egg": {
+                "init": "eggg",
+                "warn": "(＞д＜) Don't click me!!",
+                "found": "(*´∀`*) Ah, you found me!",
+                "button": "(=^▽^=) I'm actually a button~~",
+                "stop": "(..›ᴗ‹..) Stop staring at me~~",
+                "consequence": "￣へ￣ You asked for it!!",
+                "forgive": "(￣^￣) I'll let you off this time",
+                "bye": "(￣^￣) Bye~"
             }
         }
     },
@@ -313,8 +323,8 @@
             "金伯利": "Kimberlite Ore",
             "分型硅": "Fractal Silicon",
             "有机晶体": "Organic Crystal",
-            "光栅石": "Optical Grating Crystal",
-            "刺笋结晶": "Spiniform Stalagmite Crystal",
+            "光栅石": "Grating Crystal",
+            "刺笋结晶": "Stalagmite Crystal",
             "单极磁石": "Unipolar Magnet"
         },
         "gas_veins": {
@@ -333,24 +343,24 @@
             "气态巨星": "Gas Giant",
             "冰巨星": "Ice Giant",
             "高产气巨": "High-Yield Gas Giant",
-            "干旱荒漠": "Arid Desert",
-            "灰烬冻土": "Ashen Gelisol",
-            "海洋丛林": "Oceanic Jungle",
+            "干旱荒漠": "Scorchedia",
+            "灰烬冻土": "Geloterra",
+            "海洋丛林": "Tropicana",
             "熔岩": "Lava",
-            "冰原冻土": "Ice Field Gelisol",
-            "贫瘠荒漠": "Barren Desert",
+            "冰原冻土": "Glacieon",
+            "贫瘠荒漠": "Desolus",
             "戈壁": "Gobi",
-            "火山灰": "Volcanic Ash",
-            "红石": "Red Stone",
-            "草原": "Prairie",
-            "水世界": "Waterworld",
-            "黑石盐滩": "Blackstone Salt Flats",
+            "火山灰": "Sulfuria",
+            "红石": "Crimsonis",
+            "草原": "Prairiea",
+            "水世界": "Aquatica",
+            "黑石盐滩": "Halitum",
             "樱林海": "Sakura Ocean",
-            "飓风石林": "Hurricane Stone Forest",
-            "猩红冰湖": "Scarlet Ice Lake",
-            "热带草原": "Tropical Grassland",
-            "橙晶荒漠": "Orange Crystal Desert",
-            "极寒冻土": "Frigid Gelisol",
+            "飓风石林": "Cyclonius",
+            "猩红冰湖": "Maroonfrost",
+            "热带草原": "Savanna",
+            "橙晶荒漠": "Onyxtopia",
+            "极寒冻土": "Icefrostia",
             "潘多拉沼泽": "Pandora Swamp"
         },
         "star_types": {
@@ -361,36 +371,36 @@
             "白矮星": "White Dwarf",
             "中子星": "Neutron Star",
             "黑洞": "Black Hole",
-            "A型恒星": "Type A Star",
-            "B型恒星": "Type B Star",
-            "F型恒星": "Type F Star",
-            "G型恒星": "Type G Star",
-            "K型恒星": "Type K Star",
-            "M型恒星": "Type M Star",
-            "O型恒星": "Type O Star"
+            "A型恒星": "A Type Star",
+            "B型恒星": "B Type Star",
+            "F型恒星": "F Type Star",
+            "G型恒星": "G Type Star",
+            "K型恒星": "K Type Star",
+            "M型恒星": "M Type Star",
+            "O型恒星": "O Type Star"
         },
         "singularity": {
             "卫星": "Satellite",
-            "多卫星": "Multiple Satellites",
+            "多卫星": "Plural Satellites",
             "潮汐锁定": "Tidal Locking",
             "潮汐锁定永昼永夜": "Tidal Locking",
             "轨道共振1:2": "Orbital Resonance 1:2",
             "轨道共振1:4": "Orbital Resonance 1:4",
             "横躺自转": "Horizontal Rotation",
-            "反向自转": "Retrograde Rotation"
+            "反向自转": "Reverse Rotation"
         },
         "dsp_levels": {
             "无限制": "No Limit",
-            "全接收": "Full Receiver",
-            "全包": "Fully Covered"
+            "全接收": "Full Receive",
+            "全包": "Full Cover"
         },
         "dsp_planets": {
-            "全接收星": "Full Receiver Planet",
-            "全包星": "Fully Covered Planet"
+            "全接收星": "Full Receive Planet",
+            "全包星": "Full Cover Planet"
         },
         "condition_names": {
             "星系条件": "Galaxy Condition",
-            "恒星系条件": "Star System Condition",
+            "恒星系条件": "Star Condition",
             "星球条件": "Planet Condition",
             "卫星条件": "Moon Condition"
         }

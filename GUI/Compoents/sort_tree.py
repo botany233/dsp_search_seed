@@ -286,7 +286,7 @@ class ToolTipFilterWithEgg(ToolTipFilter):
             # self.hideToolTip()
             if self._is_shown:
                 self.hideToolTip()
-                self._tooltip.setText("（＞д＜）不许点我!!")
+                self._tooltip.setText(tr("search.condition_tree.egg.warn"))
                 parent = self.parent()  # type: QWidget
                 self._tooltip.adjustPos(parent, self.position)
                 self._tooltip.show()
@@ -298,17 +298,17 @@ class ToolTipFilterWithEgg(ToolTipFilter):
 
     def _switchToolTipText(self):
         match self.tooltip_num:
-            case 0: self._tooltip.setText("(*´∀`*) 呀, 被你发现惹")
-            case 1: self._tooltip.setText("(=^▽^=) 我其实是个按钮哦~~")
-            case 2: self._tooltip.setText("(..›ᴗ‹..) 不要再看着我啦~~")
-            case _: self._tooltip.setText("￣へ￣ 都是你自找的!!")
+            case 0: self._tooltip.setText(tr("search.condition_tree.egg.found"))
+            case 1: self._tooltip.setText(tr("search.condition_tree.egg.button"))
+            case 2: self._tooltip.setText(tr("search.condition_tree.egg.stop"))
+            case _: self._tooltip.setText(tr("search.condition_tree.egg.consequence"))
         if self.tooltip_num >= 3:
             if (
                 self._mainWindow is not None
                 and (self._mainWindow.search_thread.isRunning()
                 or self._mainWindow.viewerInterface.sort_thread.isRunning())
             ):
-                self._tooltip.setText("(￣^￣) 这次放过你")
+                self._tooltip.setText(tr("search.condition_tree.egg.forgive"))
     
     def showToolTip(self):
         """ show tool tip """
@@ -321,7 +321,7 @@ class ToolTipFilterWithEgg(ToolTipFilter):
                 and not (self._mainWindow.search_thread.isRunning()
                 or self._mainWindow.viewerInterface.sort_thread.isRunning())
             ):
-                self._tooltip.setText("(￣^￣) 再见~")
+                self._tooltip.setText(tr("search.condition_tree.egg.bye"))
                 self._tooltip.adjustPos(parent, self.position)
                 self._tooltip.show()
                 from PySide6.QtWidgets import QApplication
@@ -428,7 +428,7 @@ class MoonTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.setHidden(True)
         self.manageButtons.adjustButton = TransparentToolButton()
-        self.manageButtons.adjustButton.setToolTip("eggg")
+        self.manageButtons.adjustButton.setToolTip(tr("search.condition_tree.egg.init"))
         self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=5000))
         qss = """TransparentToolButton:hover{background: transparent}"""
         setCustomStyleSheet(self.manageButtons.adjustButton, qss, qss)
