@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "code": "zh_CN",
+        "name": "Chinese Simplified",
+        "native_name": "简体中文"
+    },
+    "common": {
+        "confirm": "确定"
+    },
+    "settings": {
+        "basic": {
+            "title": "基础设置",
+            "max_cpu_threads": "最大CPU线程数",
+            "language": "语言",
+            "use_gpu": "启用GPU加速",
+            "thread_warning": "当前设置的线程数≥CPU线程数，搜索时UI界面可能会卡顿"
+        },
+        "language": {
+            "restart_title": "语言已切换",
+            "restart_content": "语言设置已保存，重启应用后生效。"
+        }
+    }
+}

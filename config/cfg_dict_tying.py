@@ -127,6 +127,7 @@ class GUIConfig(BaseModel):
     end_star_num: int = 64
     max_thread: int = cpu_count()
     ui_scale_factor: float = 1.0
+    language: str = "zh_CN"
     galaxy_condition: GalaxyCondition = GalaxyCondition()
     save_name: str = "seed"
     search_mode: int = 0  # 0: 范围搜索, 1: 二次搜索

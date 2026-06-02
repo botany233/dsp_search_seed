@@ -1,0 +1,23 @@
+{
+    "meta": {
+        "code": "en_US",
+        "name": "English",
+        "native_name": "English"
+    },
+    "common": {
+        "confirm": "OK"
+    },
+    "settings": {
+        "basic": {
+            "title": "Basic Settings",
+            "max_cpu_threads": "Max CPU Threads",
+            "language": "Language",
+            "use_gpu": "Enable GPU Acceleration",
+            "thread_warning": "The configured thread count is greater than or equal to the CPU thread count. The UI may freeze during search."
+        },
+        "language": {
+            "restart_title": "Language Changed",
+            "restart_content": "Language preference has been saved. Restart the app to apply it."
+        }
+    }
+}

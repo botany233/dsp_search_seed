@@ -9,11 +9,14 @@ from qfluentwidgets import (
     ToolTipFilter,
     PixmapLabel,
     FluentIcon,
-    PushButton
+    PushButton,
+    ComboBox,
+    MessageBox
 )
 from typing import Literal
 from config import cfg
 from logger import log
+from language import get_languages, tr
 
 from .Compoents import LimitLineEdit, GPUBenchmarkMessageBox
 from multiprocessing import cpu_count
@@ -132,12 +135,61 @@ class SwitchButtonSettingItemFrame(BaseSettingItemFrame):
         self.mainLayout.setAlignment(self.switchButton, Qt.AlignmentFlag.AlignRight)
 
 
+class LanguageSettingItemFrame(BaseSettingItemFrame):
+    def __init__(self, title: str, parent=None):
+        super().__init__(title, parent, cfg.config, "language")
+
+        self.languages = get_languages()
+        if not self.languages:
+            self.languages = [{"code": cfg.config.language, "native_name": cfg.config.language}]
+
+        self.comboBox = ComboBox()
+        self.comboBox.addItems([language["native_name"] for language in self.languages])
+
+        self.language_codes = [language["code"] for language in self.languages]
+        try:
+            current_index = self.language_codes.index(cfg.config.language)
+        except ValueError:
+            current_index = 0
+        self.comboBox.setCurrentIndex(current_index)
+        self._resize_combo_box()
+
+        self.mainLayout.addWidget(self.comboBox)
+        self.mainLayout.setAlignment(self.comboBox, Qt.AlignmentFlag.AlignRight)
+        self.comboBox.currentIndexChanged.connect(self._on_language_changed)
+
+    def _resize_combo_box(self):
+        font_metrics = self.comboBox.fontMetrics()
+        max_width = max(font_metrics.horizontalAdvance(language["native_name"]) for language in self.languages)
+        self.comboBox.setMinimumWidth(max_width + 45)
+
+    def _on_language_changed(self, index: int):
+        if index < 0 or index >= len(self.language_codes):
+            return
+
+        language_code = self.language_codes[index]
+        if cfg.config.language == language_code:
+            return
+
+        cfg.config.language = language_code
+        cfg.save()
+
+        message_box = MessageBox(
+            tr("settings.language.restart_title", language_code),
+            tr("settings.language.restart_content", language_code),
+            self.window(),
+        )
+        message_box.yesButton.setText(tr("common.confirm", language_code))
+        message_box.cancelButton.hide()
+        message_box.exec()
+
+
 class NormalSettingFrame(BaseSettingFrame):
-    def __init__(self, title: str = "基础设置", parent=None):
-        super().__init__(title, parent)
+    def __init__(self, title: str | None = None, parent=None):
+        super().__init__(title or tr("settings.basic.title"), parent)
         
         self.threadNumSetting = EditLineSettingItemFrame(
-            "最大CPU线程数",
+            tr("settings.basic.max_cpu_threads"),
             None,
             cfg_obj=cfg.config,
             cfg_key="max_thread",
@@ -146,8 +198,11 @@ class NormalSettingFrame(BaseSettingFrame):
             default_value=cpu_count(),
             empty_invisible=False
         )
+        self.languageSetting = LanguageSettingItemFrame(
+            tr("settings.basic.language"),
+        )
         self.useGpuSetting = SwitchButtonSettingItemFrame(
-            "启用GPU加速",
+            tr("settings.basic.use_gpu"),
             None,
             cfg_key="use_gpu",
         )
@@ -157,9 +212,10 @@ class NormalSettingFrame(BaseSettingFrame):
         self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
         self.warningLabel.setFixedSize(16, 16)
         self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))
-        self.warningLabel.setToolTip("当前设置的线程数≥CPU线程数，搜索时UI界面可能会卡顿")
+        self.warningLabel.setToolTip(tr("settings.basic.thread_warning"))
 
         self.mainLayout.addWidget(self.threadNumSetting)
+        self.mainLayout.addWidget(self.languageSetting)
         self.mainLayout.addWidget(self.useGpuSetting)
 
         self.threadNumSetting.line.editingFinished.connect(self._warning_thread_count)

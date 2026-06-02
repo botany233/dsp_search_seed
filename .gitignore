@@ -3,6 +3,7 @@
 *.csv
 test.py
 *.json
+!assets/language/*.json
 
 
 logs/
