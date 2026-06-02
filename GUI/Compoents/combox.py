@@ -5,9 +5,10 @@ from CApi import *
 
 from config import cfg
 from typing import Iterable, Literal
+from language import tr_domain
 
 class ConfigComboBox(ComboBox):
-    def __init__(self, config_key: str, parent=None, config_obj=None, type_input: Literal["int", "float", "str"] = "int", items: list[str] = []):
+    def __init__(self, config_key: str, parent=None, config_obj=None, type_input: Literal["int", "float", "str"] = "int", items: list[str] | None = None, domain: str | None = None):
         super().__init__(parent)
         self.config_key = config_key
         if config_obj is None:
@@ -15,15 +16,38 @@ class ConfigComboBox(ComboBox):
 
         self.config_obj = config_obj
         self.type_input = type_input
+        self.domain = domain
+        self.values: list[str] = []
 
-        self.addItems(items)
+        self.addItems(items or [])
         self.fresh()
 
         self.currentIndexChanged.connect(self._on_currentIndexChanged)
 
+    def _display_text(self, value: str) -> str:
+        return tr_domain(self.domain, value) if self.domain else str(value)
+
+    def addItems(self, texts: Iterable[str]):
+        for text in texts:
+            self.addItem(text)
+
+    def addItem(self, text, icon: str | QIcon | FluentIconBase = None, userData=None):
+        self.values.append(str(text))
+        super().addItem(self._display_text(str(text)), icon, userData)
+
+    def clear(self):
+        self.values.clear()
+        return super().clear()
+
     def fresh(self) -> None:
         config_value = getattr(self.config_obj, self.config_key)
-        index = self.findText(str(config_value))
+        index = -1
+        for i, value in enumerate(self.values):
+            if str(value) == str(config_value):
+                index = i
+                break
+        if index == -1:
+            index = self.findText(str(config_value))
         if index != -1:
             self.setCurrentIndex(index)
 
@@ -39,7 +63,11 @@ class ConfigComboBox(ComboBox):
             return None
 
     def _on_currentIndexChanged(self, index: int):
-        setattr(self.config_obj, self.config_key, self._type_convert(self.currentText()))
+        if 0 <= index < len(self.values):
+            value = self.values[index]
+        else:
+            value = self.currentText()
+        setattr(self.config_obj, self.config_key, self._type_convert(value))
         cfg.save()
 
 # class LocalSizeComboBox(ComboBox):
@@ -106,8 +134,8 @@ class ConfigComboBox(ComboBox):
 #         self.fresh_item(device_id, devices_info)
 
 class AutoFixedConfigComboBox(ConfigComboBox):
-    def __init__(self, config_key: str, parent=None, config_obj=None, type_input: Literal["int", "float", "str"] = "int", items: list[str] = []):
-        super().__init__(config_key, parent, config_obj, type_input, items)
+    def __init__(self, config_key: str, parent=None, config_obj=None, type_input: Literal["int", "float", "str"] = "int", items: list[str] | None = None, domain: str | None = None):
+        super().__init__(config_key, parent, config_obj, type_input, items, domain)
 
         self._resize()
 
@@ -122,6 +150,8 @@ class AutoFixedConfigComboBox(ConfigComboBox):
     def _resize(self) -> None:
         font_metrics = self.fontMetrics()
         items = self.items
+        if not items:
+            return
         texts = []
         for item in items:
             texts.append(item.text)
@@ -138,28 +168,54 @@ class AutoFixedConfigComboBox(ConfigComboBox):
         return super().resizeEvent(event)
 
 class AutoFixedComboBox(ComboBox):
-    def __init__(self, parent=None, config_key: str | None = None):
+    def __init__(self, parent=None, config_key: str | None = None, domain: str | None = None):
         super().__init__(parent)
         self.currentIndexChanged.connect(self._on_currentIndexChanged)
         self.config_key = config_key
+        self.domain = domain
+        self.values: list[str] = []
         setFont(self, 12)
 
+    def _display_text(self, value: str) -> str:
+        return tr_domain(self.domain, value) if self.domain else str(value)
+
     def addItems(self, texts):
-        for text in texts:
-            self.addItem(text)
+        was_blocked = self.blockSignals(True)
+        try:
+            for text in texts:
+                self.addItem(text)
+        finally:
+            self.blockSignals(was_blocked)
 
         font_metrics = self.fontMetrics()
+        if not self.items:
+            return
         # 使用列表推导式找到最大宽度
-        max_width = max(font_metrics.horizontalAdvance(text) for text in texts)
+        max_width = max(font_metrics.horizontalAdvance(item.text) for item in self.items)
         # 添加边距
         max_width += 45
         if max_width >= self.maximumWidth():
             max_width = self.maximumWidth()
         self.setMinimumWidth(int(max_width))
 
+    def addItem(self, text, icon: str | QIcon | FluentIconBase = None, userData=None):
+        self.values.append(str(text))
+        super().addItem(self._display_text(str(text)), icon, userData)
+
+    def clear(self):
+        was_blocked = self.blockSignals(True)
+        self.values.clear()
+        try:
+            return super().clear()
+        finally:
+            self.blockSignals(was_blocked)
+
     def _on_currentIndexChanged(self, index: int):
         if self.config_key is not None:
-            self.change_config(self.currentText())
+            if 0 <= index < len(self.values):
+                self.change_config(self.values[index])
+            else:
+                self.change_config(self.currentText())
 
     def load_config(self) -> None:
         if self.config_key is None:
@@ -167,7 +223,13 @@ class AutoFixedComboBox(ComboBox):
         if hasattr(self.parent(), "config_obj"):
             config_obj = self.parent().config_obj
             config_value = getattr(config_obj, self.config_key)
-            index = self.findText(config_value)
+            index = -1
+            for i, value in enumerate(self.values):
+                if str(value) == str(config_value):
+                    index = i
+                    break
+            if index == -1:
+                index = self.findText(str(config_value))
             if index != -1:
                 self.setCurrentIndex(index)
         pass

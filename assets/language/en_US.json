@@ -6,7 +6,28 @@
     },
     "common": {
         "confirm": "OK",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "invalid_number": "Enter a valid number",
+        "min_value": "Minimum value is {value}",
+        "max_value": "Maximum value is {value}",
+        "terminating": "Terminating process"
+    },
+    "navigation": {
+        "tutorial": "Tutorial",
+        "settings": "Settings",
+        "about": "About"
+    },
+    "tutorial": {
+        "load_error_title": "Failed to load file",
+        "load_error_message": "Error: {error}",
+        "load_error_hint": "Please make sure the file exists and is readable."
+    },
+    "about": {
+        "github_tooltip": "Open project page",
+        "title": "Dyson Sphere Program Seed Searcher & Viewer",
+        "author": "----QianQian & DaDa",
+        "update_ready": "New version ready!",
+        "update_ready_version": "New version {version} is ready! "
     },
     "settings": {
         "basic": {
@@ -44,6 +65,88 @@
             "max_value": "Maximum value is {value}",
             "thread_result": "Thread {thread}: {speed:.1f} planets/s",
             "best": "Best:"
+        }
+    },
+    "search": {
+        "window_title": "Dyson Sphere Program Seed Search Viewer made by QianQian & DaDa",
+        "navigation": {
+            "title": "Seed Searcher"
+        },
+        "main": {
+            "import_seed": "Import Seeds",
+            "clear_seed": "Clear Seeds",
+            "seed_range": "Seed Range:",
+            "star_count": "Stars:",
+            "resource_rate": "Resource Rate:",
+            "start": "Start Search",
+            "pause": "Pause Search",
+            "stop": "Stop Search",
+            "to": "to",
+            "select_csv": "Select CSV File",
+            "running_task_title": "A task is still running. Force exit?",
+            "running_task_content": "Forcing exit may leave some results unsaved. It is recommended to stop the task first."
+        },
+        "status": {
+            "range_mode": "Range Search",
+            "precise_mode": "Precise Search",
+            "standard_mode": "Standard Mode",
+            "quick_mode": "Quick Mode",
+            "output_file_name": "Output File Name ",
+            "seed_count": "Seeds: {count}",
+            "found_summary": "Seeds found: {total_seed_num}  Last hit: {last_seed_id}, {last_star_num}",
+            "progress": "Search progress: {finish_task}/{total_task}({percent}%)",
+            "completed": "Search completed in {time}"
+        },
+        "condition_tree": {
+            "headers": {
+                "name": "Name",
+                "condition": "Condition",
+                "manage": "Manage"
+            },
+            "labels": {
+                "star_type": "Star Type",
+                "planet_type": "Planet Type",
+                "singularity": "Traits",
+                "liquid": "Liquid",
+                "dsp_level": "Dyson Reception",
+                "lumino": "Luminosity Level",
+                "distance": "Max Distance",
+                "satisfy_num": "Required Count"
+            },
+            "buttons": {
+                "veins_point": "Vein Count",
+                "veins_amount": "Vein Amount"
+            },
+            "tooltips": {
+                "add_star": "Add star condition",
+                "add_planet": "Add planet condition",
+                "add_moon": "Add moon condition",
+                "delete": "Delete this item and its children"
+            },
+            "menu": {
+                "delete": "Delete Item",
+                "add_star": "Add Star Condition",
+                "add_planet": "Add Planet Condition",
+                "add_moon": "Add Moon Condition"
+            },
+            "no_limit": "No Limit",
+            "selected_count": "{count} selected",
+            "settings": {
+                "return": "Back",
+                "oil_rate_label": "Oil (unit: /s)",
+                "galaxy_veins_point_title": "Galaxy Vein Count Filter",
+                "galaxy_veins_amount_title": "Galaxy Vein Amount Filter",
+                "star_veins_point_title": "Star System Vein Count Filter",
+                "star_veins_amount_title": "Star System Vein Amount Filter",
+                "planet_veins_point_title": "Planet Vein Count Filter",
+                "planet_veins_amount_title": "Planet Vein Amount Filter",
+                "galaxy_veins_point_description": "Set the minimum vein count required in the galaxy. Leave empty for no limit.",
+                "galaxy_veins_amount_description": "Set the minimum vein amount required in the galaxy. Leave empty for no limit.",
+                "star_veins_point_description": "Set the minimum vein count required in the star system. Leave empty for no limit.",
+                "star_veins_amount_description": "Set the minimum vein amount required in the star system. Leave empty for no limit.",
+                "planet_veins_point_description": "Set the minimum vein count required on the planet. Leave empty for no limit.",
+                "planet_veins_amount_description": "Set the minimum vein amount required on the planet. Leave empty for no limit."
+            }
         }
     },
     "viewer": {
@@ -145,6 +248,28 @@
                 "dsp_level": "Dyson Reception",
                 "wind_usage": "Wind Usage",
                 "light_usage": "Light Usage"
+            },
+            "csv": {
+                "seed_id": "Seed ID",
+                "star_count": "Star Count",
+                "resource_rate": "Resource Rate",
+                "star_name": "Star Name",
+                "star_type": "Star Type",
+                "star_lumino": "Star Luminosity",
+                "star_distance": "Star Distance",
+                "star_coord": "Star Coord {axis}",
+                "name": "Name",
+                "type": "Type",
+                "traits": "Traits",
+                "dsp_reception": "Dyson Reception",
+                "liquid": "Liquid",
+                "no_liquid": "No Liquid",
+                "wind_usage": "Wind Usage",
+                "light_usage": "Light Usage",
+                "distance": "Distance",
+                "coord": "Coord {axis}",
+                "lumino": "Luminosity",
+                "dyson_radius": "Dyson Sphere Radius"
             }
         }
     },
@@ -198,6 +323,7 @@
             "可燃冰": "Fire Ice"
         },
         "liquids": {
+            "无限制": "No Limit",
             "水": "Water",
             "硫酸": "Sulfuric Acid",
             "无液体": "No Liquid"
@@ -254,12 +380,19 @@
             "反向自转": "Retrograde Rotation"
         },
         "dsp_levels": {
+            "无限制": "No Limit",
             "全接收": "Full Receiver",
             "全包": "Fully Covered"
         },
         "dsp_planets": {
             "全接收星": "Full Receiver Planet",
             "全包星": "Fully Covered Planet"
+        },
+        "condition_names": {
+            "星系条件": "Galaxy Condition",
+            "恒星系条件": "Star System Condition",
+            "星球条件": "Planet Condition",
+            "卫星条件": "Moon Condition"
         }
     }
 }

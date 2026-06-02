@@ -7,6 +7,7 @@ from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, Lin
 
 from GUI.Messenger import SearchMessages
 from config import cfg
+from language import tr
 
 from .Widgets.button import ConfigSwitchButton
 
@@ -18,17 +19,17 @@ class UserLayout(QVBoxLayout):
         self.addLayout(self.userButtonsLayout)
         self.addStretch()
 
-        self.search_mode_switch = ConfigSwitchButton("范围搜索", indicatorPos=1)
-        self.search_mode_switch.setOnText("二次搜索")
+        self.search_mode_switch = ConfigSwitchButton(tr("search.status.range_mode"), indicatorPos=1)
+        self.search_mode_switch.setOnText(tr("search.status.precise_mode"))
         self.search_mode_switch.set_config(config_obj=cfg.config, config_key="search_mode")
         self.userButtonsLayout.addWidget(self.search_mode_switch)
 
-        self.quick_check_switch = ConfigSwitchButton("标准模式", indicatorPos=1)
-        self.quick_check_switch.setOnText("快速模式")
+        self.quick_check_switch = ConfigSwitchButton(tr("search.status.standard_mode"), indicatorPos=1)
+        self.quick_check_switch.setOnText(tr("search.status.quick_mode"))
         self.quick_check_switch.set_config(config_obj=cfg.config, config_key="quick_check")
         self.userButtonsLayout.addWidget(self.quick_check_switch)
 
-        self.outputFileLabel = BodyLabel("输出文件名称 ")
+        self.outputFileLabel = BodyLabel(tr("search.status.output_file_name"))
         self.userButtonsLayout.addWidget(self.outputFileLabel)
         self.outputFileLine = LineEdit()
         self.outputFileLine.setPlaceholderText(cfg.config.save_name)
@@ -64,7 +65,7 @@ class UserLayout(QVBoxLayout):
         cfg.config.save_name = "seed" if filename == "" else filename
 
     def _update_last_seed(self, total_seed_num: int, last_seed_id: int, last_star_num: int):
-        self.seedInfoLabel.setText(f"累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed_id}, {last_star_num}")
+        self.seedInfoLabel.setText(tr("search.status.found_summary").format(total_seed_num=total_seed_num, last_seed_id=last_seed_id, last_star_num=last_star_num))
 
     def _update_progress(self, finish_task: int, total_task: int, use_time: float):
         if finish_task < total_task:
@@ -73,12 +74,12 @@ class UserLayout(QVBoxLayout):
             else:
                 self.progressBar.setValue(finish_task)
 
-            progress_str = f"搜索进度: {finish_task}/{total_task}({finish_task * 100 // total_task}%)"
+            progress_str = tr("search.status.progress").format(finish_task=finish_task, total_task=total_task, percent=finish_task * 100 // total_task)
             remain_time_str = self.get_remain_time_str(finish_task, total_task, use_time)
             self.barLabel.setText(progress_str + "  " + remain_time_str)
         elif finish_task == total_task:
             self.progressBar.setValue(self.progressBar.maximum())
-            self.barLabel.setText(f"搜索完成！用时{self.get_format_time_str(use_time)}")
+            self.barLabel.setText(tr("search.status.completed").format(time=self.get_format_time_str(use_time)))
         else:
             raise ValueError(f"finish_task={finish_task}不能大于total_task={total_task}！")
 

@@ -14,25 +14,16 @@ DEFAULT_DOMAIN_CATEGORIES = [
     "singularity",
     "dsp_levels",
     "dsp_planets",
+    "condition_names",
 ]
 
 _language_cache: dict[str, dict] = {}
 
-
-def _language_dir() -> Path:
-    cwd_path = Path.cwd() / "assets" / "language"
-    if cwd_path.exists():
-        return cwd_path
-    return Path(__file__).resolve().parent.parent / "assets" / "language"
-
-
 def _load_language(language_code: str) -> dict:
     if language_code not in _language_cache:
-        path = _language_dir() / f"{language_code}.json"
-        with open(path, "r", encoding="utf-8") as f:
+        with open(f"./assets/language/{language_code}.json", "r", encoding="utf-8") as f:
             _language_cache[language_code] = json.load(f)
     return _language_cache[language_code]
-
 
 def _get_nested(data: dict, key: str):
     value = data
@@ -42,10 +33,9 @@ def _get_nested(data: dict, key: str):
         value = value[part]
     return value
 
-
 def get_languages() -> list[dict[str, str]]:
     languages = []
-    for path in sorted(_language_dir().glob("*.json")):
+    for path in sorted(Path("./assets/language").glob("*.json")):
         try:
             data = _load_language(path.stem)
         except Exception:
@@ -60,7 +50,6 @@ def get_languages() -> list[dict[str, str]]:
             }
         )
     return languages
-
 
 def tr(key: str, language_code: str | None = None) -> str:
     if language_code is None:
@@ -77,7 +66,6 @@ def tr(key: str, language_code: str | None = None) -> str:
             return str(value)
     return key
 
-
 def tr_domain(category: str, value: str, language_code: str | None = None) -> str:
     if language_code is None:
         from config import cfg
@@ -92,7 +80,6 @@ def tr_domain(category: str, value: str, language_code: str | None = None) -> st
         if isinstance(domain, dict) and value in domain:
             return str(domain[value])
     return str(value)
-
 
 def tr_any_domain(value: str, categories: list[str] | tuple[str, ...] | None = None) -> str:
     for category in categories or DEFAULT_DOMAIN_CATEGORIES:

@@ -6,6 +6,7 @@ from qfluentwidgets.components.widgets.combo_box import ComboBoxMenu
 from qfluentwidgets import themeColor, setFont
 
 from config import cfg
+from language import tr, tr_domain
 
 class MultiComboBoxItemDelegate(MenuItemDelegate):
     def paint(self, painter: QPainter, option, index):
@@ -66,49 +67,69 @@ class MultiComboBoxMenu(ComboBoxMenu):
             self.close()
 
 class MultiComboBox(ComboBox):
-    def __init__(self, config_key: str, config_obj = None, parent = None):
+    def __init__(self, config_key: str, config_obj = None, parent = None, domain: str | None = None):
         super().__init__(parent)
         self.config_key = config_key
         self.config_obj = cfg.config if config_obj is None else config_obj
-        self.selected_texts = set()
+        self.domain = domain
+        self.values: list[str] = []
+        self.selected_values = set()
         setFont(self, 12)
         self.updateText()
 
-    def _onItemClicked(self, index):
-        if not self.items[index].isEnabled:
-            return
-        item_text = self.items[index].text
+    def _display_text(self, value: str) -> str:
+        return tr_domain(self.domain, value) if self.domain else str(value)
 
-        if item_text in self.selected_texts:
-            self.selected_texts.remove(item_text)
+    def addItems(self, texts):
+        for text in texts:
+            self.addItem(text)
+
+    def addItem(self, text, icon=None, userData=None):
+        self.values.append(str(text))
+        super().addItem(self._display_text(str(text)), icon, userData)
+
+    def clear(self):
+        self.values.clear()
+        self.selected_values.clear()
+        ret = super().clear()
+        self.updateText()
+        return ret
+
+    def _onItemClicked(self, index):
+        if index < 0 or index >= len(self.items) or not self.items[index].isEnabled:
+            return
+        value = self.values[index]
+
+        if value in self.selected_values:
+            self.selected_values.remove(value)
         else:
-            self.selected_texts.add(item_text)
+            self.selected_values.add(value)
         self.save_config()
         self.updateText()
 
     def load_config(self):
         if self.config_key is None:
             return
-        item_texts = set(item.text for item in self.items)
+        item_values = set(self.values)
         config_value = getattr(self.config_obj, self.config_key)
-        self.selected_texts = set(config_value) & item_texts
+        self.selected_values = set(config_value) & item_values
         self.save_config()
         self.updateText()
 
     def save_config(self):
         if self.config_key is None:
             return
-        setattr(self.config_obj, self.config_key, list(self.selected_texts))
+        setattr(self.config_obj, self.config_key, list(self.selected_values))
         cfg.save()
 
     def updateText(self):
-        count = len(self.selected_texts)
+        count = len(self.selected_values)
         if count == 0:
-            super().setText("无限制")
+            super().setText(tr("search.condition_tree.no_limit"))
         elif count == 1:
-            super().setText(list(self.selected_texts)[0])
+            super().setText(self._display_text(next(iter(self.selected_values))))
         else:
-            super().setText(f"已选{count}项")
+            super().setText(tr("search.condition_tree.selected_count").format(count=count))
 
     def setCurrentIndex(self, index: int):
         pass
@@ -121,10 +142,10 @@ class MultiComboBox(ComboBox):
             return
 
         menu = self._createComboMenu()
-        for item in self.items:
+        for index, item in enumerate(self.items):
             action = QAction(item.icon, item.text, self)
             action.setCheckable(True)
-            action.setChecked(item.text in self.selected_texts)
+            action.setChecked(index < len(self.values) and self.values[index] in self.selected_values)
             action.setEnabled(item.isEnabled)
             menu.addAction(action)
 

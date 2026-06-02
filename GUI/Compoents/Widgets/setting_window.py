@@ -4,6 +4,7 @@ from .line_edit import LabelWithLimitLineEdit
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel, isDarkTheme
 from config import cfg
 from config.cfg_dict_tying import VeinsName
+from language import tr, tr_domain
 
 
 # from typing import TYPE_CHECKING
@@ -49,7 +50,7 @@ class SettingsWindow(QFrame):
 
         self.mainLayout = QVBoxLayout(self)
 
-        self.titleLabel = TitleLabel(context.settingsButton.objectName())
+        self.titleLabel = TitleLabel(context.display_title)
 
         self.mainLayout.addWidget(self.titleLabel)
 
@@ -66,7 +67,7 @@ class SettingsWindow(QFrame):
         self.mainLayout.addStretch()
 
         self.buttonLayout = QHBoxLayout()
-        self.returnButton = PushButton("返回")
+        self.returnButton = PushButton(tr("search.condition_tree.settings.return"))
         self.returnButton.clicked.connect(self._return_button_clicked)
         self.buttonLayout.addWidget(self.returnButton)
         self.mainLayout.addLayout(self.buttonLayout)
@@ -97,7 +98,7 @@ class SettingsWindow(QFrame):
         count = len(items)
         itemsEachLine = int(sqrt(count)) + 1
         j = 0
-        is_veins_amount = "储量" in self.context.settingsButton.text()
+        is_veins_amount = self.context.config_key == "veins_amount_condition"
         for i, item in enumerate(items):
             if i % itemsEachLine == 0 and i != 0:
                 j += 1
@@ -115,12 +116,13 @@ class SettingsWindow(QFrame):
                 if veins_key == "oil":
                     type_input = "liquid_float"
                 if item == "油":
-                    item = "油(单位: /s)"
+                    item = tr("search.condition_tree.settings.oil_rate_label")
+            display_item = tr_domain("veins", item)
 
             line_edit = LabelWithLimitLineEdit(
                 veins_key,
                 condition,
-                label=item,
+                label=display_item,
                 type_input=type_input,
                 min_value=0,
                 default_value=0

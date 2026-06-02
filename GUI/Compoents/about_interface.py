@@ -6,6 +6,7 @@ from qfluentwidgets import FluentIcon, HyperlinkLabel, LargeTitleLabel, TitleLab
 import requests
 from config import cfg
 from logger import log
+from language import tr
 
 class AboutInterface(QFrame):
     def __init__(self, parent=None):
@@ -15,25 +16,25 @@ class AboutInterface(QFrame):
         self.mainLayout = QVBoxLayout(self)
         self.mainLayout.setSpacing(0)
         self.bigIcon = HyperlinkLabel()
-        self.bigIcon.setToolTip("我是链接~~")
+        self.bigIcon.setToolTip(tr("about.github_tooltip"))
         self.bigIcon.installEventFilter(ToolTipFilter(self.bigIcon, position=ToolTipPosition.TOP_RIGHT))
         self.bigIcon.setIcon(FluentIcon.GITHUB.icon())
         self.bigIcon.setIconSize(QSize(128, 128))
         self.bigIcon.setUrl(QUrl("https://github.com/botany233/dsp_search_seed"))
         self.mainLayout.addWidget(self.bigIcon, alignment=Qt.AlignCenter)
         self.mainLayout.addSpacing(10)
-        self.titleLabel = LargeTitleLabel("戴森球计划种子搜索查找器")
+        self.titleLabel = LargeTitleLabel(tr("about.title"))
 
         self.mainLayout.addWidget(self.titleLabel, alignment=Qt.AlignCenter)
         self.mainLayout.addSpacing(10)
-        self.authorLabel = TitleLabel("----前前&哒哒")
+        self.authorLabel = TitleLabel(tr("about.author"))
         self.mainLayout.addWidget(self.authorLabel, alignment=Qt.AlignCenter)
         
         self.versionLabel = BodyLabel(f"{cfg.version}")
         self.mainLayout.addWidget(self.versionLabel, alignment=Qt.AlignCenter)
         
         url = "https://github.com/botany233/dsp_search_seed/releases/latest"
-        self.updateButton = HyperlinkButton(url, "新版本就绪!")
+        self.updateButton = HyperlinkButton(url, tr("about.update_ready"))
         self.updateButton.hide()
         qss = """HyperlinkButton:hover {background: transparent;}"""
         setCustomStyleSheet(self.updateButton, qss, qss)
@@ -46,7 +47,7 @@ class AboutInterface(QFrame):
         self.updateThread.updateSignal.connect(self.on_update_found)
 
     def on_update_found(self, new_version: str) -> None:
-        self.updateButton.setText(f"新版本 {new_version} 就绪! ")
+        self.updateButton.setText(tr("about.update_ready_version").format(version=new_version))
         self.updateButton.show()
     def resizeEvent(self, event: QResizeEvent) -> None:
         top = max(event.size().height()//2 - 128, 0)

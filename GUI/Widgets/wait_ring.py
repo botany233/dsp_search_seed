@@ -1,6 +1,7 @@
 from qfluentwidgets import IndeterminateProgressRing, MaskDialogBase, BodyLabel
 from PySide6.QtWidgets import QVBoxLayout, QGridLayout, QWidget
 from PySide6.QtCore import Qt
+from language import tr
 
 class WaitRing(MaskDialogBase):
     """ A wait ring dialog """
@@ -15,7 +16,7 @@ class WaitRing(MaskDialogBase):
         self.overlayLayout.setContentsMargins(0, 0, 0, 0)
         self.ring = IndeterminateProgressRing()
         self.ring.setFixedSize(100, 100)
-        self.textLabel = BodyLabel("结束进程中")
+        self.textLabel = BodyLabel(tr("common.terminating"))
         # 将进度环和文字放在同一个位置，文字在上层
         self.overlayLayout.addWidget(self.ring, 0, 0, Qt.AlignCenter)
         self.overlayLayout.addWidget(self.textLabel, 0, 0, Qt.AlignCenter)

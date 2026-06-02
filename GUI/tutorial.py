@@ -5,6 +5,10 @@ from PySide6.QtCore import QUrl
 from PySide6.QtGui import QFont
 import markdown
 import re
+from config import cfg
+from language import tr
+
+FALLBACK_TUTORIAL_FILE = "assets/tutorial.md"
 
 class TutorialInterface(QFrame):
     def __init__(self):
@@ -26,13 +30,19 @@ class TutorialInterface(QFrame):
         setCustomStyleSheet(self.text_browser,qss,qss)
         self.main_layout.addWidget(self.text_browser)
         
-        self.file_path = "assets/tutorial.md"
+        self.file_path = self._get_tutorial_file_path()
         self.load_markdown_file(self.file_path)
         
         qconfig.themeChanged.connect(self.on_theme_changed)
 
     def on_theme_changed(self):
         self.load_markdown_file(self.file_path)
+
+    def _get_tutorial_file_path(self) -> str:
+        language_path = f"assets/tutorial_{cfg.config.language}.md"
+        if os.path.exists(language_path):
+            return language_path
+        return FALLBACK_TUTORIAL_FILE
 
     def load_markdown_file(self, file_path):
         try:
@@ -76,9 +86,9 @@ class TutorialInterface(QFrame):
 
         except Exception as e:
             error_html = f"""
-            <h3>加载文件时出错</h3>
-            <p>错误信息: {str(e)}</p>
-            <p>请确保文件存在且可读。</p>
+            <h3>{tr("tutorial.load_error_title")}</h3>
+            <p>{tr("tutorial.load_error_message").format(error=str(e))}</p>
+            <p>{tr("tutorial.load_error_hint")}</p>
             """
             self.text_browser.setHtml(error_html)
 

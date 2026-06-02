@@ -41,6 +41,7 @@ from config.cfg_dict_tying import (
 from ..Messenger import SortTreeMessages
 from .. import star_types, planet_types, singularity, liquid, dsp_level
 from GUI.dsp_icons import AppIcons
+from language import tr, tr_domain
 
 
 # star_types = ["无限制"] + star_types
@@ -78,7 +79,7 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.config_obj = config_obj
         self.config_key = config_key
 
-        self.setText(0, self.config_obj.custom_name)
+        self.setText(0, tr_domain("condition_names", self.config_obj.custom_name))
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
@@ -133,11 +134,11 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.addButton = ToolButton(AppIcons.STAR)
-        self.addButton.setToolTip("添加恒星条件")
+        self.addButton.setToolTip(tr("search.condition_tree.tooltips.add_star"))
         self.delButton = ToolButton(FluentIcon.DELETE)
-        self.delButton.setToolTip("点击删除该项及其子项")
+        self.delButton.setToolTip(tr("search.condition_tree.tooltips.delete"))
         self.addPlanetButton = ToolButton(AppIcons.PLANET)
-        self.addPlanetButton.setToolTip("添加星球条件")
+        self.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_planet"))
 
         self.addButton.installEventFilter(ToolTipFilter(self.addButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
         self.delButton.installEventFilter(ToolTipFilter(self.delButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
@@ -215,7 +216,7 @@ class StarTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
-        self.manageButtons.addPlanetButton.setToolTip("添加星球条件")
+        self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_planet"))
 
     def _on_add_button_clicked(self):
         self.addPlanetLeaf()
@@ -368,7 +369,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.setIcon(AppIcons.MOON)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
-        self.manageButtons.addPlanetButton.setToolTip("添加卫星条件")
+        self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_moon"))
 
     def _on_add_button_clicked(self):
         self.addMoonLeaf()
@@ -453,6 +454,7 @@ class SettingsTreeLeave(QWidget):
         config_key: str | None = None,
         obj_name: str = "",
         description: str | None = None,
+        display_title: str | None = None,
     ):
         """
         Args:
@@ -470,6 +472,7 @@ class SettingsTreeLeave(QWidget):
         self.mainLayout.addWidget(self.settingsButton)
         self.items = items
         self.description = description
+        self.display_title = display_title or obj_name or buttonText
         if obj_name != "":
             self.settingsButton.setObjectName(obj_name)
         else:
@@ -542,20 +545,22 @@ class GalaxyTreeLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿脉数量",
+            buttonText=tr("search.condition_tree.buttons.veins_point"),
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
             obj_name="星系矿脉数量筛选",
-            description="设置星系内最少有多少对应矿脉数量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.galaxy_veins_point_title"),
+            description=tr("search.condition_tree.settings.galaxy_veins_point_description"),
         )
         self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉储量",
+            buttonText=tr("search.condition_tree.buttons.veins_amount"),
             config_obj=config_obj,
             config_key="veins_amount_condition",
             items=VeinsName().model_dump(),
             obj_name="星系矿脉储量筛选",
-            description="设置星系内最少有多少对应矿脉储量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.galaxy_veins_amount_title"),
+            description=tr("search.condition_tree.settings.galaxy_veins_amount_description"),
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         self.mainLayout.addWidget(self.veinsPointConditionButton)
@@ -566,23 +571,23 @@ class StarTreeLeave(LeaveBase):
         super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.starTypeLabel = BodyLabel("恒星类型")
+        self.starTypeLabel = BodyLabel(tr("search.condition_tree.labels.star_type"))
         self.mainLayout.addWidget(self.starTypeLabel)
         # self.starTypeComboBox = AutoFixedComboBox(config_key="star_type")
-        self.starTypeComboBox = MultiComboBox("star_type", self.config_obj)
+        self.starTypeComboBox = MultiComboBox("star_type", self.config_obj, domain="star_types")
         self.starTypeComboBox.addItems(star_types)
         self.mainLayout.addWidget(self.starTypeComboBox)
-        self.luminosityLabel = BodyLabel("光度级别")
+        self.luminosityLabel = BodyLabel(tr("search.condition_tree.labels.lumino"))
         self.mainLayout.addWidget(self.luminosityLabel)
         self.luminosityLineEdit = LimitLineEdit("lumino_level", self.config_obj, "float", 0, default_value=0.0)
         self.mainLayout.addWidget(self.luminosityLineEdit)
 
-        self.distanceLabel = BodyLabel("最远距离")
+        self.distanceLabel = BodyLabel(tr("search.condition_tree.labels.distance"))
         self.mainLayout.addWidget(self.distanceLabel)
         self.distanceLineEdit = LimitLineEdit("distance_level", self.config_obj, "float", 0, default_value=-1.0)
         self.mainLayout.addWidget(self.distanceLineEdit)
 
-        self.hitStarNumLabel = BodyLabel("符合数量")
+        self.hitStarNumLabel = BodyLabel(tr("search.condition_tree.labels.satisfy_num"))
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
@@ -593,20 +598,22 @@ class StarTreeLeave(LeaveBase):
         self.luminosityLineEdit.setMaximumHeight(28)
         self.luminosityLineEdit.setFixedHeight(28)
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿脉数量",
+            buttonText=tr("search.condition_tree.buttons.veins_point"),
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
             obj_name="恒星系矿脉数量筛选",
-            description="设置恒星系内最少有多少对应矿脉数量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.star_veins_point_title"),
+            description=tr("search.condition_tree.settings.star_veins_point_description"),
         )
         self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉储量",
+            buttonText=tr("search.condition_tree.buttons.veins_amount"),
             config_obj=config_obj,
             config_key="veins_amount_condition",
             items=VeinsName().model_dump(),
             obj_name="恒星系矿脉储量筛选",
-            description="设置恒星系内最少有多少对应矿脉储量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.star_veins_amount_title"),
+            description=tr("search.condition_tree.settings.star_veins_amount_description"),
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         # self.veinsConditionButton.setToolTip("设置恒星系矿簇条件")
@@ -624,26 +631,26 @@ class PlanetTreeLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignLeft)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
-        self.planetTypeLabel = BodyLabel("星球类型")
+        self.planetTypeLabel = BodyLabel(tr("search.condition_tree.labels.planet_type"))
         self.mainLayout.addWidget(self.planetTypeLabel)
         # self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
-        self.planetTypeComboBox = MultiComboBox("planet_type", self.config_obj)
+        self.planetTypeComboBox = MultiComboBox("planet_type", self.config_obj, domain="planet_types")
         self.planetTypeComboBox.addItems(planet_types)
         self.mainLayout.addWidget(self.planetTypeComboBox)
-        self.singularityLabel = BodyLabel("特点")
+        self.singularityLabel = BodyLabel(tr("search.condition_tree.labels.singularity"))
         self.mainLayout.addWidget(self.singularityLabel)
         # self.singularityComboBox = AutoFixedComboBox(config_key="singularity")
-        self.singularityComboBox = MultiComboBox("singularity", self.config_obj)
+        self.singularityComboBox = MultiComboBox("singularity", self.config_obj, domain="singularity")
         self.singularityComboBox.addItems(singularity)
         self.mainLayout.addWidget(self.singularityComboBox)
-        self.liquidLabel = BodyLabel("液体")
+        self.liquidLabel = BodyLabel(tr("search.condition_tree.labels.liquid"))
         self.mainLayout.addWidget(self.liquidLabel)
-        self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type")
+        self.liquidComboBox = AutoFixedComboBox(config_key="liquid_type", domain="liquids")
         self.liquidComboBox.addItems(liquid)
         self.mainLayout.addWidget(self.liquidComboBox)
-        self.dspLevelLabel = BodyLabel("戴森球接收")
+        self.dspLevelLabel = BodyLabel(tr("search.condition_tree.labels.dsp_level"))
         self.mainLayout.addWidget(self.dspLevelLabel)
-        self.dspLevelComboBox = AutoFixedComboBox(config_key="dsp_level")
+        self.dspLevelComboBox = AutoFixedComboBox(config_key="dsp_level", domain="dsp_levels")
         self.dspLevelComboBox.addItems(dsp_level)
         self.mainLayout.addWidget(self.dspLevelComboBox)
         # self.fullCoverdPlanetSwitch = ConfigSwitchButton("是<u><i>否</i></u>全包", indicatorPos=1)
@@ -654,7 +661,7 @@ class PlanetTreeLeave(LeaveBase):
         # self.fullReceivePlanetSwitch.setOnText("<u><i>是</i></u>否全接收")
         # self.mainLayout.addWidget(self.fullReceivePlanetSwitch)
         # self.fullReceivePlanetSwitch.set_config(config_obj=config_obj, config_key="is_on_dsp")
-        self.hitStarNumLabel = BodyLabel("符合数量")
+        self.hitStarNumLabel = BodyLabel(tr("search.condition_tree.labels.satisfy_num"))
         self.mainLayout.addWidget(self.hitStarNumLabel)
         self.hitStarNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
         self.mainLayout.addWidget(self.hitStarNumLineEdit)
@@ -663,20 +670,22 @@ class PlanetTreeLeave(LeaveBase):
         self.hitStarNumLineEdit.setFixedHeight(28)
 
         self.veinsConditionButton = SettingsTreeLeave(
-            buttonText="矿脉数量",
+            buttonText=tr("search.condition_tree.buttons.veins_point"),
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
             obj_name="星球矿脉数量筛选",
-            description="设置星球内最少有多少对应矿脉数量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.planet_veins_point_title"),
+            description=tr("search.condition_tree.settings.planet_veins_point_description"),
         )
         self.veinsPointConditionButton = SettingsTreeLeave(
-            buttonText="矿脉储量",
+            buttonText=tr("search.condition_tree.buttons.veins_amount"),
             config_obj=config_obj,
             config_key="veins_amount_condition",
             items=VeinsName().model_dump(),
             obj_name="星球矿脉储量筛选",
-            description="设置星球内最少有多少对应矿脉储量, 不填写则不限制",
+            display_title=tr("search.condition_tree.settings.planet_veins_amount_title"),
+            description=tr("search.condition_tree.settings.planet_veins_amount_description"),
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         self.mainLayout.addWidget(self.veinsPointConditionButton)
@@ -696,7 +705,7 @@ class SortTree(TreeWidget):
         self.setUniformRowHeights(True)
         self.setColumnCount(3)
 
-        self.setHeaderLabels(["名称", "条件", "管理"])
+        self.setHeaderLabels([tr("search.condition_tree.headers.name"), tr("search.condition_tree.headers.condition"), tr("search.condition_tree.headers.manage")])
 
         header = self.header()
         header.setStretchLastSection(False)  # 最后一列拉伸
@@ -721,27 +730,27 @@ class SortTree(TreeWidget):
             return
         menu = RoundMenu("test", self)
         if not isinstance(item, GalaxyTreeWidgetItem):
-            del_action = Action("删除项")
+            del_action = Action(tr("search.condition_tree.menu.delete"))
             del_action.triggered.connect(
                 lambda: self.on_menu_del_action_triggered(item)
             )
             menu.addAction(del_action)
 
         if not isinstance(item, PlanetTreeWidgetItem) and not isinstance(item, MoonTreeWidgetItem):
-            add_action = Action("添加星球条件")
+            add_action = Action(tr("search.condition_tree.menu.add_planet"))
             add_action.triggered.connect(
                 lambda: self.on_menu_add_action_triggered(item)
             )
             menu.addAction(add_action)
         if isinstance(item, GalaxyTreeWidgetItem):
-            add_star_action = Action("添加恒星条件")
+            add_star_action = Action(tr("search.condition_tree.menu.add_star"))
             add_star_action.triggered.connect(
                 lambda: self.on_menu_add_star_action_triggered(item)
             )
             menu.addAction(add_star_action)
 
         if isinstance(item, PlanetTreeWidgetItem):
-            add_moon_action = Action("添加卫星条件")
+            add_moon_action = Action(tr("search.condition_tree.menu.add_moon"))
             add_moon_action.triggered.connect(
                 lambda: self.on_menu_add_moon_action_triggered(item)
             )

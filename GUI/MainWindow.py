@@ -82,7 +82,7 @@ class MainWindow(FluentWindow):
                 padding: 0 4px
             }
         """)
-        self.setWindowTitle("戴森球计划种子搜索查看器 made by 前前&哒哒")
+        self.setWindowTitle(tr("search.window_title"))
         self.setWindowIcon(AppIcons.LOGO.icon())
         width: int = 1320
         height: int = width // 16 * 8
@@ -111,11 +111,11 @@ class MainWindow(FluentWindow):
         self.aboutInterface = AboutInterface(self)
         self.aboutInterface.setObjectName("aboutLayout")
 
-        self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
+        self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text=tr("search.navigation.title"))
         self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text=tr("viewer.navigation.title"))
-        self.addSubInterface(self.tutorialInterface, icon=FluentIcon.HELP, text="使用教程")
-        self.addSubInterface(self.settingInterface, icon=FluentIcon.SETTING, text="设置")
-        self.addSubInterface(self.aboutInterface, icon=FluentIcon.INFO, text="关于")
+        self.addSubInterface(self.tutorialInterface, icon=FluentIcon.HELP, text=tr("navigation.tutorial"))
+        self.addSubInterface(self.settingInterface, icon=FluentIcon.SETTING, text=tr("navigation.settings"))
+        self.addSubInterface(self.aboutInterface, icon=FluentIcon.INFO, text=tr("navigation.about"))
 
         self.seed_manager = SeedManager()
         self.__build__()
@@ -137,8 +137,8 @@ class MainWindow(FluentWindow):
 
     def _waiting_thread_finish(self, thread) -> bool:
         message_box = MessageBox(
-            "有任务正在进行中，是否强制退出？",
-            "强制退出可能会导致部分结果未保存，建议先停止任务。",
+            tr("search.main.running_task_title"),
+            tr("search.main.running_task_content"),
             self.window(),
         )
         if message_box.exec() != 1:
@@ -176,37 +176,37 @@ class MainWindow(FluentWindow):
         self.searchLayout.setContentsMargins(10, 10, 10, 10)
 
     def __init__widgets__(self):
-        self.add_file_button = PushButton("导入种子")
+        self.add_file_button = PushButton(tr("search.main.import_seed"))
         self.add_file_button.clicked.connect(self.__on_add_file_button_clicked)
-        self.del_file_button = PushButton("清空种子")
+        self.del_file_button = PushButton(tr("search.main.clear_seed"))
         self.del_file_button.clicked.connect(self.__on_del_file_button_clicked)
         self.seed_info_label = ImportSeedInfo(self.seed_manager)
-        self.label_seed_range = BodyLabel("种子范围:")
+        self.label_seed_range = BodyLabel(tr("search.main.seed_range"))
         self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
         self.input_seed_start.setMaximumWidth(125)
         # self.input_seed_start.setMinimumWidth(80)
         self.input_seed_end = LimitLineEdit("end_seed", min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
         self.input_seed_end.setMaximumWidth(125)
         # self.input_seed_end.setMinimumWidth(80)
-        self.label_star_num = BodyLabel("恒星数:")
+        self.label_star_num = BodyLabel(tr("search.main.star_count"))
         self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64, default_value=32, empty_invisible=False)
         self.input_star_num_start.setMaximumWidth(125)
         self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
         self.input_star_num_end.setMaximumWidth(125)
-        self.label_resource_rate = BodyLabel("资源倍率:")
-        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config, "str", resource_rate_c)
+        self.label_resource_rate = BodyLabel(tr("search.main.resource_rate"))
+        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config, "str", resource_rate_c, domain="resource_rates")
         # self.label_batch_size = BodyLabel("批处理大小:")
         # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         # self.label_thread_num = BodyLabel("进程数:")
         # self.input_thread_num = LimitLineEdit("max_thread", min_value=1, max_value=128, default_value=cpu_count(), empty_invisible=False)
-        self.button_start = PushButton("开始搜索")
+        self.button_start = PushButton(tr("search.main.start"))
         self.button_start.clicked.connect(self.__on_button_start_clicked)
 
-        self.button_wait = PushButton("暂停搜索")
+        self.button_wait = PushButton(tr("search.main.pause"))
         self.button_wait.clicked.connect(self.__on_button_wait_clicked)
         self.button_wait.setEnabled(False)
 
-        self.button_stop = PushButton("停止搜索")
+        self.button_stop = PushButton(tr("search.main.stop"))
         self.button_stop.clicked.connect(self.__on_button_stop_clicked)
         self.button_stop.setEnabled(False)
 
@@ -222,13 +222,13 @@ class MainWindow(FluentWindow):
 
         self.topLayout.addWidget(self.label_seed_range)
         self.topLayout.addWidget(self.input_seed_start)
-        self.seed_to_label = BodyLabel("至")
+        self.seed_to_label = BodyLabel(tr("search.main.to"))
         self.topLayout.addWidget(self.seed_to_label)
         self.topLayout.addWidget(self.input_seed_end)
         # self.topLayout.addWidget(self.seed_step_range, 0, 4)
         self.topLayout.addWidget(self.label_star_num)
         self.topLayout.addWidget(self.input_star_num_start)
-        self.star_to_label = BodyLabel("至")
+        self.star_to_label = BodyLabel(tr("search.main.to"))
         self.topLayout.addWidget(self.star_to_label)
         self.topLayout.addWidget(self.input_star_num_end)
         self.topLayout.addWidget(self.label_resource_rate)
@@ -308,7 +308,7 @@ class MainWindow(FluentWindow):
             return
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            '选择CSV文件',
+            tr("search.main.select_csv"),
             '',
             'CSV Files (*.csv);'
         )

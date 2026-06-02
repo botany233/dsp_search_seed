@@ -2,6 +2,7 @@ from qfluentwidgets import LineEdit, BodyLabel, isDarkTheme, ToolTipFilter
 from PySide6.QtCore import QTimer
 from typing import Any, Literal
 from config import cfg
+from language import tr
 
 class LimitLineEdit(LineEdit):
     def __init__(
@@ -70,13 +71,13 @@ class LimitLineEdit(LineEdit):
             assert isinstance(value, float)
             value = round(value, 2)
         if value is None:
-            self.setPlaceholderText("请输入有效数字")
+            self.setPlaceholderText(tr("common.invalid_number"))
             self.setText("")
         elif self.min_value is not None and value < self.min_value:
-            self.setPlaceholderText(f"最小值为{self.min_value}")
+            self.setPlaceholderText(tr("common.min_value").format(value=self.min_value))
             self.setText("")
         elif self.max_value is not None and value > self.max_value:
-            self.setPlaceholderText(f"最大值为{self.max_value}")
+            self.setPlaceholderText(tr("common.max_value").format(value=self.max_value))
             self.setText("")
         else:
             self.setPlaceholderText("")

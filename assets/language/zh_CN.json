@@ -6,7 +6,28 @@
     },
     "common": {
         "confirm": "确定",
-        "cancel": "取消"
+        "cancel": "取消",
+        "invalid_number": "请输入有效数字",
+        "min_value": "最小值为{value}",
+        "max_value": "最大值为{value}",
+        "terminating": "结束进程中"
+    },
+    "navigation": {
+        "tutorial": "使用教程",
+        "settings": "设置",
+        "about": "关于"
+    },
+    "tutorial": {
+        "load_error_title": "加载文件时出错",
+        "load_error_message": "错误信息: {error}",
+        "load_error_hint": "请确保文件存在且可读。"
+    },
+    "about": {
+        "github_tooltip": "我是链接~~",
+        "title": "戴森球计划种子搜索查找器",
+        "author": "----前前&哒哒",
+        "update_ready": "新版本就绪!",
+        "update_ready_version": "新版本 {version} 就绪! "
     },
     "settings": {
         "basic": {
@@ -44,6 +65,88 @@
             "max_value": "最大值为{value}",
             "thread_result": "线程 {thread}: {speed:.1f} planets/s",
             "best": "最优:"
+        }
+    },
+    "search": {
+        "window_title": "戴森球计划种子搜索查看器 made by 前前&哒哒",
+        "navigation": {
+            "title": "种子搜索器"
+        },
+        "main": {
+            "import_seed": "导入种子",
+            "clear_seed": "清空种子",
+            "seed_range": "种子范围:",
+            "star_count": "恒星数:",
+            "resource_rate": "资源倍率:",
+            "start": "开始搜索",
+            "pause": "暂停搜索",
+            "stop": "停止搜索",
+            "to": "至",
+            "select_csv": "选择CSV文件",
+            "running_task_title": "有任务正在进行中，是否强制退出？",
+            "running_task_content": "强制退出可能会导致部分结果未保存，建议先停止任务。"
+        },
+        "status": {
+            "range_mode": "范围搜索",
+            "precise_mode": "二次搜索",
+            "standard_mode": "标准模式",
+            "quick_mode": "快速模式",
+            "output_file_name": "输出文件名称 ",
+            "seed_count": "种子数：{count}",
+            "found_summary": "累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed_id}, {last_star_num}",
+            "progress": "搜索进度: {finish_task}/{total_task}({percent}%)",
+            "completed": "搜索完成！用时{time}"
+        },
+        "condition_tree": {
+            "headers": {
+                "name": "名称",
+                "condition": "条件",
+                "manage": "管理"
+            },
+            "labels": {
+                "star_type": "恒星类型",
+                "planet_type": "星球类型",
+                "singularity": "特点",
+                "liquid": "液体",
+                "dsp_level": "戴森球接收",
+                "lumino": "光度级别",
+                "distance": "最远距离",
+                "satisfy_num": "符合数量"
+            },
+            "buttons": {
+                "veins_point": "矿脉数量",
+                "veins_amount": "矿脉储量"
+            },
+            "tooltips": {
+                "add_star": "添加恒星条件",
+                "add_planet": "添加星球条件",
+                "add_moon": "添加卫星条件",
+                "delete": "点击删除该项及其子项"
+            },
+            "menu": {
+                "delete": "删除项",
+                "add_star": "添加恒星条件",
+                "add_planet": "添加星球条件",
+                "add_moon": "添加卫星条件"
+            },
+            "no_limit": "无限制",
+            "selected_count": "已选{count}项",
+            "settings": {
+                "return": "返回",
+                "oil_rate_label": "油(单位: /s)",
+                "galaxy_veins_point_title": "星系矿脉数量筛选",
+                "galaxy_veins_amount_title": "星系矿脉储量筛选",
+                "star_veins_point_title": "恒星系矿脉数量筛选",
+                "star_veins_amount_title": "恒星系矿脉储量筛选",
+                "planet_veins_point_title": "星球矿脉数量筛选",
+                "planet_veins_amount_title": "星球矿脉储量筛选",
+                "galaxy_veins_point_description": "设置星系内最少有多少对应矿脉数量, 不填写则不限制",
+                "galaxy_veins_amount_description": "设置星系内最少有多少对应矿脉储量, 不填写则不限制",
+                "star_veins_point_description": "设置恒星系内最少有多少对应矿脉数量, 不填写则不限制",
+                "star_veins_amount_description": "设置恒星系内最少有多少对应矿脉储量, 不填写则不限制",
+                "planet_veins_point_description": "设置星球内最少有多少对应矿脉数量, 不填写则不限制",
+                "planet_veins_amount_description": "设置星球内最少有多少对应矿脉储量, 不填写则不限制"
+            }
         }
     },
     "viewer": {
@@ -145,6 +248,28 @@
                 "dsp_level": "戴森球接收",
                 "wind_usage": "风能利用率",
                 "light_usage": "光能利用率"
+            },
+            "csv": {
+                "seed_id": "种子id",
+                "star_count": "恒星数",
+                "resource_rate": "资源倍率",
+                "star_name": "恒星名称",
+                "star_type": "恒星类型",
+                "star_lumino": "恒星亮度",
+                "star_distance": "恒星距离",
+                "star_coord": "恒星坐标_{axis}",
+                "name": "名称",
+                "type": "类型",
+                "traits": "词条",
+                "dsp_reception": "戴森球接收",
+                "liquid": "液体",
+                "no_liquid": "无液体",
+                "wind_usage": "风能利用率",
+                "light_usage": "光能利用率",
+                "distance": "距离",
+                "coord": "坐标_{axis}",
+                "lumino": "亮度",
+                "dyson_radius": "戴森球半径"
             }
         }
     },
@@ -198,6 +323,7 @@
             "可燃冰": "可燃冰"
         },
         "liquids": {
+            "无限制": "无限制",
             "水": "水",
             "硫酸": "硫酸",
             "无液体": "无液体"
@@ -254,12 +380,19 @@
             "反向自转": "反向自转"
         },
         "dsp_levels": {
+            "无限制": "无限制",
             "全接收": "全接收",
             "全包": "全包"
         },
         "dsp_planets": {
             "全接收星": "全接收星",
             "全包星": "全包星"
+        },
+        "condition_names": {
+            "星系条件": "星系条件",
+            "恒星系条件": "恒星系条件",
+            "星球条件": "星球条件",
+            "卫星条件": "卫星条件"
         }
     }
 }
