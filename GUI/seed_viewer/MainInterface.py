@@ -8,6 +8,7 @@ from qfluentwidgets import BodyLabel, PushButton
 from CApi import GetDataManager, resource_rate_c
 # from config import cfg
 # from logger import log
+from language import tr
 from .Compoents import *
 from .sort_seed import SortThread
 
@@ -45,7 +46,7 @@ class ViewerInterface(QFrame):
         self.leftLayout.setContentsMargins(0, 0, 0, 0)
 
         resource_rate_layout = QHBoxLayout()
-        resource_rate_layout.addWidget(BodyLabel("资源倍率："))
+        resource_rate_layout.addWidget(BodyLabel(tr("viewer.main.resource_rate")))
         self.resource_rate_combo = ResourceRateComboBox()
         resource_rate_layout.addWidget(self.resource_rate_combo)
         self.leftLayout.addLayout(resource_rate_layout)
@@ -61,12 +62,12 @@ class ViewerInterface(QFrame):
 
         self.seed_table_button_layout = QHBoxLayout()
 
-        self.delete_button = PushButton("删除选中种子")
+        self.delete_button = PushButton(tr("viewer.main.delete_selected"))
         self.delete_button.setFixedHeight(30)
         self.delete_button.clicked.connect(self.__on_delete_button_clicked)
         self.seed_table_button_layout.addWidget(self.delete_button)
 
-        self.manual_add_button = PushButton("手动加入种子")
+        self.manual_add_button = PushButton(tr("viewer.main.manual_add"))
         self.manual_add_button.setFixedHeight(30)
         self.manual_add_button.clicked.connect(self.__on_manual_add_button_clicked)
         self.seed_table_button_layout.addWidget(self.manual_add_button)
@@ -75,12 +76,12 @@ class ViewerInterface(QFrame):
 
         self.seed_button_layout = QHBoxLayout()
 
-        self.add_button = PushButton("导入种子")
+        self.add_button = PushButton(tr("viewer.main.import_seed"))
         self.add_button.setFixedHeight(30)
         self.add_button.clicked.connect(self.__on_add_button_clicked)
         self.seed_button_layout.addWidget(self.add_button)
 
-        self.export_button = PushButton("导出种子")
+        self.export_button = PushButton(tr("viewer.main.export_seed"))
         self.export_button.setFixedHeight(30)
         self.export_button.clicked.connect(self.__on_export_button_clicked)
         self.seed_button_layout.addWidget(self.export_button)
@@ -108,11 +109,11 @@ class ViewerInterface(QFrame):
         self.sort_order_switch = SortOrderSwitch()
         self.quick_sort_switch = QuickSortSwitch()
 
-        self.progress_label = BodyLabel("进度: 0/0 (0%)")
+        self.progress_label = BodyLabel(tr("viewer.progress.initial"))
 
-        self.start_button = PushButton("开始排序")
+        self.start_button = PushButton(tr("viewer.main.start_sort"))
         self.start_button.clicked.connect(self.__on_start_button_clicked)
-        self.stop_button = PushButton("停止排序")
+        self.stop_button = PushButton(tr("viewer.main.stop_sort"))
         self.stop_button.clicked.connect(self.__on_stop_button_clicked)
         self.stop_button.setEnabled(False)
 
@@ -142,7 +143,7 @@ class ViewerInterface(QFrame):
         if self.sort_thread.isRunning():
             return
         if self.seed_list.get_seed_num()[0] < 1:
-            self.progress_label.setText("<font color='red'>请导入种子，再排序！</font>")
+            self.progress_label.setText(f"<font color='red'>{tr('viewer.progress.no_seed_for_sort')}</font>")
             return
         self.start_button.setEnabled(False)
         self.stop_button.setEnabled(True)
@@ -165,9 +166,9 @@ class ViewerInterface(QFrame):
         self.seed_scroll.disable_context_menu = False
 
     def __on_sort_completed(self) -> None:
-        self.progress_label.setText("排序中...")
+        self.progress_label.setText(tr("viewer.progress.sorting"))
         self.seed_scroll.do_sort(self.sort_order_switch.isChecked())
-        self.progress_label.setText("排序完成！")
+        self.progress_label.setText(tr("viewer.progress.completed"))
 
     def __on_select_seed_change(self):
         select_seed = self.seed_scroll.get_select_seed()
@@ -175,7 +176,7 @@ class ViewerInterface(QFrame):
             return
 
         seed_id, star_num = select_seed[0]
-        resource_index = resource_rate_c.index(self.resource_rate_combo.currentText())
+        resource_index = self.resource_rate_combo.current_resource_index()
         if self.current_select == (seed_id, star_num, resource_index):
             return
         self.current_select = (seed_id, star_num, resource_index)
@@ -218,7 +219,7 @@ class ViewerInterface(QFrame):
     def __on_export_button_clicked(self) -> None:
         file_path, _ = QFileDialog.getSaveFileName(
             self,
-            "保存文件",
+            tr("viewer.main.save_file"),
             "export_seed",
             "CSV Files (*.csv);"
         )
@@ -235,7 +236,7 @@ class ViewerInterface(QFrame):
     def __on_add_button_clicked(self) -> None:
         file_paths, _ = QFileDialog.getOpenFileNames(
             self,
-            '选择CSV文件',
+            tr("viewer.main.select_csv"),
             '',
             'CSV Files (*.csv);'
         )

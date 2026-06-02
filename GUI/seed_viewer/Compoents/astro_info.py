@@ -8,6 +8,7 @@ from CApi import GalaxyData, StarData, PlanetData, vein_names_c, star_types_c, r
 from GUI.Compoents.Widgets import GlowLabelBase
 from GUI.dsp_icons import DSPIcons
 from GUI import singularity
+from language import tr, tr_any_domain, tr_domain
 
 class GlowBodyLabel(GlowLabelBase, BodyLabel):
     def _init(self):
@@ -123,30 +124,33 @@ class InfoBase(QWidget):
         old_sub_title = self.sub_title_label.text()
         old_glow_title = self.sub_title_glow_label.text()
         if isinstance(title, str):
+            display_title = tr_any_domain(title)
             if title in GLOW_LIST:
-                self.sub_title_glow_label.setText(old_glow_title + title)
+                self.sub_title_glow_label.setText(old_glow_title + display_title)
             else:
-                self.sub_title_label.setText(old_sub_title + title)
+                self.sub_title_label.setText(old_sub_title + display_title)
         else:
             for text in title:
+                display_text = tr_any_domain(text)
                 if text in GLOW_LIST:
                     if old_glow_title != "":
                         old_glow_title += " "
-                    self.sub_title_glow_label.setText(old_glow_title + text)
+                    self.sub_title_glow_label.setText(old_glow_title + display_text)
                     old_glow_title = self.sub_title_glow_label.text()
                 else:
                     if old_sub_title != "":
                         old_sub_title += " "
-                    self.sub_title_label.setText(old_sub_title + text)
+                    self.sub_title_label.setText(old_sub_title + display_text)
                     old_sub_title = self.sub_title_label.text()
 
     def add_veins(self, veins: list[str]) -> None:
         for vein in veins:
             name, value = vein.split("：")
+            display_name = tr_any_domain(name)
             if name in GLOW_LIST:
-                vein_label = GlowCaptionLabel(name)
+                vein_label = GlowCaptionLabel(display_name)
             else:
-                vein_label = InfoLabel(name)
+                vein_label = InfoLabel(display_name)
             vein_value_label = InfoLabel(value)
             icon = InfoLabel("")
             icon.setPixmap(QPixmap(DSPIcons.match_icon(name).path()).scaled(17,17))
@@ -163,7 +167,7 @@ class InfoBase(QWidget):
         df_count = (self.veins_count - count) // 2
         for i in range(count):
             name, value = stars[i].split("：")
-            star_name_label = InfoLabel(name)
+            star_name_label = InfoLabel(tr_domain("star_types", name))
             star_value_label = InfoLabel(value)
             self.veins_layout.addWidget(star_name_label, i + df_count, 3)
             self.veins_layout.addWidget(star_value_label, i + df_count, 4)
@@ -174,8 +178,8 @@ class GalaxyInfo(InfoBase):
     def __init__(self, data: GalaxyData, parent=None):
         super().__init__(data, parent)
         self.bottom_separator.hide()
-        self.title_label.setText("星系信息")
-        self.sub_title_label.setText(f"{data.star_num}星")
+        self.title_label.setText(tr("viewer.astro.galaxy_info"))
+        self.sub_title_label.setText(tr("viewer.astro.star_count").format(star_num=data.star_num))
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
@@ -192,14 +196,15 @@ class StarInfo(InfoBase):
 
         self.title_label.setText(data.name)
 
-        self.sub_title_label.setText(data.type)
+        self.sub_title_label.setText(tr_domain("star_types", data.type))
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
-        other_label = CaptionLabel(f'''\
-戴森球半径：{data.dyson_radius:.0f}m
-戴森球光度：{data.dyson_lumino:.3f}L
-距离：{data.distance:.2f}LY''')
+        other_label = CaptionLabel("\n".join([
+            tr("viewer.astro.dyson_radius").format(value=data.dyson_radius),
+            tr("viewer.astro.dyson_lumino").format(value=data.dyson_lumino),
+            tr("viewer.astro.distance").format(value=data.distance),
+        ]))
         self.main_layout.addWidget(other_label)
 
 class PlanetInfo(InfoBase):
@@ -217,9 +222,10 @@ class PlanetInfo(InfoBase):
         self.add_subtitle(sub_title_text)
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid, data.is_gas))
-        other_label = CaptionLabel(f'''\
-风能利用率：{data.wind:.0%}
-光能利用率：{data.lumino:.0%}''')
+        other_label = CaptionLabel("\n".join([
+            tr("viewer.astro.wind_usage").format(value=data.wind),
+            tr("viewer.astro.light_usage").format(value=data.lumino),
+        ]))
         self.main_layout.addWidget(other_label)
 
 def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: list[float], liquid: list[int]|int, is_gas = False) -> list[str]:
@@ -230,7 +236,7 @@ def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: l
     if not is_gas:
         for i in range(6):
             if is_infinite_resource:
-                text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
+                text.append(f"{vein_names_c[i]}：{veins_point[i]}({tr('viewer.astro.infinite')})")
             else:
                 text.append(f"{vein_names_c[i]}：{veins_point[i]}({get_amount_str(veins_amount[i])})")
         
@@ -240,14 +246,14 @@ def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: l
         for i in range(7, 14):
             if veins_point[i] > 0:
                 if is_infinite_resource:
-                    text.append(f"{vein_names_c[i]}：{veins_point[i]}（无限）")
+                    text.append(f"{vein_names_c[i]}：{veins_point[i]}({tr('viewer.astro.infinite')})")
                 else:
                     text.append(f"{vein_names_c[i]}：{veins_point[i]}({get_amount_str(veins_amount[i])})")
         if isinstance(liquid, int):
             if liquid == 1:
-                text.append("水：海洋")
+                text.append(f"水：{tr('viewer.astro.ocean')}")
             elif liquid == 2:
-                text.append("硫酸：海洋")
+                text.append(f"硫酸：{tr('viewer.astro.ocean')}")
         else:
             if liquid[1] > 0:
                 text.append(f"水：{liquid[1]}")

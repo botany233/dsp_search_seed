@@ -5,7 +5,8 @@
         "native_name": "English"
     },
     "common": {
-        "confirm": "OK"
+        "confirm": "OK",
+        "cancel": "Cancel"
     },
     "settings": {
         "basic": {
@@ -18,6 +19,222 @@
         "language": {
             "restart_title": "Language Changed",
             "restart_content": "Language preference has been saved. Restart the app to apply it."
+        }
+    },
+    "viewer": {
+        "navigation": {
+            "title": "Seed Viewer"
+        },
+        "main": {
+            "resource_rate": "Resource Rate:",
+            "delete_selected": "Delete Selected",
+            "manual_add": "Add Manually",
+            "import_seed": "Import Seeds",
+            "export_seed": "Export Seeds",
+            "start_sort": "Start Sorting",
+            "stop_sort": "Stop Sorting",
+            "save_file": "Save File",
+            "select_csv": "Select CSV File"
+        },
+        "progress": {
+            "initial": "Progress: 0/0 (0%)",
+            "no_seed_for_sort": "Please import seeds before sorting.",
+            "sorting": "Sorting...",
+            "completed": "Sorting completed.",
+            "generating_tasks": "Generating tasks...",
+            "cancelled": "Sorting cancelled"
+        },
+        "table": {
+            "seed_id": "Seed ID",
+            "star_num": "Stars",
+            "sort_value": "Sort Value",
+            "menu_disabled": "Sorting, menu disabled",
+            "export_selected": "Export Selected Seeds"
+        },
+        "manual_add": {
+            "title": "Add Seed Manually",
+            "seed_id": "Seed ID",
+            "star_num": "Star Count",
+            "invalid_seed": "Invalid seed.",
+            "seed_exists": "Seed already exists."
+        },
+        "seed_text": {
+            "count": "Seeds: {seed_num}/{max_seed}"
+        },
+        "switch": {
+            "descending": "Descending",
+            "ascending": "Ascending",
+            "standard": "Standard Mode",
+            "quick": "Quick Mode"
+        },
+        "astro_tree": {
+            "type": "Type",
+            "info": "Info",
+            "loading": "Loading...",
+            "galaxy": "Galaxy"
+        },
+        "astro": {
+            "galaxy_info": "Galaxy Info",
+            "star_count": "{star_num} stars",
+            "dyson_radius": "Dyson sphere radius: {value:.0f}m",
+            "dyson_lumino": "Dyson sphere luminosity: {value:.3f}L",
+            "distance": "Distance: {value:.2f}LY",
+            "wind_usage": "Wind usage: {value:.0%}",
+            "light_usage": "Light usage: {value:.0%}",
+            "infinite": "Infinite",
+            "ocean": "Ocean"
+        },
+        "export": {
+            "title": "Select Export Content",
+            "resource_rate": "Resource Rate: ",
+            "galaxy_section": "Galaxy Information",
+            "star_section": "Star Information",
+            "planet_section": "Planet Information",
+            "create_galaxy_table": "Create Galaxy Table",
+            "create_star_table": "Create Star Table",
+            "create_planet_table": "Create Planet Table",
+            "preview": "Preview",
+            "export": "Export",
+            "select_folder": "Select Save Folder",
+            "generating_tasks": "Generating tasks...",
+            "cancelling_tasks": "Cancelling tasks...",
+            "fields": {
+                "star_types": "Star Types",
+                "planet_types": "Planet Types",
+                "liquid": "Liquid",
+                "gas_veins": "Gas Veins",
+                "veins_point": "Vein Count",
+                "veins_amount": "Vein Amount",
+                "type": "Type",
+                "distance": "Distance",
+                "location": "Location",
+                "ds_lumino": "Luminosity",
+                "ds_radius": "Dyson Sphere Radius",
+                "star_name": "Star Name",
+                "star_type": "Star Type",
+                "star_lumino": "Star Luminosity",
+                "star_distance": "Star Distance",
+                "star_location": "Star Location",
+                "planet_type": "Planet Type",
+                "singularity": "Traits",
+                "dsp_level": "Dyson Reception",
+                "wind_usage": "Wind Usage",
+                "light_usage": "Light Usage"
+            }
+        }
+    },
+    "domain": {
+        "sort_types": {
+            "矿脉数量": "Vein Count",
+            "矿脉储量": "Vein Amount",
+            "行星类别": "Planet Type",
+            "恒星类别": "Star Type",
+            "自定义": "Custom"
+        },
+        "custom_sort_types": {
+            "例子：种子号": "Example: Seed ID",
+            "例子：恒星数": "Example: Star Count",
+            "自定义1": "Custom 1",
+            "自定义2": "Custom 2",
+            "自定义3": "Custom 3"
+        },
+        "resource_rates": {
+            "极少": "Very Rare",
+            "0.3倍": "0.3x",
+            "0.5倍": "0.5x",
+            "0.8倍": "0.8x",
+            "1倍": "1x",
+            "1.5倍": "1.5x",
+            "2倍": "2x",
+            "3倍": "3x",
+            "5倍": "5x",
+            "8倍": "8x",
+            "无限": "Infinite"
+        },
+        "veins": {
+            "铁": "Iron",
+            "铜": "Copper",
+            "硅": "Silicon",
+            "钛": "Titanium",
+            "石": "Stone",
+            "煤": "Coal",
+            "油": "Oil",
+            "可燃冰": "Fire Ice",
+            "金伯利": "Kimberlite Ore",
+            "分型硅": "Fractal Silicon",
+            "有机晶体": "Organic Crystal",
+            "光栅石": "Optical Grating Crystal",
+            "刺笋结晶": "Spiniform Stalagmite Crystal",
+            "单极磁石": "Unipolar Magnet"
+        },
+        "gas_veins": {
+            "氢": "Hydrogen",
+            "重氢": "Deuterium",
+            "可燃冰": "Fire Ice"
+        },
+        "liquids": {
+            "水": "Water",
+            "硫酸": "Sulfuric Acid",
+            "无液体": "No Liquid"
+        },
+        "planet_types": {
+            "地中海": "Mediterranean",
+            "气态巨星": "Gas Giant",
+            "冰巨星": "Ice Giant",
+            "高产气巨": "High-Yield Gas Giant",
+            "干旱荒漠": "Arid Desert",
+            "灰烬冻土": "Ashen Gelisol",
+            "海洋丛林": "Oceanic Jungle",
+            "熔岩": "Lava",
+            "冰原冻土": "Ice Field Gelisol",
+            "贫瘠荒漠": "Barren Desert",
+            "戈壁": "Gobi",
+            "火山灰": "Volcanic Ash",
+            "红石": "Red Stone",
+            "草原": "Prairie",
+            "水世界": "Waterworld",
+            "黑石盐滩": "Blackstone Salt Flats",
+            "樱林海": "Sakura Ocean",
+            "飓风石林": "Hurricane Stone Forest",
+            "猩红冰湖": "Scarlet Ice Lake",
+            "热带草原": "Tropical Grassland",
+            "橙晶荒漠": "Orange Crystal Desert",
+            "极寒冻土": "Frigid Gelisol",
+            "潘多拉沼泽": "Pandora Swamp"
+        },
+        "star_types": {
+            "红巨星": "Red Giant",
+            "黄巨星": "Yellow Giant",
+            "蓝巨星": "Blue Giant",
+            "白巨星": "White Giant",
+            "白矮星": "White Dwarf",
+            "中子星": "Neutron Star",
+            "黑洞": "Black Hole",
+            "A型恒星": "Type A Star",
+            "B型恒星": "Type B Star",
+            "F型恒星": "Type F Star",
+            "G型恒星": "Type G Star",
+            "K型恒星": "Type K Star",
+            "M型恒星": "Type M Star",
+            "O型恒星": "Type O Star"
+        },
+        "singularity": {
+            "卫星": "Satellite",
+            "多卫星": "Multiple Satellites",
+            "潮汐锁定": "Tidal Locking",
+            "潮汐锁定永昼永夜": "Tidal Locking",
+            "轨道共振1:2": "Orbital Resonance 1:2",
+            "轨道共振1:4": "Orbital Resonance 1:4",
+            "横躺自转": "Horizontal Rotation",
+            "反向自转": "Retrograde Rotation"
+        },
+        "dsp_levels": {
+            "全接收": "Full Receiver",
+            "全包": "Fully Covered"
+        },
+        "dsp_planets": {
+            "全接收星": "Full Receiver Planet",
+            "全包星": "Fully Covered Planet"
         }
     }
 }

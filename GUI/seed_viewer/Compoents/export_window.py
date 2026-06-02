@@ -17,6 +17,7 @@ from qfluentwidgets import (
 from GUI.Compoents import ConfigCheckBox
 from CApi import GetDataManager, resource_rate_c
 from config import cfg
+from language import tr
 
 from .combox import ResourceRateComboBox
 from .save_seed_info import save_seed_info
@@ -95,10 +96,10 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self._init_button()
 
         title_layout = QHBoxLayout()
-        title = TitleLabel("选择导出内容")
+        title = TitleLabel(tr("viewer.export.title"))
         title_layout.addWidget(title, alignment=Qt.AlignmentFlag.AlignTop| Qt.AlignmentFlag.AlignLeft)
         resource_rate_layout = QHBoxLayout()
-        resource_rate_layout.addWidget(BodyLabel("资源倍率: "))
+        resource_rate_layout.addWidget(BodyLabel(tr("viewer.export.resource_rate")))
         self.resource_rate_combox = ResourceRateComboBox()
         resource_rate_layout.addWidget(self.resource_rate_combox)
         title_layout.addLayout(resource_rate_layout)
@@ -142,12 +143,12 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
     def __init__galaxy(self):
         curTitleLayout = QHBoxLayout()
         curTitleLayout.setContentsMargins(0, 0, 0, 0)
-        curTitleLayout.addWidget(BodyLabel("选择导出的星系信息"), alignment=Qt.AlignmentFlag.AlignLeft)
-        curTitleLayout.addWidget(ConfigCheckBox("创建星系表", config_key="enable", config_obj=cfg.config.csv.galaxy), alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout.addWidget(BodyLabel(tr("viewer.export.galaxy_section")), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_galaxy_table"), config_key="enable", config_obj=cfg.config.csv.galaxy), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
-            [("恒星类型", "star_types"), ("行星类型", "planet_types")],
-            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
+            [(tr("viewer.export.fields.star_types"), "star_types"), (tr("viewer.export.fields.planet_types"), "planet_types")],
+            [(tr("viewer.export.fields.liquid"), "liquid"), (tr("viewer.export.fields.gas_veins"), "gas_veins"), (tr("viewer.export.fields.veins_point"), "veins_point"), (tr("viewer.export.fields.veins_amount"), "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -164,12 +165,12 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
     def __init__star(self):
         curTitleLayout = QHBoxLayout()
         curTitleLayout.setContentsMargins(0, 0, 0, 0)
-        curTitleLayout.addWidget(BodyLabel("选择导出的恒星信息"), alignment=Qt.AlignmentFlag.AlignLeft)
-        curTitleLayout.addWidget(ConfigCheckBox("创建恒星表", config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout.addWidget(BodyLabel(tr("viewer.export.star_section")), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_star_table"), config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
-            [("类型", "type"), ("距离", "distance"), ("坐标", "location"), ("亮度", "ds_lumino"), ("戴森球半径", "ds_radius")],
-            [("液体", "liquid"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
+            [(tr("viewer.export.fields.type"), "type"), (tr("viewer.export.fields.distance"), "distance"), (tr("viewer.export.fields.location"), "location"), (tr("viewer.export.fields.ds_lumino"), "ds_lumino"), (tr("viewer.export.fields.ds_radius"), "ds_radius")],
+            [(tr("viewer.export.fields.liquid"), "liquid"), (tr("viewer.export.fields.gas_veins"), "gas_veins"), (tr("viewer.export.fields.veins_point"), "veins_point"), (tr("viewer.export.fields.veins_amount"), "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -186,13 +187,13 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
     def __init__planet(self):
         curTitleLayout = QHBoxLayout()
         curTitleLayout.setContentsMargins(0, 0, 0, 0)
-        curTitleLayout.addWidget(BodyLabel("选择导出的行星信息"), alignment=Qt.AlignmentFlag.AlignLeft)
-        curTitleLayout.addWidget(ConfigCheckBox("创建行星表", config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout.addWidget(BodyLabel(tr("viewer.export.planet_section")), alignment=Qt.AlignmentFlag.AlignLeft)
+        curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_planet_table"), config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
-            [("恒星名称", "star_name"), ("恒星类型", "star_type"), ("恒星光度", "star_lumino"), ("恒星距离", "star_distance"), ("恒星坐标", "star_location")],
-            [("星球类型", "planet_type"), ("词条", "singularity"), ("戴森球接收", "dsp_level"), ("液体", "liquid")],
-            [("风能利用率", "wind_usage"), ("光能利用率", "light_usage"), ("气体矿脉", "gas_veins"), ("矿脉数量", "veins_point"), ("矿脉储量", "veins_amount")]
+            [(tr("viewer.export.fields.star_name"), "star_name"), (tr("viewer.export.fields.star_type"), "star_type"), (tr("viewer.export.fields.star_lumino"), "star_lumino"), (tr("viewer.export.fields.star_distance"), "star_distance"), (tr("viewer.export.fields.star_location"), "star_location")],
+            [(tr("viewer.export.fields.planet_type"), "planet_type"), (tr("viewer.export.fields.singularity"), "singularity"), (tr("viewer.export.fields.dsp_level"), "dsp_level"), (tr("viewer.export.fields.liquid"), "liquid")],
+            [(tr("viewer.export.fields.wind_usage"), "wind_usage"), (tr("viewer.export.fields.light_usage"), "light_usage"), (tr("viewer.export.fields.gas_veins"), "gas_veins"), (tr("viewer.export.fields.veins_point"), "veins_point"), (tr("viewer.export.fields.veins_amount"), "veins_amount")]
         ]
 
         curGridLayout = QGridLayout()
@@ -213,8 +214,8 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         self.buttonLayout.setSpacing(10)
         self.mainLayout.addStretch()
         self.mainLayout.addWidget(self.buttonGroup)
-        self.yesButton = PrimaryPushButton("导出")
-        self.cancelButton = PushButton("取消")
+        self.yesButton = PrimaryPushButton(tr("viewer.export.export"))
+        self.cancelButton = PushButton(tr("common.cancel"))
         self.buttonLayout.addWidget(self.yesButton)
         self.buttonLayout.addWidget(self.cancelButton)
         qss = """
@@ -233,7 +234,7 @@ class PreviewWindow(QFrame, Ui_MessageBox):
         self._setUpUi(self)
         self._lock_resize = False
 
-        self.title = BodyLabel("预览")
+        self.title = BodyLabel(tr("viewer.export.preview"))
         self.mainLayout.addWidget(self.title)
     
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -282,17 +283,17 @@ QFrame {
 
         dir_path = QFileDialog.getExistingDirectory(
             self,
-            "选择保存文件夹",
+            tr("viewer.export.select_folder"),
             # "export_seed"
         )
 
         if not dir_path:
             return False
         
-        resource_index = resource_rate_c.index(self.left_dialog.resource_rate_combox.currentText())
+        resource_index = self.left_dialog.resource_rate_combox.current_resource_index()
 
         self.is_running = True
-        self.left_dialog.progress_text.setText("正在生成任务...")
+        self.left_dialog.progress_text.setText(tr("viewer.export.generating_tasks"))
         self.left_dialog.yesButton.setEnabled(False)
         QApplication.processEvents()
         finish_num, task_num = 0, len(self.selected_seeds)
@@ -333,7 +334,7 @@ QFrame {
     def _onCancelButtonClicked(self):
         if self.is_running:
             self.is_running = False
-            self.left_dialog.progress_text.setText("正在取消任务...")
+            self.left_dialog.progress_text.setText(tr("viewer.export.cancelling_tasks"))
             QApplication.processEvents()
         self.reject()
 

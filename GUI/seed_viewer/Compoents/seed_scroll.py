@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QTableWidgetItem, QApplication, QTableWidget
 from PySide6.QtCore import QObject, Qt, Signal, QMutex, QMutexLocker
 from qfluentwidgets import TableWidget, TableItemDelegate, RoundMenu, CheckableMenu, Action, FluentIcon, MenuIndicatorType
 from logger import log
+from language import tr
 
 from .seed_list import SeedList
 from .export_window import ExportWindow
@@ -20,7 +21,7 @@ class SeedScroll(TableWidget):
         self.setEditTriggers(TableWidget.NoEditTriggers)
         self.setItemDelegate(TableItemDelegate(self))
         self.setColumnCount(3)
-        self.setHorizontalHeaderLabels(["种子id", "恒星数", "排序值"])
+        self.setHorizontalHeaderLabels([tr("viewer.table.seed_id"), tr("viewer.table.star_num"), tr("viewer.table.sort_value")])
         self.verticalHeader().hide()
         self.setColumnWidth(0, 105)
         self.setColumnWidth(1, 60)
@@ -41,11 +42,11 @@ class SeedScroll(TableWidget):
     def __on_menu_requested(self, pos):
         menu = RoundMenu()
         if self.disable_context_menu:
-            menu.addAction(Action("搜索中, 禁用菜单"))
+            menu.addAction(Action(tr("viewer.table.menu_disabled")))
             menu.exec(self.viewport().mapToGlobal(pos))
             menu.closedSignal.connect(menu.deleteLater)
             return
-        output_csv_action = Action("导出选中种子", triggered=self._export_select)
+        output_csv_action = Action(tr("viewer.table.export_selected"), triggered=self._export_select)
         menu.addAction(output_csv_action)
 
         # select_all_action = Action("全选" if not self.all_selected else "取消全选")

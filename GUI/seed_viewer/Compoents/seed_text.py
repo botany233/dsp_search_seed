@@ -1,4 +1,5 @@
 from qfluentwidgets import CaptionLabel
+from language import tr
 
 from .seed_list import SeedList
 
@@ -10,4 +11,4 @@ class SeedText(CaptionLabel):
 
     def fresh(self):
         seed_num, max_seed = self.seed_list.get_seed_num()
-        self.setText(f"种子数: {seed_num}/{max_seed}")
+        self.setText(tr("viewer.seed_text.count").format(seed_num=seed_num, max_seed=max_seed))

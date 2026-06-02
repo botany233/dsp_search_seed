@@ -35,6 +35,7 @@ from qfluentwidgets import (
 
 from config import cfg
 from logger import log
+from language import tr
 
 from .search_seed import SearchThread
 from .Messenger import SearchMessages
@@ -111,7 +112,7 @@ class MainWindow(FluentWindow):
         self.aboutInterface.setObjectName("aboutLayout")
 
         self.addSubInterface(self.searchInterface, icon=FluentIcon.SEARCH_MIRROR, text="种子搜索器")
-        self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text="种子查看器")
+        self.addSubInterface(self.viewerInterface, icon=FluentIcon.VIEW, text=tr("viewer.navigation.title"))
         self.addSubInterface(self.tutorialInterface, icon=FluentIcon.HELP, text="使用教程")
         self.addSubInterface(self.settingInterface, icon=FluentIcon.SETTING, text="设置")
         self.addSubInterface(self.aboutInterface, icon=FluentIcon.INFO, text="关于")

@@ -1,15 +1,16 @@
 from qfluentwidgets import SwitchButton
+from language import tr
 
 class SortOrderSwitch(SwitchButton):
     def __init__(self):
         super().__init__()
         self.setChecked(False)
-        self.setOffText("降序排列")
-        self.setOnText("升序排列")
+        self.setOffText(tr("viewer.switch.descending"))
+        self.setOnText(tr("viewer.switch.ascending"))
 
 class QuickSortSwitch(SwitchButton):
     def __init__(self):
         super().__init__()
         self.setChecked(True)
-        self.setOffText("标准模式")
-        self.setOnText("快速模式")
+        self.setOffText(tr("viewer.switch.standard"))
+        self.setOnText(tr("viewer.switch.quick"))

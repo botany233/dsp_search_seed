@@ -29,10 +29,12 @@ class SortThread(QThread):
 
     def run(self):
         try:
-            self.label_text.emit("正在生成任务...")
+            from language import tr
 
-            resource_index = resource_rate_c.index(self.resource_rate_combo.currentText())
-            value_func = get_value_function(self.main_type_combo.currentText(), self.sub_type_combo.currentText())
+            self.label_text.emit(tr("viewer.progress.generating_tasks"))
+
+            resource_index = self.resource_rate_combo.current_resource_index()
+            value_func = get_value_function(self.main_type_combo.current_value(), self.sub_type_combo.current_value())
 
             get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
 
@@ -63,7 +65,7 @@ class SortThread(QThread):
                         sleep(0.1)
 
             if self.end_flag:
-                self.label_text.emit("排序已取消")
+                self.label_text.emit(tr("viewer.progress.cancelled"))
             else:
                 self.completed.emit()
         except Exception as e:

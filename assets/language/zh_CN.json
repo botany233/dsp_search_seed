@@ -5,7 +5,8 @@
         "native_name": "简体中文"
     },
     "common": {
-        "confirm": "确定"
+        "confirm": "确定",
+        "cancel": "取消"
     },
     "settings": {
         "basic": {
@@ -18,6 +19,222 @@
         "language": {
             "restart_title": "语言已切换",
             "restart_content": "语言设置已保存，重启应用后生效。"
+        }
+    },
+    "viewer": {
+        "navigation": {
+            "title": "种子查看器"
+        },
+        "main": {
+            "resource_rate": "资源倍率：",
+            "delete_selected": "删除选中种子",
+            "manual_add": "手动加入种子",
+            "import_seed": "导入种子",
+            "export_seed": "导出种子",
+            "start_sort": "开始排序",
+            "stop_sort": "停止排序",
+            "save_file": "保存文件",
+            "select_csv": "选择CSV文件"
+        },
+        "progress": {
+            "initial": "进度: 0/0 (0%)",
+            "no_seed_for_sort": "请导入种子，再排序！",
+            "sorting": "排序中...",
+            "completed": "排序完成！",
+            "generating_tasks": "正在生成任务...",
+            "cancelled": "排序已取消"
+        },
+        "table": {
+            "seed_id": "种子id",
+            "star_num": "恒星数",
+            "sort_value": "排序值",
+            "menu_disabled": "搜索中, 禁用菜单",
+            "export_selected": "导出选中种子"
+        },
+        "manual_add": {
+            "title": "手动添加种子",
+            "seed_id": "种子id",
+            "star_num": "恒星数",
+            "invalid_seed": "无效的种子！",
+            "seed_exists": "种子已存在！"
+        },
+        "seed_text": {
+            "count": "种子数: {seed_num}/{max_seed}"
+        },
+        "switch": {
+            "descending": "降序排列",
+            "ascending": "升序排列",
+            "standard": "标准模式",
+            "quick": "快速模式"
+        },
+        "astro_tree": {
+            "type": "类型",
+            "info": "信息",
+            "loading": "加载中...",
+            "galaxy": "星系"
+        },
+        "astro": {
+            "galaxy_info": "星系信息",
+            "star_count": "{star_num}星",
+            "dyson_radius": "戴森球半径：{value:.0f}m",
+            "dyson_lumino": "戴森球光度：{value:.3f}L",
+            "distance": "距离：{value:.2f}LY",
+            "wind_usage": "风能利用率：{value:.0%}",
+            "light_usage": "光能利用率：{value:.0%}",
+            "infinite": "无限",
+            "ocean": "海洋"
+        },
+        "export": {
+            "title": "选择导出内容",
+            "resource_rate": "资源倍率: ",
+            "galaxy_section": "选择导出的星系信息",
+            "star_section": "选择导出的恒星信息",
+            "planet_section": "选择导出的行星信息",
+            "create_galaxy_table": "创建星系表",
+            "create_star_table": "创建恒星表",
+            "create_planet_table": "创建行星表",
+            "preview": "预览",
+            "export": "导出",
+            "select_folder": "选择保存文件夹",
+            "generating_tasks": "正在生成任务...",
+            "cancelling_tasks": "正在取消任务...",
+            "fields": {
+                "star_types": "恒星类型",
+                "planet_types": "行星类型",
+                "liquid": "液体",
+                "gas_veins": "气体矿脉",
+                "veins_point": "矿脉数量",
+                "veins_amount": "矿脉储量",
+                "type": "类型",
+                "distance": "距离",
+                "location": "坐标",
+                "ds_lumino": "亮度",
+                "ds_radius": "戴森球半径",
+                "star_name": "恒星名称",
+                "star_type": "恒星类型",
+                "star_lumino": "恒星光度",
+                "star_distance": "恒星距离",
+                "star_location": "恒星坐标",
+                "planet_type": "星球类型",
+                "singularity": "词条",
+                "dsp_level": "戴森球接收",
+                "wind_usage": "风能利用率",
+                "light_usage": "光能利用率"
+            }
+        }
+    },
+    "domain": {
+        "sort_types": {
+            "矿脉数量": "矿脉数量",
+            "矿脉储量": "矿脉储量",
+            "行星类别": "行星类别",
+            "恒星类别": "恒星类别",
+            "自定义": "自定义"
+        },
+        "custom_sort_types": {
+            "例子：种子号": "例子：种子号",
+            "例子：恒星数": "例子：恒星数",
+            "自定义1": "自定义1",
+            "自定义2": "自定义2",
+            "自定义3": "自定义3"
+        },
+        "resource_rates": {
+            "极少": "极少",
+            "0.3倍": "0.3倍",
+            "0.5倍": "0.5倍",
+            "0.8倍": "0.8倍",
+            "1倍": "1倍",
+            "1.5倍": "1.5倍",
+            "2倍": "2倍",
+            "3倍": "3倍",
+            "5倍": "5倍",
+            "8倍": "8倍",
+            "无限": "无限"
+        },
+        "veins": {
+            "铁": "铁",
+            "铜": "铜",
+            "硅": "硅",
+            "钛": "钛",
+            "石": "石",
+            "煤": "煤",
+            "油": "油",
+            "可燃冰": "可燃冰",
+            "金伯利": "金伯利",
+            "分型硅": "分型硅",
+            "有机晶体": "有机晶体",
+            "光栅石": "光栅石",
+            "刺笋结晶": "刺笋结晶",
+            "单极磁石": "单极磁石"
+        },
+        "gas_veins": {
+            "氢": "氢",
+            "重氢": "重氢",
+            "可燃冰": "可燃冰"
+        },
+        "liquids": {
+            "水": "水",
+            "硫酸": "硫酸",
+            "无液体": "无液体"
+        },
+        "planet_types": {
+            "地中海": "地中海",
+            "气态巨星": "气态巨星",
+            "冰巨星": "冰巨星",
+            "高产气巨": "高产气巨",
+            "干旱荒漠": "干旱荒漠",
+            "灰烬冻土": "灰烬冻土",
+            "海洋丛林": "海洋丛林",
+            "熔岩": "熔岩",
+            "冰原冻土": "冰原冻土",
+            "贫瘠荒漠": "贫瘠荒漠",
+            "戈壁": "戈壁",
+            "火山灰": "火山灰",
+            "红石": "红石",
+            "草原": "草原",
+            "水世界": "水世界",
+            "黑石盐滩": "黑石盐滩",
+            "樱林海": "樱林海",
+            "飓风石林": "飓风石林",
+            "猩红冰湖": "猩红冰湖",
+            "热带草原": "热带草原",
+            "橙晶荒漠": "橙晶荒漠",
+            "极寒冻土": "极寒冻土",
+            "潘多拉沼泽": "潘多拉沼泽"
+        },
+        "star_types": {
+            "红巨星": "红巨星",
+            "黄巨星": "黄巨星",
+            "蓝巨星": "蓝巨星",
+            "白巨星": "白巨星",
+            "白矮星": "白矮星",
+            "中子星": "中子星",
+            "黑洞": "黑洞",
+            "A型恒星": "A型恒星",
+            "B型恒星": "B型恒星",
+            "F型恒星": "F型恒星",
+            "G型恒星": "G型恒星",
+            "K型恒星": "K型恒星",
+            "M型恒星": "M型恒星",
+            "O型恒星": "O型恒星"
+        },
+        "singularity": {
+            "卫星": "卫星",
+            "多卫星": "多卫星",
+            "潮汐锁定": "潮汐锁定",
+            "潮汐锁定永昼永夜": "潮汐锁定永昼永夜",
+            "轨道共振1:2": "轨道共振1:2",
+            "轨道共振1:4": "轨道共振1:4",
+            "横躺自转": "横躺自转",
+            "反向自转": "反向自转"
+        },
+        "dsp_levels": {
+            "全接收": "全接收",
+            "全包": "全包"
+        },
+        "dsp_planets": {
+            "全接收星": "全接收星",
+            "全包星": "全包星"
         }
     }
 }

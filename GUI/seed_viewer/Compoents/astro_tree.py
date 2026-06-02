@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from qfluentwidgets import TreeWidget, CaptionLabel, BodyLabel
 from CApi import GalaxyData, StarData, PlanetData, resource_rate_c
 from GUI import vein_names, singularity
+from language import tr, tr_any_domain, tr_domain
 
 from GUI.Widgets import WaitRing
 
@@ -50,15 +51,19 @@ class IgnoreLabel(CaptionLabel):
     
     def set_texts(self, texts: list[str] | str) -> None:
         if isinstance(texts, str):
+            display_text = tr_any_domain(texts)
             if texts in COLORFUL_TEXTS:
-                texts = f"<font color=#409EFF>{texts}</font>"
-            self.setText(texts)
+                display_text = f"<font color=#409EFF>{display_text}</font>"
+            self.setText(display_text)
             return
         else:
-            for i, text in enumerate(texts):
+            display_texts = []
+            for text in texts:
+                display_text = tr_any_domain(text)
                 if text in COLORFUL_TEXTS:
-                    texts[i] = f"<font color=#409EFF>{text}</font>"
-            self.setText("|".join(texts))
+                    display_text = f"<font color=#409EFF>{display_text}</font>"
+                display_texts.append(display_text)
+            self.setText("|".join(display_texts))
 
 
 class AstroTree(TreeWidget):
@@ -72,7 +77,7 @@ class AstroTree(TreeWidget):
         self.setBorderRadius(8)
         self.setBorderVisible(True)
 
-        self.setHeaderLabels(["类型", "信息"])
+        self.setHeaderLabels([tr("viewer.astro_tree.type"), tr("viewer.astro_tree.info")])
 
         header = self.header()
         # header.setStretchLastSection(False)  # 最后一列拉伸
@@ -90,7 +95,7 @@ class AstroTree(TreeWidget):
         self.setContextMenuPolicy(Qt.NoContextMenu)
 
         self.wait_ring = WaitRing(self)
-        self.wait_ring.textLabel.setText("加载中...")
+        self.wait_ring.textLabel.setText(tr("viewer.astro_tree.loading"))
         self.wait_ring.stop()
 
     def resizeEvent(self, event: QResizeEvent) -> None:
@@ -118,7 +123,7 @@ class GalaxyTreeWidgetItem(QTreeWidgetItem):
         show_text.append(str(galaxy_data.star_num))
         show_text.append(resource_rate_c[galaxy_data.resource_index])
 
-        self.setText(0, "星系")
+        self.setText(0, tr("viewer.astro_tree.galaxy"))
         
         info_label = IgnoreLabel()
         info_label.set_texts(show_text)
@@ -145,7 +150,7 @@ class StarTreeWidgetItem(QTreeWidgetItem):
             if star_data.veins_point[i] > 0:
                 show_text.append(vein_names[i])
 
-        self.setText(0, star_data.type)
+        self.setText(0, tr_domain("star_types", star_data.type))
         info_label = IgnoreLabel()
         info_label.set_texts(show_text)
         self.root.setItemWidget(self, 1, info_label)
@@ -182,7 +187,7 @@ class PlanetTreeWidgetItem(QTreeWidgetItem):
             if planet_data.veins_point[i] > 0:
                 show_text.append(vein_names[i])
 
-        self.setText(0, planet_data.type)
+        self.setText(0, tr_domain("planet_types", planet_data.type))
         info_label = IgnoreLabel()
         info_label.set_texts(show_text)
         self.root.setItemWidget(self, 1, info_label)
