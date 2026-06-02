@@ -30,6 +30,7 @@ with open("config/config.py", "r+", encoding="utf-8") as f:
 
 # 拷贝必要的文件到dist目录
 shutil.copy("README.md", os.path.join("dist", "戴森球计划种子搜索查看器", "README.md"))
+shutil.copy("README_EN.md", os.path.join("dist", "戴森球计划种子搜索查看器", "README_EN.md"))
 try:
     shutil.copy("LICENSE", os.path.join("dist", "戴森球计划种子搜索查看器", "LICENSE"))
 except FileNotFoundError:
