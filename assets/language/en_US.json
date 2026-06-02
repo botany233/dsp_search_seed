@@ -19,6 +19,31 @@
         "language": {
             "restart_title": "Language Changed",
             "restart_content": "Language preference has been saved. Restart the app to apply it."
+        },
+        "gpu": {
+            "title": "GPU Settings",
+            "local_size": "Work Group Size",
+            "device": "GPU Device",
+            "max_gpu_workers": "Max GPU Threads",
+            "benchmark": "GPU Benchmark",
+            "no_gpu_device": "No Available GPU Devices",
+            "disabled_device": "Do Not Use GPU",
+            "double_warning": "The current GPU does not support double-precision calculation. Some algorithms will fall back to CPU, and others may have some error.",
+            "no_gpu_warning": "No GPU is available, or no GPU supports OpenCL. GPU acceleration cannot be used."
+        },
+        "gpu_benchmark": {
+            "title": "GPU Benchmark",
+            "start": "Start Test",
+            "close": "Close",
+            "cpu_threads": "CPU Threads:",
+            "gpu_threads": "GPU Threads:",
+            "range_to": "to",
+            "test_time": "Test Time:",
+            "invalid_number": "Enter a valid number",
+            "min_value": "Minimum value is {value}",
+            "max_value": "Maximum value is {value}",
+            "thread_result": "Thread {thread}: {speed:.1f} planets/s",
+            "best": "Best:"
         }
     },
     "viewer": {

@@ -8,6 +8,7 @@ from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase, S
 
 from config import cfg
 from logger import log
+from language import tr
 from GUI.Messenger import GPUBenchmarkMessages
 from CApi import *
 
@@ -51,13 +52,13 @@ class LimitLineEdit(LineEdit):
 
         value = self._type_convert(text)
         if value is None:
-            self.setPlaceholderText("请输入有效数字")
+            self.setPlaceholderText(tr("settings.gpu_benchmark.invalid_number"))
             self.setText("")
         elif self.min_value is not None and value < self.min_value:
-            self.setPlaceholderText(f"最小值为{self.min_value}")
+            self.setPlaceholderText(tr("settings.gpu_benchmark.min_value").format(value=self.min_value))
             self.setText("")
         elif self.max_value is not None and value > self.max_value:
-            self.setPlaceholderText(f"最大值为{self.max_value}")
+            self.setPlaceholderText(tr("settings.gpu_benchmark.max_value").format(value=self.max_value))
             self.setText("")
         else:
             self.setPlaceholderText("")
@@ -111,31 +112,31 @@ class GPUBenchmarkThread(QThread):
 class GPUBenchmarkMessageBox(MessageBoxBase):
     def __init__(self, parent):
         super().__init__(parent)
-        self.yesButton.setText("开始测试")
-        self.cancelButton.setText("关闭")
+        self.yesButton.setText(tr("settings.gpu_benchmark.start"))
+        self.cancelButton.setText(tr("settings.gpu_benchmark.close"))
         self.test_thread = GPUBenchmarkThread(parent)
 
-        title_label = TitleLabel("GPU性能测试")
+        title_label = TitleLabel(tr("settings.gpu_benchmark.title"))
         self.viewLayout.addWidget(title_label)
 
         cpu_layout = QHBoxLayout()
-        cpu_layout.addWidget(CaptionLabel("CPU线程数:"))
+        cpu_layout.addWidget(CaptionLabel(tr("settings.gpu_benchmark.cpu_threads")))
         self.cpu_thread = LimitLineEdit("int", 1, 128, cfg.config.max_thread)
         cpu_layout.addWidget(self.cpu_thread)
         self.viewLayout.addLayout(cpu_layout)
 
         # self.viewLayout.addWidget(CaptionLabel("GPU线程数:", self))
         gpu_layout = QHBoxLayout()
-        gpu_layout.addWidget(CaptionLabel("GPU线程数:"))
+        gpu_layout.addWidget(CaptionLabel(tr("settings.gpu_benchmark.gpu_threads")))
         self.gpu_thread_start = LimitLineEdit("int", 0, 128, 0)
         gpu_layout.addWidget(self.gpu_thread_start)
-        gpu_layout.addWidget(CaptionLabel("至", self))
+        gpu_layout.addWidget(CaptionLabel(tr("settings.gpu_benchmark.range_to"), self))
         self.gpu_thread_end = LimitLineEdit("int", 0, 128, cfg.config.max_thread)
         gpu_layout.addWidget(self.gpu_thread_end)
         self.viewLayout.addLayout(gpu_layout)
 
         test_time_layout = QHBoxLayout()
-        test_time_layout.addWidget(CaptionLabel("测试时间:"))
+        test_time_layout.addWidget(CaptionLabel(tr("settings.gpu_benchmark.test_time")))
         self.test_time = LimitLineEdit("float", 0.1, 60, default_value=1.0)
         test_time_layout.addWidget(self.test_time)
         self.viewLayout.addLayout(test_time_layout)
@@ -191,6 +192,10 @@ QScrollArea > QWidget > QLabel {
     def __update_text(self, gpu_thread: int, speed: float):
         self.test_result.append((gpu_thread, speed))
         cur_max = max(self.test_result, key=lambda x: x[1])
-        text = "\n".join(f"线程 {i[0]}: {i[1]:.1f} planets/s" for i in self.test_result)
-        text += f"\n最优:\n线程 {cur_max[0]}: {cur_max[1]:.1f} planets/s"
+        text = "\n".join(
+            tr("settings.gpu_benchmark.thread_result").format(thread=i[0], speed=i[1])
+            for i in self.test_result
+        )
+        text += "\n" + tr("settings.gpu_benchmark.best") + "\n"
+        text += tr("settings.gpu_benchmark.thread_result").format(thread=cur_max[0], speed=cur_max[1])
         self.result_label.setText(text)

@@ -19,6 +19,31 @@
         "language": {
             "restart_title": "语言已切换",
             "restart_content": "语言设置已保存，重启应用后生效。"
+        },
+        "gpu": {
+            "title": "GPU设置",
+            "local_size": "工作组大小",
+            "device": "GPU设备",
+            "max_gpu_workers": "最大GPU线程数",
+            "benchmark": "GPU性能测试",
+            "no_gpu_device": "无可用GPU设备",
+            "disabled_device": "不使用GPU",
+            "double_warning": "当前GPU不支持双精度计算，部分算法将回退到CPU执行，其余算法将存在一定误差",
+            "no_gpu_warning": "无可用GPU，或所有GPU均不支持OpenCL，无法使用GPU加速"
+        },
+        "gpu_benchmark": {
+            "title": "GPU性能测试",
+            "start": "开始测试",
+            "close": "关闭",
+            "cpu_threads": "CPU线程数:",
+            "gpu_threads": "GPU线程数:",
+            "range_to": "至",
+            "test_time": "测试时间:",
+            "invalid_number": "请输入有效数字",
+            "min_value": "最小值为{value}",
+            "max_value": "最大值为{value}",
+            "thread_result": "线程 {thread}: {speed:.1f} planets/s",
+            "best": "最优:"
         }
     },
     "viewer": {

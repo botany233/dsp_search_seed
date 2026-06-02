@@ -238,32 +238,34 @@ class NormalSettingFrame(BaseSettingFrame):
             
         
 class GPUSettingFrame(BaseSettingFrame):
-    def __init__(self, title: str = "GPU设置", parent=None, root=None):
-        super().__init__(title, parent)
+    def __init__(self, title: str | None = None, parent=None, root=None):
+        super().__init__(title or tr("settings.gpu.title"), parent)
         self.root = root
+        self.no_gpu_device_text = tr("settings.gpu.no_gpu_device")
+        self.disabled_device_text = tr("settings.gpu.disabled_device")
 
         self.localSizeSetting = ComboBoxSettingItemFrame(
             ["32", "64", "128", "256", "512", "1024"],
-            "工作组大小",
+            tr("settings.gpu.local_size"),
             cfg_key="local_size",
         )
         devices_info = get_device_info_c()
         if devices_info:
             self.gpuDeviceSetting = ComboBoxSettingItemFrame(
                 devices_info,
-                "GPU设备",
+                tr("settings.gpu.device"),
                 cfg_key="device_name",
                 type_input="str",
             )
         else:
             self.gpuDeviceSetting = ComboBoxSettingItemFrame(
-                ["无可用GPU设备"],
-                "GPU设备",
+                [self.no_gpu_device_text],
+                tr("settings.gpu.device"),
                 cfg_key="device_name",
                 type_input="str",
             )
         self.gpuWorkerSetting = EditLineSettingItemFrame(
-            "最大GPU线程数",
+            tr("settings.gpu.max_gpu_workers"),
             None,
             cfg_obj=cfg.config,
             cfg_key="max_gpu_worker",
@@ -273,8 +275,8 @@ class GPUSettingFrame(BaseSettingFrame):
             empty_invisible=False
         )
         self.gpuTestFrame = BaseSettingItemFrame("")
-        self.gpu_test_button = PushButton("GPU性能测试")
-        self.gpu_test_button.setMaximumWidth(120)
+        self.gpu_test_button = PushButton(tr("settings.gpu.benchmark"))
+        self.gpu_test_button.setMaximumWidth(160)
         self.gpuTestFrame.mainLayout.addWidget(self.gpu_test_button, Qt.AlignmentFlag.AlignRight)
         self.gpu_test_button.clicked.connect(self.__on_gpu_test_button_clicked)
 
@@ -283,17 +285,17 @@ class GPUSettingFrame(BaseSettingFrame):
         self.warningLabel.setPixmap(FluentIcon.INFO.icon().pixmap(16, 16))
         self.warningLabel.setFixedSize(16, 16)
         if devices_info:
-            self.warningLabel.setToolTip("当前GPU不支持双精度计算，部分算法将回退到CPU执行，其余算法将存在一定误差")
+            self.warningLabel.setToolTip(tr("settings.gpu.double_warning"))
         else:
-            self.warningLabel.setToolTip("无可用GPU，或所有GPU均不支持OpenCL，无法使用GPU加速")
+            self.warningLabel.setToolTip(tr("settings.gpu.no_gpu_warning"))
         self.warningLabel.installEventFilter(ToolTipFilter(self.warningLabel, showDelay=0))
 
         if cfg.config.device_name == "cpu" and devices_info:
             self.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
-            self.gpuDeviceSetting.comboBox.setText("不使用GPU")
+            self.gpuDeviceSetting.comboBox.setText(self.disabled_device_text)
         elif not devices_info:
             self.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
-            self.gpuDeviceSetting.comboBox.setText("无可用GPU设备")
+            self.gpuDeviceSetting.comboBox.setText(self.no_gpu_device_text)
             self.gpuDeviceSetting.comboBox.setEnabled(False)
             cfg.config.device_name = "cpu"
             cfg.save()
@@ -317,7 +319,7 @@ class GPUSettingFrame(BaseSettingFrame):
         set_gpu_max_worker_c(cfg.config.max_gpu_worker)
 
     def _gpu_device_changed(self, index):
-        if self.gpuDeviceSetting.comboBox.text() == "无可用GPU设备":
+        if self.gpuDeviceSetting.comboBox.text() == self.no_gpu_device_text:
             set_device_id_c(-1)
             self.warningLabel.setHidden(False)
             return
@@ -355,7 +357,7 @@ class SettingInterface(SmoothScrollArea):
 
         self.enableTransparentBackground()
 
-        if self.GPUSetting.gpuDeviceSetting.comboBox.text() == "无可用GPU设备":
+        if self.GPUSetting.gpuDeviceSetting.comboBox.text() == self.GPUSetting.no_gpu_device_text:
             self.normalSetting.useGpuSetting.switchButton.setChecked(0)
             self.normalSetting.useGpuSetting.switchButton.setEnabled(False)
             cfg.config.use_gpu = False
@@ -370,7 +372,7 @@ class SettingInterface(SmoothScrollArea):
     def _on_use_gpu_changed(self, checked):
         if not checked:
             self.GPUSetting.gpuDeviceSetting.comboBox.setCurrentIndex(-1)
-            self.GPUSetting.gpuDeviceSetting.comboBox.setText("不使用GPU")
+            self.GPUSetting.gpuDeviceSetting.comboBox.setText(self.GPUSetting.disabled_device_text)
             self.GPUSetting.warningLabel.setHidden(True)
             set_device_id_c(-1)
             cfg.config.device_name = "cpu"
