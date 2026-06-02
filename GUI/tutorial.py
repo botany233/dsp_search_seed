@@ -30,19 +30,13 @@ class TutorialInterface(QFrame):
         setCustomStyleSheet(self.text_browser,qss,qss)
         self.main_layout.addWidget(self.text_browser)
         
-        self.file_path = self._get_tutorial_file_path()
+        self.file_path = f"assets/language/{cfg.config.language}/tutorial.md"
         self.load_markdown_file(self.file_path)
         
         qconfig.themeChanged.connect(self.on_theme_changed)
 
     def on_theme_changed(self):
         self.load_markdown_file(self.file_path)
-
-    def _get_tutorial_file_path(self) -> str:
-        language_path = f"assets/tutorial_{cfg.config.language}.md"
-        if os.path.exists(language_path):
-            return language_path
-        return FALLBACK_TUTORIAL_FILE
 
     def load_markdown_file(self, file_path):
         try:

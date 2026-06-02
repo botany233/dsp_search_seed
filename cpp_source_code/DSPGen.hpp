@@ -163,7 +163,7 @@ protected:
 			}
 		}
 		std::string str = NameGen.roman[index + 1];
-		planet.name = star.name + " " + str + "号星";
+		planet.name = star.name + " " + str;
 		double num3 = dotNet35Random.NextDouble();
 		double num4 = dotNet35Random.NextDouble();
 		double num5 = dotNet35Random.NextDouble();

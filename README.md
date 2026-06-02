@@ -9,7 +9,7 @@
 - 搜索效率高：种子搜索部分使用运行效率更高的c++编写，单线程速度是[DspFindSeed](https://github.com/Xinyuell/DspFindSeed)的20多倍（使用母星系贫瘠荒漠条件进行测试）
 - 应用内置多线程，无需多开
 
-![image](/assets/show_search.png)
+![image](/assets/language/zh_CN/show_search.png)
 
 ## 查看器特点
 
@@ -17,7 +17,7 @@
 - 支持种子排序：允许根据恒星类型、星球类型、矿簇/矿脉数量等对种子进行排序，并展示相应的排序值
 - 允许自定义排序值：[自定义排序](/GUI/seed_viewer/sort_seed/custom_sort.py)中提供了现成的接口，可以方便的编写python代码判定种子的价值，用于排序
 
-![image](/assets/show_check.png)
+![image](/assets/language/zh_CN/show_check.png)
 
 ## 使用说明
 

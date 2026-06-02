@@ -9,7 +9,7 @@
 - High search efficiency: The seed search part is written in C++ for higher execution efficiency. The single-thread speed is more than 20 times that of [DspFindSeed](https://github.com/Xinyuell/DspFindSeed) (tested with the starter system Barren Desert condition).
 - Built-in multi-threading: No need to open multiple instances.
 
-![image](/assets/show_search.png)
+![image](/assets/language/en_US/show_search.png)
 
 ## Viewer Features
 
@@ -17,7 +17,7 @@
 - Supports seed sorting: Allows sorting seeds by star type, planet type, vein group/vein count, etc., and displays the corresponding sort value.
 - Allows customized sort values: Ready-made interfaces are provided in [Custom Sort](/GUI/seed_viewer/sort_seed/custom_sort.py), making it convenient to write Python code to evaluate seed values for sorting.
 
-![image](/assets/show_check.png)
+![image](/assets/language/en_US/show_check.png)
 
 ## Usage Instructions
 
