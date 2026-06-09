@@ -335,7 +335,7 @@ public:
 	virtual void GenerateTerrain(PlanetClassSimple& planet) = 0;
 
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
-		ThemeProto themeProto = LDB.Select(planet.theme);
+		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
 		dotNet35Random.Next();
@@ -1419,7 +1419,7 @@ public:
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
-		ThemeProto themeProto = LDB.Select(planet.theme);
+		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
 		dotNet35Random.Next();
@@ -2211,7 +2211,7 @@ public:
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
-		ThemeProto themeProto = LDB.Select(planet.theme);
+		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
 		dotNet35Random.Next();
@@ -2646,7 +2646,7 @@ public:
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
-		ThemeProto themeProto = LDB.Select(planet.theme);
+		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
 		dotNet35Random.Next();
@@ -3061,7 +3061,7 @@ public:
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
-		ThemeProto themeProto = LDB.Select(planet.theme);
+		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		dotNet35Random.Next();
 		dotNet35Random.Next();

@@ -16,7 +16,7 @@ static uint16_t get_has_veins(const uint16_t *veins_point) {
 
 void PlanetClassSimple::MyGenerateVeins()
 {
-	ThemeProto themeProto = LDB.Select(theme);
+	const ThemeProto& themeProto = LDB.Select(theme);
 	DotNet35Random dotNet35Random1(seed);
 	dotNet35Random1.Next();
 	dotNet35Random1.Next();
@@ -132,49 +132,49 @@ void PlanetClassSimple::MyGenerateVeins()
 	}
 	veins_point[6] = veins_group[6]; //油井单独处理
 
-	bool flag = star->galaxy->birthPlanetId == id;
-	float amount_rate_galaxy = star->galaxy->resource_multiplier;
-	float num8 = star->resourceCoef;
-	if(flag)
-		num8 *= 2.0f/3.0f;
-	else if(star->galaxy->is_rare_resource)
-	{
-		if(num8 > 1.0f)
-			num8 = Mathf.Pow(num8,0.8f);
-		num8 *= 0.7f;
-	}
-	for(int i=0;i<14;i++)
-	{
-		veins_amount[i] = Mathf.RoundToInt(veins_amount_percent[i]*100000.0f*num8);
-		if(veins_amount[i]<20)
-			veins_amount[i] = 20;
-		veins_amount[i] += (veins_amount[i]<16000)?Mathf.FloorToInt((float)veins_amount[i]*0.9375f):15000;
-		veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * 1.1f);
-		if(i==6)
+	if(need_generate_veins_amount) {
+		bool flag = star->galaxy->birthPlanetId == id;
+		float amount_rate_galaxy = star->galaxy->resource_multiplier;
+		float num8 = star->resourceCoef;
+		if(flag)
+			num8 *= 2.0f/3.0f;
+		else if(star->galaxy->is_rare_resource)
 		{
-			float oil_resource_multiplier;
-			if(star->galaxy->is_rare_resource)
-				oil_resource_multiplier = 0.5f;
-			else
-				oil_resource_multiplier = 1.0f;
-			veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * oil_resource_multiplier);
-			if(veins_amount[i]<2500)
-				veins_amount[i] = 2500;
+			if(num8 > 1.0f)
+				num8 = Mathf.Pow(num8,0.8f);
+			num8 *= 0.7f;
 		}
-		else
-			veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * star->galaxy->resource_multiplier);
-		if(veins_amount[i]<1)
-			veins_amount[i] = 1;
-		veins_amount[i] *= veins_point[i];
-	}
-	if(amount_rate_galaxy >= 100.0f) {
 		for(int i=0;i<14;i++)
 		{
-			if(i==6) continue;
-			veins_amount[i] = (uint64_t)veins_point[i] * 1000000000;
+			veins_amount[i] = Mathf.RoundToInt(veins_amount_percent[i]*100000.0f*num8);
+			if(veins_amount[i]<20)
+				veins_amount[i] = 20;
+			veins_amount[i] += (veins_amount[i]<16000)?Mathf.FloorToInt((float)veins_amount[i]*0.9375f):15000;
+			veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * 1.1f);
+			if(i==6)
+			{
+				float oil_resource_multiplier;
+				if(star->galaxy->is_rare_resource)
+					oil_resource_multiplier = 0.5f;
+				else
+					oil_resource_multiplier = 1.0f;
+				veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * oil_resource_multiplier);
+				if(veins_amount[i]<2500)
+					veins_amount[i] = 2500;
+			} else
+				veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * star->galaxy->resource_multiplier);
+			if(veins_amount[i]<1)
+				veins_amount[i] = 1;
+			veins_amount[i] *= veins_point[i];
+		}
+		if(amount_rate_galaxy >= 100.0f) {
+			for(int i=0;i<14;i++)
+			{
+				if(i==6) continue;
+				veins_amount[i] = (uint64_t)veins_point[i] * 1000000000;
+			}
 		}
 	}
-
 	for(int i=0;i<14;i++) {
 		star->upper_veins_point[i] += veins_point[i];
 		star->upper_veins_amount[i] += veins_amount[i];

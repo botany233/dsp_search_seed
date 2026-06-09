@@ -39,6 +39,8 @@ class SortThread(QThread):
             get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
 
             data = self.seed_list.get_all_data()
+            task_num = len(data)
+            time_tag = perf_counter()
             for seed_id, star_num, _ in data:
                 get_data_manager.add_task(seed_id, star_num, resource_index)
 
@@ -63,6 +65,8 @@ class SortThread(QThread):
                         sleep(0.01)
                     else:
                         sleep(0.1)
+            time_tag = perf_counter() - time_tag
+            print(f"Sort completed in {time_tag:.2f} seconds, speed: {task_num/time_tag:.2f} seeds/s")
 
             if self.end_flag:
                 self.label_text.emit(tr("viewer.progress.cancelled"))

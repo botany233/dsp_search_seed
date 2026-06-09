@@ -108,11 +108,14 @@ protected:
 	thread task_thread;
 	mutex task_mtx;
 	queue<SeedStruct> tasks;
+	condition_variable cv_generator;
+	condition_variable cv_consumer;
 	atomic<int> working_num = 0;
 	atomic<bool> finish = false;
 	atomic<bool> stop = false;
+	bool wait = false;
+	uint8_t resource_index;
 	atomic<size_t> finish_task_num = 0;
-	atomic<bool> wait = false;
 	mutex wait_mtx;
 	condition_variable cv_wait;
 	
@@ -120,7 +123,6 @@ protected:
 	GalaxyCondition galaxy_condition;
 	int max_thread;
 	int check_level;
-	uint8_t resource_index;
 
 	mutex result_mtx;
 	vector<SeedStruct> result = vector<SeedStruct>(0);
@@ -128,45 +130,43 @@ protected:
 	void task_generator() {
 		seed_manager->reset_index();
 		while(true) {
-			while(tasks.size() > 2048 && !stop.load())
-				this_thread::sleep_for(chrono::milliseconds(20));
+			{
+				unique_lock<mutex> lck(task_mtx);
+				cv_generator.wait(lck,[this]() {return tasks.size() <= 1024 || stop.load();});
+			}
 			if(stop.load())
 				break;
 			vector<SeedStruct> batch_seeds = seed_manager->get_seeds(1024,resource_index);
-			if(batch_seeds.size()==0)
+			if(batch_seeds.empty())
 				break;
-			lock_guard<mutex> lck(task_mtx);
-			for(const SeedStruct& seed: batch_seeds) {
-				tasks.push(seed);
+			{
+				lock_guard<mutex> lck(task_mtx);
+				for(const SeedStruct& seed: batch_seeds)
+					tasks.push(seed);
 			}
+			cv_consumer.notify_all();
 		}
 		finish.store(true);
+		cv_consumer.notify_all();
 	}
 
 	void search_func() {
 		while(true) {
-			if(wait.load()) {
+			{
 				unique_lock<mutex> lck(wait_mtx);
-				cv_wait.wait(lck, [this]() { return !wait.load() || stop.load(); });
+				cv_wait.wait(lck, [this]() { return !wait || stop.load(); });
 			}
-			bool is_empty = false;
 			SeedStruct current_task;
 			{
-				lock_guard<mutex> lck(task_mtx);
-				if((tasks.empty() && finish.load()) || stop.load()) {
+				unique_lock<mutex> lck(task_mtx);
+				cv_consumer.wait(lck,[this]() { return !tasks.empty() || finish.load() || stop.load(); });
+				if((tasks.empty() && finish.load()) || stop.load())
 					break;
-				}
-				is_empty = tasks.empty();
-				if(!is_empty) {
-					current_task = tasks.front();
-					tasks.pop();
-				}
+				current_task = tasks.front();
+				tasks.pop();
 			}
-			if(is_empty) {
-				this_thread::sleep_for(chrono::milliseconds(20));
-				continue;
-			}
-			if(check_seed_level_1(current_task,galaxy_condition,check_level)) {
+			cv_generator.notify_one();
+			if(check_seed(current_task,galaxy_condition,check_level)) {
 				lock_guard<mutex> lck(result_mtx);
 				result.push_back(current_task);
 			}
@@ -190,11 +190,15 @@ public:
 	}
 
 	void start_wait() {
-		wait.store(true);
+		lock_guard<mutex> lck(wait_mtx);
+		wait = true;
 	}
 
 	void end_wait() {
-		wait.store(false);
+		{
+			lock_guard<mutex> lck(wait_mtx);
+			wait = false;
+		}
 		cv_wait.notify_all();
 	}
 
@@ -213,11 +217,12 @@ public:
 	void shutdown() {
 		stop.store(true);
 		cv_wait.notify_all();
+		cv_generator.notify_all();
+		cv_consumer.notify_all();
 		if(task_thread.joinable())
 			task_thread.join();
 		task_thread = thread();
-		for(int i=0;i<max_thread;i++) {
-			thread& search_thread = search_threads[i];
+		for(thread& search_thread: search_threads) {
 			if(search_thread.joinable())
 				search_thread.join();
 		}
@@ -245,11 +250,8 @@ public:
 	}
 
 	vector<SeedStruct> get_results() {
-		vector<SeedStruct> return_result;
 		lock_guard<mutex> lck(result_mtx);
-		return_result = move(result);
-		result.clear();
-		return return_result;
+		return result;
 	}
 };
 
@@ -293,7 +295,7 @@ protected:
 			int star_num = start_star_num + current_task_id % (end_star_num - start_star_num);
 			SeedStruct task = SeedStruct(seed_id,star_num,resource_index);
 
-			if(check_seed_level_1(task,galaxy_condition,check_level)) {
+			if(check_seed(task,galaxy_condition,check_level)) {
 				lock_guard<mutex> lck(mtx);
 				result.push_back(task);
 			}
@@ -313,7 +315,7 @@ public:
 		this->end_star_num = end_star_num;
 		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		this->task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
+		this->task_num = (size_t)(end_seed - start_seed) * (size_t)(end_star_num - start_star_num);
 	}
 
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
@@ -327,7 +329,7 @@ public:
 		this->end_star_num = end_star_num;
 		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		this->task_num = (end_seed - start_seed) * (end_star_num - start_star_num);
+		this->task_num = (size_t)(end_seed - start_seed) * (size_t)(end_star_num - start_star_num);
 	}
 
 	~CheckBatchManager() {
@@ -357,8 +359,7 @@ public:
 	void shutdown() {
 		stop.store(true);
 		cv_wait.notify_all();
-		for(int i=0;i<max_thread;i++) {
-			thread& search_thread = search_threads[i];
+		for(thread& search_thread: search_threads) {
 			if(search_thread.joinable())
 				search_thread.join();
 		}
@@ -386,10 +387,7 @@ public:
 	}
 
 	vector<SeedStruct> get_results() {
-		vector<SeedStruct> return_result;
 		lock_guard<mutex> lck(mtx);
-		return_result = move(result);
-		result.clear();
 		return result;
 	}
 };

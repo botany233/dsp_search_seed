@@ -9,7 +9,7 @@
 
 using namespace std;
 
-static bool check_veins(const vector<uint16_t>& need_veins,const uint16_t* has_veins)
+static bool check_veins(const array<uint16_t,14>& need_veins,const uint16_t* has_veins)
 {
 	for(int i = 0;i < 14;i++) {
 		if(need_veins[i] > has_veins[i])
@@ -18,16 +18,7 @@ static bool check_veins(const vector<uint16_t>& need_veins,const uint16_t* has_v
 	return true;
 }
 
-static bool check_veins(const vector<uint16_t>& need_veins,const int* has_veins)
-{
-	for(int i = 0;i < 14;i++) {
-		if(need_veins[i] > has_veins[i])
-			return false;
-	}
-	return true;
-}
-
-static bool check_veins(const vector<uint64_t>& need_veins,const uint64_t* has_veins)
+static bool check_veins(const array<uint64_t,14>& need_veins,const uint64_t* has_veins)
 {
 	for(int i = 0;i < 14;i++) {
 		if(need_veins[i] > has_veins[i])
@@ -227,8 +218,12 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 }
 
 void tag_need_veins_planet(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition) {
-	if(planet_condition.need_veins && check_planet_level_2(planet_data,planet_condition))
+	if(!check_planet_level_2(planet_data,planet_condition))
+		return;
+	if(planet_condition.need_veins)
 		planet_data.need_generate_veins = true;
+	if(planet_condition.need_veins_amount)
+		planet_data.need_generate_veins_amount = true;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		for(PlanetClassSimple* moon_ptr: planet_data.moons) {
 			tag_need_veins_planet(*moon_ptr,moon_condition);
@@ -237,10 +232,15 @@ void tag_need_veins_planet(PlanetClassSimple& planet_data,const PlanetCondition&
 }
 
 void tag_need_veins_star(StarClassSimple& star_data,const StarCondition& star_condition) {
-	if(star_condition.need_veins && check_star_level_2(star_data,star_condition)) {
+	if(!check_star_level_2(star_data,star_condition))
+		return;
+	if(star_condition.need_veins) {
 		for(PlanetClassSimple& planet_data: star_data.planets) {
-			if(star_condition.need_veins & planet_data.has_veins)
+			if(star_condition.need_veins & planet_data.has_veins) {
 				planet_data.need_generate_veins = true;
+				if(star_condition.need_veins_amount)
+					planet_data.need_generate_veins_amount = true;
+			}
 		}
 	}
 	for(const PlanetCondition& planet_condition: star_condition.planets) {
@@ -254,8 +254,11 @@ void tag_need_veins_galaxy(GalaxyClassSimple& galaxy_data,const GalaxyCondition&
 	if(galaxy_condition.need_veins) {
 		for(StarClassSimple& star_data: galaxy_data.stars) {
 			for(PlanetClassSimple& planet_data: star_data.planets) {
-				if(galaxy_condition.need_veins & planet_data.has_veins)
+				if(galaxy_condition.need_veins & planet_data.has_veins) {
 					planet_data.need_generate_veins = true;
+					if(galaxy_condition.need_veins_amount)
+						planet_data.need_generate_veins_amount = true;
+				}
 			}
 		}
 	}

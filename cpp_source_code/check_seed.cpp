@@ -14,8 +14,6 @@
 #include "DSPGen.hpp"
 #include "defines.hpp"
 
-//extern std::unique_ptr<PlanetAlgorithm> PlanetAlgorithmManager(int algoId);
-
 using namespace std;
 
 static uint16_t get_has_veins(const uint16_t *veins_point) {
@@ -136,18 +134,23 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,int level)
 	return galaxy_data;
 }
 
-bool check_seed_level_4(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
+bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level)
 {
-	//cout << galaxy.seed << " " << galaxy.starCount << " level4 check start" << endl;
-	//memset(galaxy.veins_group,0,sizeof(galaxy.veins_group));
-	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
-	memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
-	return check_galaxy_level_4(galaxy,galaxy_condition);
-}
+	//cout << "start check " << seed.seed_id << " " << (int)seed.star_num << " in level " << check_level << endl;
+	//cout << seed.seed_id << " " << (int)seed.star_num << " level1 check start" << endl;
+	GalaxyClassSimple galaxy;
+	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
+	if(!check_galaxy_level_1(galaxy,galaxy_condition))
+		return false;
+	if(check_level <= 1)
+		return true;
 
-bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
-{
-	//cout << galaxy.seed << " " << galaxy.starCount << " level3 check start" << endl;
+	galaxy.CreatePlanets(get_need_generate_planet_index(galaxy,galaxy_condition));
+	if(!check_galaxy_level_2(galaxy,galaxy_condition))
+		return false;
+	if(check_level <= 2)
+		return true;
+
 	tag_need_veins_galaxy(galaxy,galaxy_condition);
 	for(StarClassSimple& star : galaxy.stars)
 	{
@@ -162,35 +165,10 @@ bool check_seed_level_3(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_
 	}
 	if(!check_galaxy_level_3(galaxy,galaxy_condition))
 		return false;
-	else if(check_level>3)
-		return check_seed_level_4(galaxy,galaxy_condition,check_level);
-	else
+	if(check_level <= 3)
 		return true;
-}
 
-bool check_seed_level_2(GalaxyClassSimple& galaxy,const GalaxyCondition& galaxy_condition,int check_level)
-{
-	//cout << galaxy.seed << " " << galaxy.starCount << " level2 check start" << endl;
-	galaxy.CreatePlanets(get_need_generate_planet_index(galaxy,galaxy_condition));
-	//galaxy.CreatePlanets(galaxy.starCount);
-	if(!check_galaxy_level_2(galaxy,galaxy_condition))
-		return false;
-	else if(check_level>2)
-		return check_seed_level_3(galaxy,galaxy_condition,check_level);
-	else
-		return true;
-}
-
-bool check_seed_level_1(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level)
-{
-	//cout << "start check " << seed.seed_id << " " << (int)seed.star_num << " in level " << check_level << endl;
-	//cout << seed.seed_id << " " << (int)seed.star_num << " level1 check start" << endl;
-	GalaxyClassSimple galaxy;
-	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
-	if(!check_galaxy_level_1(galaxy,galaxy_condition))
-		return false;
-	else if(check_level>1)
-		return check_seed_level_2(galaxy,galaxy_condition,check_level);
-	else
-		return true;
+	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
+	memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
+	return check_galaxy_level_4(galaxy,galaxy_condition);
 }

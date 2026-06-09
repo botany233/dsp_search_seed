@@ -7,4 +7,4 @@
 
 namespace py = pybind11;
 
-GalaxyCondition galaxy_condition_to_struct(py::dict galaxy_condition);
+GalaxyCondition galaxy_condition_to_struct(const py::dict& galaxy_condition);

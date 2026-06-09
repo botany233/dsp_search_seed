@@ -145,33 +145,33 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">121582</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">39991</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">36401</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">348.2</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.08</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">105130</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">101024</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">196692</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59100</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57208</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">333.6</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.03</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159345</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">142000</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">123124</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">39804</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">36712</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">724.9</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.41</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">101951</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">100496</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">191775</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">58673</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">56701</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">703.9</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.31</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">151714</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">153775</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">121439</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">40249</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">37016</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2688</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9.12</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">107494</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">108256</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">185885</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59784</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57237</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2281</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7.93</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159957</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">162340</td>
   </tr>
 </table>
 
@@ -193,17 +193,17 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.07</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.08</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.37</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7878</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8.56</td>
   </tr>
 </table>

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
+#include <immintrin.h>
 
 #include "LDB.hpp"
 #include "util.hpp"
@@ -48,6 +49,7 @@ public:
 	int algoId;
 	uint16_t has_veins = 0;
 	bool need_generate_veins = false;
+	bool need_generate_veins_amount = false;
 	//uint16_t veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
@@ -107,7 +109,7 @@ public:
 		}
 		return Pose(position,runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
 	}
-	
+
 	void GenBirthPoints(int _birthSeed,const VectorLF3& star_uPosition)
 	{
 		DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
@@ -263,12 +265,16 @@ class GalaxyClassSimple
 protected:
 	void SetPlanetTheme(StarClassSimple& star,PlanetClassSimple& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed,float planet_temperatureBias)
 	{
-		std::vector <int> tmp_theme;
-		std::vector<int>& themeIds = LDB.themeIds;
+		//std::vector<int> tmp_theme;
+		//tmp_theme.reserve(16);
+		int tmp_theme[25];
+		int tmp_theme_num = 0;
+
+		const std::vector<int>& themeIds = LDB.themeIds;
 		int length1 = (int)themeIds.size();
 		for(int index1 = 0; index1 < length1; ++index1)
 		{
-			ThemeProto& themeProto = LDB.Select(themeIds[index1]);
+			const ThemeProto& themeProto = LDB.Select(themeIds[index1]);
 			bool flag1 = false;
 			if(star.index == 0 && planet.type == EPlanetType::Ocean)
 			{
@@ -301,13 +307,15 @@ protected:
 				}
 			}
 			if(flag1)
-				tmp_theme.push_back(themeProto.ID);
+				tmp_theme[tmp_theme_num++] = themeProto.ID;
+			//tmp_theme.push_back(themeProto.ID);
 		}
-		if(tmp_theme.size() == 0)
+		if(!tmp_theme_num)
+			//if(tmp_theme.size() == 0)
 		{
 			for(int index3 = 0; index3 < length1; ++index3)
 			{
-				ThemeProto& themeProto = LDB.Select(themeIds[index3]);
+				const ThemeProto& themeProto = LDB.Select(themeIds[index3]);
 				bool flag = false;
 				if(themeProto.PlanetType == EPlanetType::Desert)
 					flag = true;
@@ -323,20 +331,24 @@ protected:
 					}
 				}
 				if(flag)
-					tmp_theme.push_back(themeProto.ID);
+					tmp_theme[tmp_theme_num++] = themeProto.ID;
+				//tmp_theme.push_back(themeProto.ID);
 			}
 		}
-		if(tmp_theme.size() == 0)
+		if(!tmp_theme_num)
+			//if(tmp_theme.size() == 0)
 		{
 			for(int index = 0; index < length1; ++index)
 			{
-				ThemeProto& themeProto = LDB.Select(themeIds[index]);
+				const ThemeProto& themeProto = LDB.Select(themeIds[index]);
 				if(themeProto.PlanetType == EPlanetType::Desert)
-					tmp_theme.push_back(themeProto.ID);
+					tmp_theme[tmp_theme_num++] = themeProto.ID;
+				//tmp_theme.push_back(themeProto.ID);
 			}
 		}
-		planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme.size()) % tmp_theme.size()];
-		ThemeProto& themeProto1 = LDB.Select(planet.theme);
+		//planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme.size()) % tmp_theme.size()];
+		planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme_num) % tmp_theme_num];
+		const ThemeProto& themeProto1 = LDB.Select(planet.theme);
 		planet.algoId = themeProto1.Algos[(int)(rand2 * (double)themeProto1.Algos.size()) % themeProto1.Algos.size()];
 		planet.mod_x = (double)themeProto1.ModX.x + rand3 * ((double)themeProto1.ModX.y - (double)themeProto1.ModX.x);
 		planet.mod_y = (double)themeProto1.ModY.x + rand4 * ((double)themeProto1.ModY.y - (double)themeProto1.ModY.x);
@@ -364,7 +376,7 @@ protected:
 		star.has_veins |= planet.has_veins;
 	}
 
-	PlanetClassSimple CreatePlanet(StarClassSimple& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
+	void CreatePlanet(StarClassSimple& star,int index,int orbitAround,int orbitIndex,int number,bool gasGiant,int info_seed,int gen_seed)
 	{
 		PlanetClassSimple& planet = star.planets[index];
 		DotNet35Random dotNet35Random(info_seed);
@@ -554,9 +566,9 @@ protected:
 		}
 		SetPlanetTheme(star,planet,rand1,rand2,rand3,rand4,theme_seed,planet_temperatureBias);
 		//star.galaxy.astrosData[planet.id].uRadius = planet.realRadius();
-		return planet;
+		//return planet;
 	}
-	
+
 	float RandNormal(float averageValue,float standardDeviation,double r1,double r2) {
 		return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
 	}
@@ -713,8 +725,8 @@ protected:
 		star.galaxy = this;
 		star.distance = (float)(star.uPosition - stars[0].uPosition).magnitude() / 2400000.0f;
 	}
-	
-	StarClassSimple CreateBirthStar(int index,int seed)
+
+	void CreateBirthStar(int index,int seed)
 	{
 		StarClassSimple& birthStar = stars[index];
 		birthStar.index = 0;
@@ -761,50 +773,26 @@ protected:
 		birthStar.dysonRadius = round(birthStar.dysonRadius * 800) * 100;
 		birthStar.galaxy = this;
 		birthStar.set_type_mask();
-		return birthStar;
 	}
 
 	void GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
 	{
-
-		std::vector<VectorLF3> tmp_drunk;
-		std::vector<VectorLF3> tmp_poses;
+		//std::vector<VectorLF3> tmp_drunk;
+		//std::vector<VectorLF3> tmp_poses;
+		double x1[256] = {0},y1[256] = {0},z1[256] = {0};
+		double x2[8],y2[8],z2[8];
+		int cur_num = 1;
+		int cur_num_2 = 0;
 		int maxCount = targetCount * iterCount;
-		tmp_drunk.reserve(maxCount);
-		tmp_poses.reserve(maxCount);
-		RandomPoses(tmp_poses,tmp_drunk,seed,maxCount,minDist,minStepLen,maxStepLen,flatten);
-		poses.resize(targetCount);
-		for(int i = 0; i < targetCount; i++)
-			poses[i] = tmp_poses[i * 4];
-	}
+		//tmp_drunk.reserve(maxCount);
+		//tmp_poses.reserve(maxCount);
 
-	bool CheckCollision(const std::vector<VectorLF3>& pts,const VectorLF3& pt,double min_dist_square) const
-	{
-		for(auto& pt1 : pts)
-		{
-			double num2 = pt.x - pt1.x;
-			double num3 = pt.y - pt1.y;
-			double num4 = pt.z - pt1.z;
-			if(num2 * num2 + num3 * num3 + num4 * num4 < min_dist_square)
-				return true;
-		}
-		return false;
-	}
-
-	void RandomPoses(std::vector<VectorLF3>& tmp_poses,std::vector<VectorLF3>& tmp_drunk,int seed,int maxCount,double minDist,double minStepLen,double maxStepLen,double flatten)
-	{
 		double minDistSquare = minDist * minDist;
-		DotNet35Random dotNet35Random(seed);
+		DotNet35RandomLong dotNet35Random(seed);
 		double num1 = dotNet35Random.NextDouble();
-		tmp_poses.push_back(VectorLF3::zero());
-		int num2 = 6;
-		int num3 = 8;
-		if(num2 < 1)
-			num2 = 1;
-		if(num3 < 1)
-			num3 = 1;
-		double num4 = (double)(num3 - num2);
-		int num5 = (int)(num1 * num4 + (double)num2);
+		//tmp_poses.push_back(VectorLF3::zero());
+
+		int num5 = (int)(num1 * 2.0 + 6.0);
 		for(int index = 0; index < num5; ++index)
 		{
 			int num6 = 0;
@@ -819,13 +807,20 @@ protected:
 				{
 					double num11 = Math.Sqrt(d);
 					double num12 = (num10 * (maxStepLen - minStepLen) + minDist) / num11;
-					VectorLF3 pt(num7 * num12,num8 * num12,num9 * num12);
-					if(!CheckCollision(tmp_poses,pt,minDistSquare))
+					double x = num7 * num12;
+					double y = num8 * num12;
+					double z = num9 * num12;
+					//VectorLF3 pt(num7 * num12,num8 * num12,num9 * num12);
+					if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
 					{
-						tmp_drunk.push_back(pt);
-						tmp_poses.push_back(pt);
-						if(tmp_poses.size() >= maxCount)
-							return;
+						x1[cur_num] = x;
+						y1[cur_num] = y;
+						z1[cur_num] = z;
+						x2[cur_num_2] = x;
+						y2[cur_num_2] = y;
+						z2[cur_num_2] = z;
+						cur_num_2++;
+						cur_num++;
 						break;
 					}
 				}
@@ -834,7 +829,7 @@ protected:
 		int num13 = 0;
 		while(num13++ < 256)
 		{
-			for(int index = 0; index < tmp_drunk.size(); ++index)
+			for(int index = 0; index < cur_num_2; ++index)
 			{
 				if(dotNet35Random.NextDouble() <= 0.7)
 				{
@@ -850,13 +845,22 @@ protected:
 						{
 							double num19 = Math.Sqrt(d);
 							double num20 = (num18 * (maxStepLen - minStepLen) + minDist) / num19;
-							VectorLF3 pt(tmp_drunk[index].x + num15 * num20,tmp_drunk[index].y + num16 * num20,tmp_drunk[index].z + num17 * num20);
-							if(!CheckCollision(tmp_poses,pt,minDistSquare))
+							double x = x2[index] + num15 * num20;
+							double y = y2[index] + num16 * num20;
+							double z = z2[index] + num17 * num20;
+							if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
 							{
-								tmp_drunk[index] = pt;
-								tmp_poses.push_back(pt);
-								if(tmp_poses.size() >= maxCount)
-									return;
+								//tmp_drunk[index] = pt;
+								//tmp_poses.push_back(pt);
+								x2[index] = x;
+								y2[index] = y;
+								z2[index] = z;
+								x1[cur_num] = x;
+								y1[cur_num] = y;
+								z1[cur_num] = z;
+								cur_num++;
+								if(cur_num >= maxCount)
+									goto finish_label;
 								break;
 							}
 						}
@@ -864,6 +868,39 @@ protected:
 				}
 			}
 		}
+		finish_label:
+
+		poses.reserve(targetCount);
+		for(int i = 0; i < targetCount; i++)
+			poses.emplace_back(x1[i*4],y1[i*4],z1[i*4]);
+			//poses[i] = tmp_poses[i * 4];
+	}
+
+	bool CheckCollision(int cur_num,double* x1,double* y1,double* z1,double x,double y,double z,double min_dist_square) const
+	{
+		const __m256d vx = _mm256_set1_pd(x);
+		const __m256d vy = _mm256_set1_pd(y);
+		const __m256d vz = _mm256_set1_pd(z);
+		const __m256d v_thresh = _mm256_set1_pd(min_dist_square);
+
+		for(int i=0;i<cur_num;i+=4) {
+			__m256d dx = _mm256_loadu_pd(x1 + i);
+			__m256d dy = _mm256_loadu_pd(y1 + i);
+			__m256d dz = _mm256_loadu_pd(z1 + i);
+
+			dx = _mm256_sub_pd(vx,dx);
+			dy = _mm256_sub_pd(vy,dy);
+			dz = _mm256_sub_pd(vz,dz);
+
+			__m256d dist = _mm256_mul_pd(dx,dx);
+			dist = _mm256_fmadd_pd(dy,dy,dist);
+			dist = _mm256_fmadd_pd(dz,dz,dist);
+
+			__m256d cmp = _mm256_cmp_pd(dist,v_thresh,_CMP_LT_OQ);
+			if(_mm256_movemask_pd(cmp) != 0)
+				return true;
+		}
+		return false;
 	}
 
 	void CreateStarPlanets(StarClassSimple& star)
@@ -886,14 +923,14 @@ protected:
 			star.planets.resize(star.planetCount);
 			int info_seed = dotNet35Random2.Next();
 			int gen_seed = dotNet35Random2.Next();
-			star.planets[0] = CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+			CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
 		} else if(star.type == EStarType::NeutronStar)
 		{
 			star.planetCount = 1;
 			star.planets.resize(star.planetCount);
 			int info_seed = dotNet35Random2.Next();
 			int gen_seed = dotNet35Random2.Next();
-			star.planets[0] = CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+			CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
 		} else if(star.type == EStarType::WhiteDwarf)
 		{
 			if(num1 < 0.699999988079071)
@@ -902,7 +939,7 @@ protected:
 				star.planets.resize(star.planetCount);
 				int info_seed = dotNet35Random2.Next();
 				int gen_seed = dotNet35Random2.Next();
-				star.planets[0] = CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+				CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
 			} else
 			{
 				star.planetCount = 2;
@@ -911,18 +948,18 @@ protected:
 				{
 					int info_seed1 = dotNet35Random2.Next();
 					int gen_seed1 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,3,1,false,info_seed1,gen_seed1);
+					CreatePlanet(star,0,0,3,1,false,info_seed1,gen_seed1);
 					int info_seed2 = dotNet35Random2.Next();
 					int gen_seed2 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,0,4,2,false,info_seed2,gen_seed2);
+					CreatePlanet(star,1,0,4,2,false,info_seed2,gen_seed2);
 				} else
 				{
 					int info_seed3 = dotNet35Random2.Next();
 					int gen_seed3 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,4,1,true,info_seed3,gen_seed3);
+					CreatePlanet(star,0,0,4,1,true,info_seed3,gen_seed3);
 					int info_seed4 = dotNet35Random2.Next();
 					int gen_seed4 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,1,1,1,false,info_seed4,gen_seed4);
+					CreatePlanet(star,1,1,1,1,false,info_seed4,gen_seed4);
 				}
 			}
 		} else if(star.type == EStarType::GiantStar)
@@ -933,7 +970,7 @@ protected:
 				star.planets.resize(star.planetCount);
 				int info_seed = dotNet35Random2.Next();
 				int gen_seed = dotNet35Random2.Next();
-				star.planets[0] = CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed,gen_seed);
+				CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed,gen_seed);
 			} else if(num1 < 0.800000011920929)
 			{
 				star.planetCount = 2;
@@ -942,18 +979,18 @@ protected:
 				{
 					int info_seed5 = dotNet35Random2.Next();
 					int gen_seed5 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed5,gen_seed5);
+					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed5,gen_seed5);
 					int info_seed6 = dotNet35Random2.Next();
 					int gen_seed6 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed6,gen_seed6);
+					CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed6,gen_seed6);
 				} else
 				{
 					int info_seed7 = dotNet35Random2.Next();
 					int gen_seed7 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,3,1,true,info_seed7,gen_seed7);
+					CreatePlanet(star,0,0,3,1,true,info_seed7,gen_seed7);
 					int info_seed8 = dotNet35Random2.Next();
 					int gen_seed8 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,1,1,1,false,info_seed8,gen_seed8);
+					CreatePlanet(star,1,1,1,1,false,info_seed8,gen_seed8);
 				}
 			} else
 			{
@@ -963,35 +1000,35 @@ protected:
 				{
 					int info_seed9 = dotNet35Random2.Next();
 					int gen_seed9 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed9,gen_seed9);
+					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed9,gen_seed9);
 					int info_seed10 = dotNet35Random2.Next();
 					int gen_seed10 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed10,gen_seed10);
+					CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed10,gen_seed10);
 					int info_seed11 = dotNet35Random2.Next();
 					int gen_seed11 = dotNet35Random2.Next();
-					star.planets[2] = CreatePlanet(star,2,0,num3 > 0.5 ? 5 : 4,3,false,info_seed11,gen_seed11);
+					CreatePlanet(star,2,0,num3 > 0.5 ? 5 : 4,3,false,info_seed11,gen_seed11);
 				} else if(num2 < 0.75)
 				{
 					int info_seed12 = dotNet35Random2.Next();
 					int gen_seed12 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed12,gen_seed12);
+					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed12,gen_seed12);
 					int info_seed13 = dotNet35Random2.Next();
 					int gen_seed13 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,0,4,2,true,info_seed13,gen_seed13);
+					CreatePlanet(star,1,0,4,2,true,info_seed13,gen_seed13);
 					int info_seed14 = dotNet35Random2.Next();
 					int gen_seed14 = dotNet35Random2.Next();
-					star.planets[2] = CreatePlanet(star,2,2,1,1,false,info_seed14,gen_seed14);
+					CreatePlanet(star,2,2,1,1,false,info_seed14,gen_seed14);
 				} else
 				{
 					int info_seed15 = dotNet35Random2.Next();
 					int gen_seed15 = dotNet35Random2.Next();
-					star.planets[0] = CreatePlanet(star,0,0,num3 > 0.5 ? 4 : 3,1,true,info_seed15,gen_seed15);
+					CreatePlanet(star,0,0,num3 > 0.5 ? 4 : 3,1,true,info_seed15,gen_seed15);
 					int info_seed16 = dotNet35Random2.Next();
 					int gen_seed16 = dotNet35Random2.Next();
-					star.planets[1] = CreatePlanet(star,1,1,1,1,false,info_seed16,gen_seed16);
+					CreatePlanet(star,1,1,1,1,false,info_seed16,gen_seed16);
 					int info_seed17 = dotNet35Random2.Next();
 					int gen_seed17 = dotNet35Random2.Next();
-					star.planets[2] = CreatePlanet(star,2,1,2,2,false,info_seed17,gen_seed17);
+					CreatePlanet(star,2,1,2,2,false,info_seed17,gen_seed17);
 				}
 			}
 		} else
@@ -1139,7 +1176,7 @@ protected:
 					gasGiant = false;
 				}
 				label_62:
-				star.planets[index] = CreatePlanet(star,index,orbitAround,orbitAround == 0 ? num10 : num9,orbitAround == 0 ? num8 : num9,gasGiant,info_seed,gen_seed);
+				CreatePlanet(star,index,orbitAround,orbitAround == 0 ? num10 : num9,orbitAround == 0 ? num8 : num9,gasGiant,info_seed,gen_seed);
 				++num10;
 				if(gasGiant)
 				{
@@ -1168,7 +1205,7 @@ public:
 	//int veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
-	
+
 	void CreateStars(int galaxySeed,int starNum,float resource_rate)
 	{
 		seed = galaxySeed;
@@ -1203,7 +1240,7 @@ public:
 			int seed = dotNet35Random.Next();
 			if(index == 0)
 			{
-				stars[index] = CreateBirthStar(index,seed);
+				CreateBirthStar(index,seed);
 			} else
 			{
 				ESpectrType needSpectr = ESpectrType::X;
