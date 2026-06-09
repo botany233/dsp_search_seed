@@ -86,15 +86,21 @@ class UserLayout(QVBoxLayout):
     def get_remain_time_str(self, batch_id: int, total_batch: int, use_time: float) -> str:
         if len(self.progress_cache) == 0 or batch_id > self.progress_cache[-1][0]:
             self.progress_cache.append((batch_id, use_time))
-        while use_time - self.progress_cache[0][1] > 60:
+        while use_time - self.progress_cache[0][1] > 60 and len(self.progress_cache) > 1:
             self.progress_cache.popleft()
         cost_time_str = self.get_format_time_str(use_time)
         if batch_id <= 0:
             leave_time_str = "?"
             speed_str = "?seed/s"
+            self.progress_cache.clear()
+            self.progress_cache.append((batch_id, use_time))
         else:
-            last = self.progress_cache[0]
-            speed = (batch_id - last[0]) / (use_time - last[1])
+            last_batch_id, last_use_time = self.progress_cache[0]
+            speed = (batch_id - last_batch_id) / (use_time - last_use_time + 1e-8)
+            if speed > 200000:
+                print(last_batch_id, batch_id, last_use_time, use_time, speed)
+                print(self.progress_cache)
+                raise ValueError("计算得到的速度过快，可能是因为时间记录出现了问题！")
             leave_time_str = self.get_format_time_str((total_batch-batch_id)/speed)
             if speed >= 100:
                 speed_str = f"{speed:.1f}seed/s"
