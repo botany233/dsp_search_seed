@@ -1,37 +1,54 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+import json
 from time import perf_counter, sleep
 
 from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        "stars":[
-            {"distance": 10, "type": "蓝巨星", "satisfy_num": 1},
-            {"distance": 15, "type": "O型恒星", "satisfy_num": 2, "dyson_lumino": 2.4}
-        ]
+        # "planets": [
+        #     {
+        #         "satisfy_num": 2,
+        #         "veins_point": {
+        #             "有机晶体": 23
+        #         },
+        #         "veins_amount": {
+        #             "有机晶体": 27056
+        #         }
+        #     }
+        # ],
+        # "veins_point": {
+        #     "铜": 13179,
+        #     "金伯利": 1647
+        # },
+        "veins_amount": {
+            "铜": 505269781,
+            # "金伯利": 58948141
+        }
     },
     "seeds": [
-        5092,
-        5092
+        0,
+        99999
     ],
     "star_nums": [
         64,
         64
     ],
-    "resource_index": 10,
+    "resource_index": 0,
     "quick": True
 }
 
 def main():
     cpu_thread = 20
-    gpu_thread = 4
-    device_id = 0
+    gpu_thread = 8
+    device_id = 1
     local_size = 256
 
     c_save_path = os.path.join(os.path.dirname(__file__), "debug_results_c.csv")
     py_save_path = os.path.join(os.path.dirname(__file__), "debug_results_py.csv")
+    differ_save_path = os.path.join(os.path.dirname(__file__), "debug_results_differ.csv")
     set_device_id_c(device_id)
     set_local_size_c(local_size)
     set_gpu_max_worker_c(gpu_thread)
@@ -60,6 +77,19 @@ def main():
     with open(c_save_path, "w") as f:
         f.writelines(map(lambda x: f"{x.seed_id}, {x.star_num}\n", c_results))
     print(f"cpp完成: 用时{perf_counter() - flag:.2f}s，找到{len(c_results)}个种子")
+
+    py_results_set = set(py_results)
+    c_results_set = set((result.seed_id, result.star_num) for result in c_results)
+
+    py_new_result = sorted(py_results_set - c_results_set, key=lambda x: x[0] * 33 + x[1])
+    c_new_result = sorted(c_results_set - py_results_set, key=lambda x: x[0] * 33 + x[1])
+    if len(py_new_result) > 0 or len(c_new_result) > 0:
+        print(f"differ num = {len(py_new_result) + len(c_new_result)}")
+        with open(differ_save_path, "w") as f:
+            f.write("py unique results:\n")
+            f.writelines(map(lambda x: f"{x[0]}, {x[1]}\n", py_new_result))
+            f.write("cpp unique results:\n")
+            f.writelines(map(lambda x: f"{x[0]}, {x[1]}\n", c_new_result))
 
 if __name__ == "__main__":
     main()

@@ -3,6 +3,7 @@ from multiprocessing import cpu_count
 
 from .search_seed import *
 from .const_values import *
+from .max_flow import MaxFlowGraph
 
 def check_planet_py(planet_data: PlanetData, planet_condition: PlanetCondition) -> bool:
     if planet_condition.dsp_level > planet_data.dsp_level:
@@ -52,6 +53,44 @@ def check_star_py(star_data: StarData, star_condition: StarCondition) -> bool:
             return False
     return True
 
+def get_bond_positions_py(galaxy_data: GalaxyData, condition: PlanetCondition|StarCondition) -> list[list[float]]:
+    positions = []
+    if isinstance(condition, PlanetCondition):
+        for star_data in galaxy_data.stars:
+            for planet_data in star_data.planets:
+                if check_planet_py(planet_data, condition):
+                    positions.append(planet_data.pos_ly)
+    else:
+        for star_data in galaxy_data.stars:
+            if check_star_py(star_data, condition):
+                positions.append(star_data.pos_ly)
+    return positions
+
+def check_bond_position_py(pos1: list[list[float]], pos2: list[list[float]], bond_condition: BondCondition) -> bool:
+    limit1 = bond_condition.con1.satisfy_num
+    limit2 = bond_condition.con2.satisfy_num
+    if len(pos1) * limit1 < bond_condition.satisfy_num or len(pos2) * limit2 < bond_condition.satisfy_num:
+        return False
+
+    left_num = len(pos1)
+    right_num = len(pos2)
+    node_num = left_num + right_num + 2
+    source = 0
+    target = node_num - 1
+    graph = MaxFlowGraph(node_num)
+
+    for left_index in range(left_num):
+        graph.add_edge(source, left_index + 1, limit1)
+    for right_index in range(right_num):
+        graph.add_edge(left_num + right_index + 1, target, limit2)
+
+    distance_square = bond_condition.distance ** 2
+    for left_index, left_pos in enumerate(pos1):
+        for right_index, right_pos in enumerate(pos2):
+            if sum((a - b) ** 2 for a, b in zip(left_pos, right_pos)) <= distance_square:
+                graph.add_edge(left_index + 1, left_num + right_index + 1)
+    return graph.flow(source, target, bond_condition.satisfy_num)
+
 def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) -> bool:
     if galaxy_condition.need_veins:
         if any(galaxy_data.veins_point[i] < galaxy_condition.veins_point[i] for i in range(14)):
@@ -78,6 +117,11 @@ def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) 
                     if not left_satisfy_num:
                         break
         if left_satisfy_num:
+            return False
+    for bond_condition in galaxy_condition.bonds:
+        pos1 = get_bond_positions_py(galaxy_data, bond_condition.con1)
+        pos2 = get_bond_positions_py(galaxy_data, bond_condition.con2)
+        if not check_bond_position_py(pos1, pos2, bond_condition):
             return False
     return True
 

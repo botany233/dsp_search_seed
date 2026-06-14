@@ -60,7 +60,7 @@ def get_planet_text(galaxy: GalaxyData, cfg: PlanetExportCondition) -> str:
                 tr_domain("star_types", star.type),
                 round(star.dyson_lumino, 3),
                 round(star.distance, 2),
-                *star.pos,
+                *star.pos_m,
                 planet.name,
                 tr_domain("planet_types", planet.type),
                 _tr_traits(planet.singularity_str),
@@ -95,7 +95,7 @@ def get_star_text(galaxy: GalaxyData, cfg: StarExportCondition) -> str:
         *_tr_values("veins", vein_names_c),
     ]]
     for star in galaxy.stars:
-        star_data = [star.name, tr_domain("star_types", star.type), round(star.distance, 2), *star.pos, *star.liquid, round(star.dyson_lumino, 3), star.dyson_radius, *map(lambda x: round(x, 3), star.gas_veins), *star.veins_point, *star.veins_amount]
+        star_data = [star.name, tr_domain("star_types", star.type), round(star.distance, 2), *star.pos_m, *star.liquid, round(star.dyson_lumino, 3), star.dyson_radius, *map(lambda x: round(x, 3), star.gas_veins), *star.veins_point, *star.veins_amount]
         full_data.append(star_data)
 
     full_data = [",".join(map(str, (i for i, j in zip(line, mask) if j))) for line in full_data]

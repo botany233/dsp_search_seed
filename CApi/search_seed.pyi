@@ -4,6 +4,8 @@ class PlanetData:
     type_id: int
     singularity: int
     singularity_str: list[str]
+    pos_m: list[float] #m
+    pos_ly: list[float] #LY
     seed: int
     lumino: float
     wind: float
@@ -24,7 +26,8 @@ class StarData:
     dyson_lumino: float
     dyson_radius: float #m
     distance: float #LY
-    pos: list[float]
+    pos_m: list[float] #m
+    pos_ly: list[float] #LY
     planets: list[PlanetData]
     veins_point: list[int]
     veins_amount: list[int]
@@ -63,12 +66,19 @@ class StarCondition:
     veins_amount: list[int] = [0] * 14
     planets: list[PlanetCondition] = []
 
+class BondCondition:
+    satisfy_num: int = 0
+    distance: float = 1000.0 #LY
+    con1: PlanetCondition|StarCondition = PlanetCondition()
+    con2: PlanetCondition|StarCondition = PlanetCondition()
+
 class GalaxyCondition:
     need_veins: int = 0
     veins_point: list[int] = [0] * 14
     veins_amount: list[int] = [0] * 14
     stars: list[StarCondition] = []
     planets: list[PlanetCondition] = []
+    bonds: list[BondCondition] = []
 
 class Seed:
     seed_id: int

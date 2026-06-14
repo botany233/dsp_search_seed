@@ -6,7 +6,7 @@
 
 using namespace std;
 
-static uint16_t get_has_veins(const uint16_t *veins_point) {
+uint16_t get_has_veins(const uint16_t *veins_point) {
 	uint16_t has_veins = 0;
 	for(int i=0;i<14;i++) {
 		has_veins |= (veins_point[i] > 0) << i;

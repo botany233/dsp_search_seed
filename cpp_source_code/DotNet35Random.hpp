@@ -1,7 +1,9 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
 #pragma once
 #include <cmath>
+#ifdef SUPPORT_AVX2
 #include <immintrin.h>
+#endif
 
 #ifdef SUPPORT_AVX2
 class DotNet35Random
@@ -27,6 +29,7 @@ public:
 				num2 += 2147483647;
 			num = seedArray[num3];
 		}
+		seedArray[0] = 0;
 
 		__m256i const offset = _mm256_setr_epi32(7,0,1,2,3,4,5,6);
 		__m256i const drop0 = _mm256_setr_epi32(1,2,3,4,5,6,7,0);
@@ -229,6 +232,7 @@ public:
 				num2 += 2147483647;
 			num = seedArray[num3];
 		}
+		seedArray[0] = 0;
 
 		__m256i const offset = _mm256_setr_epi32(7,0,1,2,3,4,5,6);
 		__m256i r0 = _mm256_loadu_si256((__m256i*)seedArray);

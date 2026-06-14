@@ -119,6 +119,9 @@
     <ClInclude Include="gpu_benchmark.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="max_flow.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

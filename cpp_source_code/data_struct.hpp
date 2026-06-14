@@ -2,6 +2,7 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <variant>
 #include <cstdint>
 
 using namespace std;
@@ -40,13 +41,22 @@ struct StarCondition {
 	vector<PlanetCondition> planets = vector<PlanetCondition>();
 };
 
+struct BondCondition {
+	double distance = 1000.0; // 单位：LY
+	int satisfy_num = 0;
+
+	std::variant<PlanetCondition,StarCondition> con1;
+	std::variant<PlanetCondition,StarCondition> con2;
+};
+
 struct GalaxyCondition {
 	uint16_t need_veins = 0;
 	bool need_veins_amount = false;
 	array<uint16_t,14> veins_point = {};
 	array<uint64_t,14> veins_amount = {};
-	vector<StarCondition> stars = vector<StarCondition>();
-	vector<PlanetCondition> planets = vector<PlanetCondition>();
+	vector<StarCondition> stars{};
+	vector<PlanetCondition> planets{};
+	vector<BondCondition> bonds{};
 };
 
 struct PlanetData {
@@ -61,6 +71,8 @@ struct PlanetData {
 	float radius;
 	int liquid;
 	int dsp_level;
+	array<double,3> pos_m = {};
+	array<double,3> pos_ly = {};
 	vector<string> singularity_str = vector<string>();
 	array<uint16_t,14> veins_point = {};
 	array<uint64_t,14> veins_amount = {};
@@ -80,7 +92,8 @@ struct StarData {
 	array<uint64_t,14> veins_amount = {};
 	array<float,3> gas_veins = {};
 	array<int,3> liquid = {};
-	array<double,3> pos = {};
+	array<double,3> pos_m = {};
+	array<double,3> pos_ly = {};
 	vector<PlanetData> planets;
 };
 

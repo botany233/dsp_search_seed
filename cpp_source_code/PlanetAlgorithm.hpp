@@ -596,7 +596,7 @@ public:
 				}
 			}
 		}
-		//if(planet.id==101) {
+		//if(planet.id==103) {
 		//	cout << "矿脉数量: " << veinVectorCount << endl;
 		//	for(int i = 0; i < veinVectorCount; i++) {
 		//		cout << "矿脉 " << i << ": " << veinVectorTypes[i] << ", " << veinVectors[i].x << " " << veinVectors[i].y << " " << veinVectors[i].z << endl;

@@ -4,7 +4,10 @@
 #include <iostream>
 #include <cstdint>
 #include <vector>
+#include <span>
+#ifdef SUPPORT_AVX2
 #include <immintrin.h>
+#endif
 
 #include "LDB.hpp"
 #include "util.hpp"
@@ -15,6 +18,8 @@
 #include "PlanetRawData.hpp"
 
 using namespace std;
+
+uint16_t get_has_veins(const uint16_t *veins_point);
 
 class StarClassSimple;
 class GalaxyClassSimple;
@@ -56,7 +61,7 @@ public:
 	double mod_x;
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
-	std::vector<PlanetClassSimple*> moons;
+	PlanetClassSimple* moons[5] = {};
 	PlanetRawData data = PlanetRawData();
 	float orbitRadius = 1.0f;
 	float rotationPhase;
@@ -71,7 +76,7 @@ public:
 	Vector3 birthResourcePoint0;
 	Vector3 birthResourcePoint1;
 
-	uint8_t typeId() {
+	uint8_t typeId() const {
 		return planet_theme_to_type[theme-1];
 	}
 
@@ -98,7 +103,6 @@ public:
 		double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
 		int num4 = (int)(num3 + 0.1);
 		num3 = (num3 - (double)num4) * 360.0;
-		Vector3 test = Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius);
 		Vector3 position = Maths::QRotate(runtimeOrbitRotation,Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius));
 		if(orbitAroundPlanet != nullptr)
 		{
@@ -184,10 +188,11 @@ public:
 	int seed;
 	int index;
 	int id; //index+1
-	float resourceCoef = 1.0f;
-	//VectorLF3 position; //单位：光年
-	VectorLF3 uPosition; //单位：米
-	float mass = 1.0f;
+	float resourceCoef;
+	VectorLF3 position; //单位：LY
+	VectorLF3 uPosition; //单位：m
+	//uint8_t planet_count;
+	float mass;
 	float age;
 	EStarType type;
 	ESpectrType spectr;
@@ -196,9 +201,8 @@ public:
 	float habitableRadius = 1.0f;
 	float dysonRadius = 10.0f;
 	float orbitScaler = 1.0f;
-	int planetCount;
 	float distance;
-	//bool need_generate_planets = false;
+	span<PlanetClassSimple> planets;
 
 	uint16_t type_mask;
 	uint16_t has_veins = 0;
@@ -208,11 +212,10 @@ public:
 	//uint16_t real_veins_group[14]{0};
 	uint16_t real_veins_point[14]{0};
 	uint64_t real_veins_amount[14]{0};
-	std::vector<PlanetClassSimple> planets;
+	//std::vector<PlanetClassSimple> planets;
 	GalaxyClassSimple* galaxy = nullptr;
 
-	uint8_t typeId()
-	{
+	uint8_t typeId() const {
 		if(type == EStarType::GiantStar)
 		{
 			if(spectr <= ESpectrType::K)
@@ -265,8 +268,6 @@ class GalaxyClassSimple
 protected:
 	void SetPlanetTheme(StarClassSimple& star,PlanetClassSimple& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed,float planet_temperatureBias)
 	{
-		//std::vector<int> tmp_theme;
-		//tmp_theme.reserve(16);
 		int tmp_theme[25];
 		int tmp_theme_num = 0;
 
@@ -308,10 +309,8 @@ protected:
 			}
 			if(flag1)
 				tmp_theme[tmp_theme_num++] = themeProto.ID;
-			//tmp_theme.push_back(themeProto.ID);
 		}
 		if(!tmp_theme_num)
-			//if(tmp_theme.size() == 0)
 		{
 			for(int index3 = 0; index3 < length1; ++index3)
 			{
@@ -332,21 +331,17 @@ protected:
 				}
 				if(flag)
 					tmp_theme[tmp_theme_num++] = themeProto.ID;
-				//tmp_theme.push_back(themeProto.ID);
 			}
 		}
 		if(!tmp_theme_num)
-			//if(tmp_theme.size() == 0)
 		{
 			for(int index = 0; index < length1; ++index)
 			{
 				const ThemeProto& themeProto = LDB.Select(themeIds[index]);
 				if(themeProto.PlanetType == EPlanetType::Desert)
 					tmp_theme[tmp_theme_num++] = themeProto.ID;
-				//tmp_theme.push_back(themeProto.ID);
 			}
 		}
-		//planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme.size()) % tmp_theme.size()];
 		planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme_num) % tmp_theme_num];
 		const ThemeProto& themeProto1 = LDB.Select(planet.theme);
 		planet.algoId = themeProto1.Algos[(int)(rand2 * (double)themeProto1.Algos.size()) % themeProto1.Algos.size()];
@@ -388,21 +383,17 @@ protected:
 		planet.id = star.id * 100 + index + 1;
 		planet.star = &star;
 
-		int num1 = 0;
-		for(int index1 = 0; index1 < star.index; ++index1)
-			num1 += stars[index1].planetCount;
-		int num2 = num1 + index;
-		if(orbitAround > 0)
-		{
+		if(orbitAround > 0) {
 			planet.singularity |= EPlanetSingularity::Satellite;
-			for(int index2 = 0; index2 < star.planetCount; ++index2)
+			for(PlanetClassSimple& p: star.planets)
 			{
-				if(orbitAround == star.planets[index2].number && star.planets[index2].orbitAround == 0)
-				{
-					planet.orbitAroundPlanet = &star.planets[index2];
-					planet.orbitAroundPlanet->moons.push_back(&planet);
-					if(orbitIndex > 1)
-					{
+				if(orbitAround == p.number && p.orbitAround == 0) {
+					planet.orbitAroundPlanet = &p;
+					int moon_index = 0;
+					while(planet.orbitAroundPlanet->moons[moon_index] != nullptr)
+						moon_index++;
+					planet.orbitAroundPlanet->moons[moon_index] = &planet;
+					if(orbitIndex > 1) {
 						planet.orbitAroundPlanet->singularity |= EPlanetSingularity::MultipleSatellites;
 						break;
 					}
@@ -454,7 +445,7 @@ protected:
 		float planet_obliquity;
 		if(num15 < 0.0399999991059303)
 		{
-			planet_obliquity = (float)(num8 * (num9 - 0.5) * 20.0);
+			planet_obliquity = (float)(num8 * (num9 - 0.5) * 39.9);
 			if((double)planet_obliquity < 0.0)
 				planet_obliquity -= 70.0f;
 			else
@@ -633,7 +624,7 @@ protected:
 		DotNet35Random dotNet35Random1(seed);
 		int seed1 = dotNet35Random1.Next();
 		int Seed = dotNet35Random1.Next();
-		//star.position = pos;
+		star.position = pos;
 		star.uPosition = pos * 2400000.0;
 		float num1 = (float)pos.magnitude() / 32.0f;
 		if((double)num1 > 1.0)
@@ -710,7 +701,7 @@ protected:
 		star.luminosity = Mathf.Pow(num9,0.7f);
 		star.radius = (float)(Math.Pow((double)star.mass,0.4) * num5);
 		float p2 = (float)num10 + 2.0f;
-		star.habitableRadius = Mathf.Pow(1.7f,p2) + 0.25f * Mathf.Min(1.0f,star.orbitScaler);
+		star.habitableRadius = Mathf.Pow(1.7f,p2) + 0.25f * 1.0f;
 		star.orbitScaler = Mathf.Pow(1.35f,p2);
 		if((double)star.orbitScaler < 1.0)
 			star.orbitScaler = Mathf.Lerp(star.orbitScaler,1.0f,0.6f);
@@ -723,7 +714,7 @@ protected:
 		//star.type_id = star.typeId();
 		star.set_type_mask();
 		star.galaxy = this;
-		star.distance = (float)(star.uPosition - stars[0].uPosition).magnitude() / 2400000.0f;
+		star.distance = (star.position - stars[0].position).magnitude();
 	}
 
 	void CreateBirthStar(int index,int seed)
@@ -736,7 +727,7 @@ protected:
 		DotNet35Random dotNet35Random1(seed);
 		int seed1 = dotNet35Random1.Next();
 		int Seed = dotNet35Random1.Next();
-		//birthStar.position = VectorLF3::zero();
+		birthStar.position = VectorLF3::zero();
 		birthStar.uPosition = VectorLF3::zero();
 		DotNet35Random dotNet35Random2(Seed);
 		double r1 = dotNet35Random2.NextDouble();
@@ -762,7 +753,7 @@ protected:
 		birthStar.luminosity = Mathf.Pow(num4,0.7f);
 		birthStar.radius = (float)(Math.Pow((double)birthStar.mass,0.4) * num3);
 		float p2 = (float)num5 + 2.0f;
-		birthStar.habitableRadius = Mathf.Pow(1.7f,p2) + 0.2f * Mathf.Min(1.0f,birthStar.orbitScaler);
+		birthStar.habitableRadius = Mathf.Pow(1.7f,p2) + 0.2f;
 		birthStar.orbitScaler = Mathf.Pow(1.35f,p2);
 		if((double)birthStar.orbitScaler < 1.0)
 			birthStar.orbitScaler = Mathf.Lerp(birthStar.orbitScaler,1.0f,0.6f);
@@ -773,6 +764,7 @@ protected:
 		birthStar.dysonRadius = round(birthStar.dysonRadius * 800) * 100;
 		birthStar.galaxy = this;
 		birthStar.set_type_mask();
+		birthStar.distance = (birthStar.position - stars[0].position).magnitude();
 	}
 
 	void GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
@@ -878,6 +870,7 @@ protected:
 
 	bool CheckCollision(int cur_num,double* x1,double* y1,double* z1,double x,double y,double z,double min_dist_square) const
 	{
+#ifdef SUPPORT_AVX2
 		const __m256d vx = _mm256_set1_pd(x);
 		const __m256d vy = _mm256_set1_pd(y);
 		const __m256d vz = _mm256_set1_pd(z);
@@ -900,306 +893,66 @@ protected:
 			if(_mm256_movemask_pd(cmp) != 0)
 				return true;
 		}
+#else
+		for(int i=0;i<cur_num;i++) {
+			double dx = x - x1[i];
+			double dy = y - y1[i];
+			double dz = z - z1[i];
+			double dist_square = dx * dx + dy * dy + dz * dz;
+			if(dist_square < min_dist_square)
+				return true;
+		}
+#endif
 		return false;
 	}
 
-	void CreateStarPlanets(StarClassSimple& star)
+	int get_star_planet_num(const StarClassSimple& star) const
 	{
-		DotNet35Random dotNet35Random1(star.seed);
-		dotNet35Random1.Next();
-		dotNet35Random1.Next();
-		dotNet35Random1.Next();
-		DotNet35Random dotNet35Random2(dotNet35Random1.Next());
-		double num1 = dotNet35Random2.NextDouble();
-		double num2 = dotNet35Random2.NextDouble();
-		double num3 = dotNet35Random2.NextDouble();
-		double num4 = dotNet35Random2.NextDouble();
-		double num5 = dotNet35Random2.NextDouble();
-		double num6 = dotNet35Random2.NextDouble() * 0.2 + 0.9;
-		double num7 = dotNet35Random2.NextDouble() * 0.2 + 0.9;
 		if(star.type == EStarType::BlackHole)
-		{
-			star.planetCount = 1;
-			star.planets.resize(star.planetCount);
-			int info_seed = dotNet35Random2.Next();
-			int gen_seed = dotNet35Random2.Next();
-			CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
-		} else if(star.type == EStarType::NeutronStar)
-		{
-			star.planetCount = 1;
-			star.planets.resize(star.planetCount);
-			int info_seed = dotNet35Random2.Next();
-			int gen_seed = dotNet35Random2.Next();
-			CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
-		} else if(star.type == EStarType::WhiteDwarf)
-		{
-			if(num1 < 0.699999988079071)
-			{
-				star.planetCount = 1;
-				star.planets.resize(star.planetCount);
-				int info_seed = dotNet35Random2.Next();
-				int gen_seed = dotNet35Random2.Next();
-				CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
-			} else
-			{
-				star.planetCount = 2;
-				star.planets.resize(star.planetCount);
-				if(num2 < 0.300000011920929)
-				{
-					int info_seed1 = dotNet35Random2.Next();
-					int gen_seed1 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,3,1,false,info_seed1,gen_seed1);
-					int info_seed2 = dotNet35Random2.Next();
-					int gen_seed2 = dotNet35Random2.Next();
-					CreatePlanet(star,1,0,4,2,false,info_seed2,gen_seed2);
-				} else
-				{
-					int info_seed3 = dotNet35Random2.Next();
-					int gen_seed3 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,4,1,true,info_seed3,gen_seed3);
-					int info_seed4 = dotNet35Random2.Next();
-					int gen_seed4 = dotNet35Random2.Next();
-					CreatePlanet(star,1,1,1,1,false,info_seed4,gen_seed4);
-				}
-			}
-		} else if(star.type == EStarType::GiantStar)
-		{
-			if(num1 < 0.300000011920929)
-			{
-				star.planetCount = 1;
-				star.planets.resize(star.planetCount);
-				int info_seed = dotNet35Random2.Next();
-				int gen_seed = dotNet35Random2.Next();
-				CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed,gen_seed);
-			} else if(num1 < 0.800000011920929)
-			{
-				star.planetCount = 2;
-				star.planets.resize(star.planetCount);
-				if(num2 < 0.25)
-				{
-					int info_seed5 = dotNet35Random2.Next();
-					int gen_seed5 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed5,gen_seed5);
-					int info_seed6 = dotNet35Random2.Next();
-					int gen_seed6 = dotNet35Random2.Next();
-					CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed6,gen_seed6);
-				} else
-				{
-					int info_seed7 = dotNet35Random2.Next();
-					int gen_seed7 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,3,1,true,info_seed7,gen_seed7);
-					int info_seed8 = dotNet35Random2.Next();
-					int gen_seed8 = dotNet35Random2.Next();
-					CreatePlanet(star,1,1,1,1,false,info_seed8,gen_seed8);
-				}
-			} else
-			{
-				star.planetCount = 3;
-				star.planets.resize(star.planetCount);
-				if(num2 < 0.150000005960464)
-				{
-					int info_seed9 = dotNet35Random2.Next();
-					int gen_seed9 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed9,gen_seed9);
-					int info_seed10 = dotNet35Random2.Next();
-					int gen_seed10 = dotNet35Random2.Next();
-					CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed10,gen_seed10);
-					int info_seed11 = dotNet35Random2.Next();
-					int gen_seed11 = dotNet35Random2.Next();
-					CreatePlanet(star,2,0,num3 > 0.5 ? 5 : 4,3,false,info_seed11,gen_seed11);
-				} else if(num2 < 0.75)
-				{
-					int info_seed12 = dotNet35Random2.Next();
-					int gen_seed12 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed12,gen_seed12);
-					int info_seed13 = dotNet35Random2.Next();
-					int gen_seed13 = dotNet35Random2.Next();
-					CreatePlanet(star,1,0,4,2,true,info_seed13,gen_seed13);
-					int info_seed14 = dotNet35Random2.Next();
-					int gen_seed14 = dotNet35Random2.Next();
-					CreatePlanet(star,2,2,1,1,false,info_seed14,gen_seed14);
-				} else
-				{
-					int info_seed15 = dotNet35Random2.Next();
-					int gen_seed15 = dotNet35Random2.Next();
-					CreatePlanet(star,0,0,num3 > 0.5 ? 4 : 3,1,true,info_seed15,gen_seed15);
-					int info_seed16 = dotNet35Random2.Next();
-					int gen_seed16 = dotNet35Random2.Next();
-					CreatePlanet(star,1,1,1,1,false,info_seed16,gen_seed16);
-					int info_seed17 = dotNet35Random2.Next();
-					int gen_seed17 = dotNet35Random2.Next();
-					CreatePlanet(star,2,1,2,2,false,info_seed17,gen_seed17);
-				}
-			}
-		} else
-		{
-			double pGas[6];
-			if(star.index == 0)
-			{
-				star.planetCount = 4;
-				pGas[0] = 0.0;
-				pGas[1] = 0.0;
-				pGas[2] = 0.0;
-			} else if(star.spectr == ESpectrType::M)
-			{
-				star.planetCount = num1 >= 0.1 ? (num1 >= 0.3 ? (num1 >= 0.8 ? 4 : 3) : 2) : 1;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.2;
-					pGas[1] = 0.2;
-				} else
-				{
-					pGas[0] = 0.0;
-					pGas[1] = 0.2;
-					pGas[2] = 0.3;
-				}
-			} else if(star.spectr == ESpectrType::K)
-			{
-				star.planetCount = num1 >= 0.1 ? (num1 >= 0.2 ? (num1 >= 0.7 ? (num1 >= 0.95 ? 5 : 4) : 3) : 2) : 1;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.18;
-					pGas[1] = 0.18;
-				} else
-				{
-					pGas[0] = 0.0;
-					pGas[1] = 0.18;
-					pGas[2] = 0.28;
-					pGas[3] = 0.28;
-				}
-			} else if(star.spectr == ESpectrType::G)
-			{
-				star.planetCount = num1 >= 0.4 ? (num1 >= 0.9 ? 5 : 4) : 3;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.18;
-					pGas[1] = 0.18;
-				} else
-				{
-					pGas[0] = 0.0;
-					pGas[1] = 0.2;
-					pGas[2] = 0.3;
-					pGas[3] = 0.3;
-				}
-			} else if(star.spectr == ESpectrType::F)
-			{
-				star.planetCount = num1 >= 0.35 ? (num1 >= 0.8 ? 5 : 4) : 3;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.2;
-					pGas[1] = 0.2;
-				} else
-				{
-					pGas[0] = 0.0;
-					pGas[1] = 0.22;
-					pGas[2] = 0.31;
-					pGas[3] = 0.31;
-				}
-			} else if(star.spectr == ESpectrType::A)
-			{
-				star.planetCount = num1 >= 0.3 ? (num1 >= 0.75 ? 5 : 4) : 3;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.2;
-					pGas[1] = 0.2;
-				} else
-				{
-					pGas[0] = 0.1;
-					pGas[1] = 0.28;
-					pGas[2] = 0.3;
-					pGas[3] = 0.35;
-				}
-			} else if(star.spectr == ESpectrType::B)
-			{
-				star.planetCount = num1 >= 0.3 ? (num1 >= 0.75 ? 6 : 5) : 4;
-				if(star.planetCount <= 3)
-				{
-					pGas[0] = 0.2;
-					pGas[1] = 0.2;
-				} else
-				{
-					pGas[0] = 0.1;
-					pGas[1] = 0.22;
-					pGas[2] = 0.28;
-					pGas[3] = 0.35;
-					pGas[4] = 0.35;
-				}
-			} else if(star.spectr == ESpectrType::O)
-			{
-				star.planetCount = num1 >= 0.5 ? 6 : 5;
-				pGas[0] = 0.1;
-				pGas[1] = 0.2;
-				pGas[2] = 0.25;
-				pGas[3] = 0.3;
-				pGas[4] = 0.32;
-				pGas[5] = 0.35;
-			} else
-				star.planetCount = 1;
-			star.planets.resize(star.planetCount);
-			int num8 = 0;
-			int num9 = 0;
-			int orbitAround = 0;
-			int num10 = 1;
-			for(int index = 0; index < star.planetCount; ++index)
-			{
-				int info_seed = dotNet35Random2.Next();
-				int gen_seed = dotNet35Random2.Next();
-				double num11 = dotNet35Random2.NextDouble();
-				double num12 = dotNet35Random2.NextDouble();
-				bool gasGiant = false;
-				if(orbitAround == 0)
-				{
-					++num8;
-					if(index < star.planetCount - 1 && num11 < pGas[index])
-					{
-						gasGiant = true;
-						if(num10 < 3)
-							num10 = 3;
-					}
-					for(; star.index != 0 || num10 != 3; ++num10)
-					{
-						int num13 = star.planetCount - index;
-						int num14 = 9 - num10;
-						if(num14 > num13)
-						{
-							float a = (float)num13 / (float)num14;
-							float num15 = num10 <= 3 ? Mathf.Lerp(a,1.0f,0.15f) + 0.01f : Mathf.Lerp(a,1.0f,0.45f) + 0.01f;
-							if(dotNet35Random2.NextDouble() < (double)num15)
-								goto label_62;
-						} else
-							goto label_62;
-					}
-					gasGiant = true;
-				} else
-				{
-					++num9;
-					gasGiant = false;
-				}
-				label_62:
-				CreatePlanet(star,index,orbitAround,orbitAround == 0 ? num10 : num9,orbitAround == 0 ? num8 : num9,gasGiant,info_seed,gen_seed);
-				++num10;
-				if(gasGiant)
-				{
-					orbitAround = num8;
-					num9 = 0;
-				}
-				if(num9 >= 1 && num12 < 0.8)
-				{
-					orbitAround = 0;
-					num9 = 0;
-				}
-			}
-		}
+			return 1;
+		else if(star.type == EStarType::NeutronStar)
+			return 1;
+		else if(star.type == EStarType::WhiteDwarf)
+			return 2;
+		else if(star.type == EStarType::GiantStar)
+			return 3;
+		else if(star.index == 0)
+			return 4;
+		else if(star.spectr == ESpectrType::M)
+			return 4;
+		else if(star.spectr == ESpectrType::K)
+			return 5;
+		else if(star.spectr == ESpectrType::G)
+			return 5;
+		else if(star.spectr == ESpectrType::F)
+			return 5;
+		else if(star.spectr == ESpectrType::A)
+			return 5;
+		else if(star.spectr == ESpectrType::B)
+			return 6;
+		else if(star.spectr == ESpectrType::O)
+			return 6;
+		else
+			return 1;
+	}
+
+	int get_galaxy_planet_num(int need_generate_planet_num) const {
+		int planet_num = 0;
+		for(int i=0;i<need_generate_planet_num;i++)
+			planet_num += get_star_planet_num(stars[i]);
+		return planet_num;
 	}
 
 public:
 	int seed;
 	int starCount;
+	int planetCount;
 	//float resource_rate;
 	float resource_multiplier;
 	bool is_rare_resource;
 	bool is_infinite_resource;
-	std::vector<StarClassSimple> stars;
+	vector<StarClassSimple> stars;
+	vector<PlanetClassSimple> planets;
 	int habitableCount;
 	int birthPlanetId;
 	//int veins_group[14]{0};
@@ -1262,10 +1015,320 @@ public:
 		}
 	}
 
-	void CreatePlanets(int need_generate_planet_index)
+	void CreatePlanets(int need_generate_planet_num)
 	{
-		for(int i=0;i<need_generate_planet_index;i++)
-			CreateStarPlanets(stars[i]);
+		planetCount = 0;
+		planets.resize(get_galaxy_planet_num(need_generate_planet_num));
+		for(int i=0;i<need_generate_planet_num;i++) {
+			StarClassSimple& star = stars[i];
+			DotNet35Random dotNet35Random1(star.seed);
+			dotNet35Random1.Next();
+			dotNet35Random1.Next();
+			dotNet35Random1.Next();
+			DotNet35Random dotNet35Random2(dotNet35Random1.Next());
+			double num1 = dotNet35Random2.NextDouble();
+			double num2 = dotNet35Random2.NextDouble();
+			double num3 = dotNet35Random2.NextDouble();
+			double num4 = dotNet35Random2.NextDouble();
+			double num5 = dotNet35Random2.NextDouble();
+			double num6 = dotNet35Random2.NextDouble() * 0.2 + 0.9;
+			double num7 = dotNet35Random2.NextDouble() * 0.2 + 0.9;
+			int planet_count;
+			if(star.type == EStarType::BlackHole)
+			{
+				planet_count = 1;
+				star.planets = span(planets.data() + planetCount,planet_count);
+				int info_seed = dotNet35Random2.Next();
+				int gen_seed = dotNet35Random2.Next();
+				CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+			} else if(star.type == EStarType::NeutronStar)
+			{
+				planet_count = 1;
+				star.planets = span(planets.data() + planetCount,planet_count);
+				int info_seed = dotNet35Random2.Next();
+				int gen_seed = dotNet35Random2.Next();
+				CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+			} else if(star.type == EStarType::WhiteDwarf)
+			{
+				if(num1 < 0.699999988079071)
+				{
+					planet_count = 1;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					int info_seed = dotNet35Random2.Next();
+					int gen_seed = dotNet35Random2.Next();
+					CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
+				} else
+				{
+					planet_count = 2;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(num2 < 0.300000011920929)
+					{
+						int info_seed1 = dotNet35Random2.Next();
+						int gen_seed1 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,3,1,false,info_seed1,gen_seed1);
+						int info_seed2 = dotNet35Random2.Next();
+						int gen_seed2 = dotNet35Random2.Next();
+						CreatePlanet(star,1,0,4,2,false,info_seed2,gen_seed2);
+					} else
+					{
+						int info_seed3 = dotNet35Random2.Next();
+						int gen_seed3 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,4,1,true,info_seed3,gen_seed3);
+						int info_seed4 = dotNet35Random2.Next();
+						int gen_seed4 = dotNet35Random2.Next();
+						CreatePlanet(star,1,1,1,1,false,info_seed4,gen_seed4);
+					}
+				}
+			} else if(star.type == EStarType::GiantStar)
+			{
+				if(num1 < 0.300000011920929)
+				{
+					planet_count = 1;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					int info_seed = dotNet35Random2.Next();
+					int gen_seed = dotNet35Random2.Next();
+					CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed,gen_seed);
+				} else if(num1 < 0.800000011920929)
+				{
+					planet_count = 2;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(num2 < 0.25)
+					{
+						int info_seed5 = dotNet35Random2.Next();
+						int gen_seed5 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed5,gen_seed5);
+						int info_seed6 = dotNet35Random2.Next();
+						int gen_seed6 = dotNet35Random2.Next();
+						CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed6,gen_seed6);
+					} else
+					{
+						int info_seed7 = dotNet35Random2.Next();
+						int gen_seed7 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,3,1,true,info_seed7,gen_seed7);
+						int info_seed8 = dotNet35Random2.Next();
+						int gen_seed8 = dotNet35Random2.Next();
+						CreatePlanet(star,1,1,1,1,false,info_seed8,gen_seed8);
+					}
+				} else
+				{
+					planet_count = 3;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(num2 < 0.150000005960464)
+					{
+						int info_seed9 = dotNet35Random2.Next();
+						int gen_seed9 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed9,gen_seed9);
+						int info_seed10 = dotNet35Random2.Next();
+						int gen_seed10 = dotNet35Random2.Next();
+						CreatePlanet(star,1,0,num3 > 0.5 ? 4 : 3,2,false,info_seed10,gen_seed10);
+						int info_seed11 = dotNet35Random2.Next();
+						int gen_seed11 = dotNet35Random2.Next();
+						CreatePlanet(star,2,0,num3 > 0.5 ? 5 : 4,3,false,info_seed11,gen_seed11);
+					} else if(num2 < 0.75)
+					{
+						int info_seed12 = dotNet35Random2.Next();
+						int gen_seed12 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,num3 > 0.5 ? 3 : 2,1,false,info_seed12,gen_seed12);
+						int info_seed13 = dotNet35Random2.Next();
+						int gen_seed13 = dotNet35Random2.Next();
+						CreatePlanet(star,1,0,4,2,true,info_seed13,gen_seed13);
+						int info_seed14 = dotNet35Random2.Next();
+						int gen_seed14 = dotNet35Random2.Next();
+						CreatePlanet(star,2,2,1,1,false,info_seed14,gen_seed14);
+					} else
+					{
+						int info_seed15 = dotNet35Random2.Next();
+						int gen_seed15 = dotNet35Random2.Next();
+						CreatePlanet(star,0,0,num3 > 0.5 ? 4 : 3,1,true,info_seed15,gen_seed15);
+						int info_seed16 = dotNet35Random2.Next();
+						int gen_seed16 = dotNet35Random2.Next();
+						CreatePlanet(star,1,1,1,1,false,info_seed16,gen_seed16);
+						int info_seed17 = dotNet35Random2.Next();
+						int gen_seed17 = dotNet35Random2.Next();
+						CreatePlanet(star,2,1,2,2,false,info_seed17,gen_seed17);
+					}
+				}
+			} else
+			{
+				double pGas[6];
+				if(star.index == 0)
+				{
+					planet_count = 4;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					pGas[0] = 0.0;
+					pGas[1] = 0.0;
+					pGas[2] = 0.0;
+				} else if(star.spectr == ESpectrType::M)
+				{
+					planet_count = num1 >= 0.1 ? (num1 >= 0.3 ? (num1 >= 0.8 ? 4 : 3) : 2) : 1;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.2;
+						pGas[1] = 0.2;
+					} else
+					{
+						pGas[0] = 0.0;
+						pGas[1] = 0.2;
+						pGas[2] = 0.3;
+					}
+				} else if(star.spectr == ESpectrType::K)
+				{
+					planet_count = num1 >= 0.1 ? (num1 >= 0.2 ? (num1 >= 0.7 ? (num1 >= 0.95 ? 5 : 4) : 3) : 2) : 1;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.18;
+						pGas[1] = 0.18;
+					} else
+					{
+						pGas[0] = 0.0;
+						pGas[1] = 0.18;
+						pGas[2] = 0.28;
+						pGas[3] = 0.28;
+					}
+				} else if(star.spectr == ESpectrType::G)
+				{
+					planet_count = num1 >= 0.4 ? (num1 >= 0.9 ? 5 : 4) : 3;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.18;
+						pGas[1] = 0.18;
+					} else
+					{
+						pGas[0] = 0.0;
+						pGas[1] = 0.2;
+						pGas[2] = 0.3;
+						pGas[3] = 0.3;
+					}
+				} else if(star.spectr == ESpectrType::F)
+				{
+					planet_count = num1 >= 0.35 ? (num1 >= 0.8 ? 5 : 4) : 3;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.2;
+						pGas[1] = 0.2;
+					} else
+					{
+						pGas[0] = 0.0;
+						pGas[1] = 0.22;
+						pGas[2] = 0.31;
+						pGas[3] = 0.31;
+					}
+				} else if(star.spectr == ESpectrType::A)
+				{
+					planet_count = num1 >= 0.3 ? (num1 >= 0.75 ? 5 : 4) : 3;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.2;
+						pGas[1] = 0.2;
+					} else
+					{
+						pGas[0] = 0.1;
+						pGas[1] = 0.28;
+						pGas[2] = 0.3;
+						pGas[3] = 0.35;
+					}
+				} else if(star.spectr == ESpectrType::B)
+				{
+					planet_count = num1 >= 0.3 ? (num1 >= 0.75 ? 6 : 5) : 4;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					if(planet_count <= 3)
+					{
+						pGas[0] = 0.2;
+						pGas[1] = 0.2;
+					} else
+					{
+						pGas[0] = 0.1;
+						pGas[1] = 0.22;
+						pGas[2] = 0.28;
+						pGas[3] = 0.35;
+						pGas[4] = 0.35;
+					}
+				} else if(star.spectr == ESpectrType::O)
+				{
+					planet_count = num1 >= 0.5 ? 6 : 5;
+					star.planets = span(planets.data() + planetCount,planet_count);
+					pGas[0] = 0.1;
+					pGas[1] = 0.2;
+					pGas[2] = 0.25;
+					pGas[3] = 0.3;
+					pGas[4] = 0.32;
+					pGas[5] = 0.35;
+				} else {
+					planet_count = 1;
+					star.planets = span(planets.data() + planetCount,planet_count);
+				}
+				int num8 = 0;
+				int num9 = 0;
+				int orbitAround = 0;
+				int num10 = 1;
+				for(int index = 0; index < planet_count; ++index)
+				{
+					int info_seed = dotNet35Random2.Next();
+					int gen_seed = dotNet35Random2.Next();
+					double num11 = dotNet35Random2.NextDouble();
+					double num12 = dotNet35Random2.NextDouble();
+					bool gasGiant = false;
+					if(orbitAround == 0)
+					{
+						++num8;
+						if(index < planet_count - 1 && num11 < pGas[index])
+						{
+							gasGiant = true;
+							if(num10 < 3)
+								num10 = 3;
+						}
+						for(; star.index != 0 || num10 != 3; ++num10)
+						{
+							int num13 = planet_count - index;
+							int num14 = 9 - num10;
+							if(num14 > num13)
+							{
+								float a = (float)num13 / (float)num14;
+								float num15 = num10 <= 3 ? Mathf.Lerp(a,1.0f,0.15f) + 0.01f : Mathf.Lerp(a,1.0f,0.45f) + 0.01f;
+								if(dotNet35Random2.NextDouble() < (double)num15)
+									goto label_62;
+							} else
+								goto label_62;
+						}
+						gasGiant = true;
+					} else
+					{
+						++num9;
+						gasGiant = false;
+					}
+					label_62:
+					CreatePlanet(star,index,orbitAround,orbitAround == 0 ? num10 : num9,orbitAround == 0 ? num8 : num9,gasGiant,info_seed,gen_seed);
+					++num10;
+					if(gasGiant)
+					{
+						orbitAround = num8;
+						num9 = 0;
+					}
+					if(num9 >= 1 && num12 < 0.8)
+					{
+						orbitAround = 0;
+						num9 = 0;
+					}
+				}
+			}
+			planetCount += planet_count;
+		}
+		planets.resize(planetCount);
 	}
 
+	void GenerateUpperVeins() {
+		for(PlanetClassSimple& planet : planets) {
+			if(planet.type == EPlanetType::Gas)
+				planet.is_real_veins = true;
+			else if(planet.need_generate_veins)
+				planet.MyGenerateVeins();
+		}
+		for(StarClassSimple& star : stars)
+			star.has_veins = get_has_veins(star.upper_veins_point);
+	}
 };

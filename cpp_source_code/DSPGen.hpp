@@ -2,6 +2,7 @@
 // Modified by https://github.com/botany233 on 2025.10
 #pragma once
 #include <iostream>
+#include <iomanip>
 
 #include "defines.hpp"
 #include "LDB.hpp"

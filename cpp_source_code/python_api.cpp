@@ -4,6 +4,7 @@
 #include <string>
 #include <cstdint>
 #include <iostream>
+#include <variant>
 #include <array>
 
 #include "defines.hpp"
@@ -45,12 +46,21 @@ vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int en
 	return result;
 }
 
-static bool is_planet_need_veins(const PlanetCondition& planet_condition)
-{
+static bool is_planet_need_veins(const PlanetCondition& planet_condition) {
 	if(planet_condition.need_veins)
 		return true;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		if(moon_condition.need_veins)
+			return true;
+	}
+	return false;
+}
+
+static bool is_star_need_veins(const StarCondition& star_condition) {
+	if(star_condition.need_veins)
+		return true;
+	for(const PlanetCondition& planet_condition: star_condition.planets) {
+		if(is_planet_need_veins(planet_condition))
 			return true;
 	}
 	return false;
@@ -61,22 +71,36 @@ static bool is_need_veins(const GalaxyCondition& galaxy_condition)
 	if(galaxy_condition.need_veins)
 		return true;
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
-		if(star_condition.need_veins)
+		if(is_star_need_veins(star_condition))
 			return true;
-		for(const PlanetCondition& planet_condition: star_condition.planets) {
-			if(is_planet_need_veins(planet_condition))
-				return true;
-		}
 	}
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
 		if(is_planet_need_veins(planet_condition))
 			return true;
+	}
+	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
+		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
+			if(is_planet_need_veins(get<PlanetCondition>(bond_condition.con1)))
+				return true;
+		} else {
+			if(is_star_need_veins(get<StarCondition>(bond_condition.con1)))
+				return true;
+		}
+		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
+			if(is_planet_need_veins(get<PlanetCondition>(bond_condition.con2)))
+				return true;
+		} else {
+			if(is_star_need_veins(get<StarCondition>(bond_condition.con2)))
+				return true;
+		}
 	}
 	return false;
 }
 
 static bool is_need_planet(const GalaxyCondition& galaxy_condition)
 {
+	if(!galaxy_condition.bonds.empty())
+		return true;
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
 		if(star_condition.planets.size() > 0)
 			return true;
@@ -98,11 +122,6 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 	}
 }
 
-GalaxyData get_galaxy_data_c(SeedStruct seed,bool quick) {
-	int level = quick?3:4;
-	return get_galaxy_data(seed,level);
-}
-
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const py::dict& galaxy_condition_dict,bool quick)
 {
@@ -114,7 +133,7 @@ vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int 
 PYBIND11_MODULE(search_seed,m) {
 	py::class_<SeedStruct>(m,"Seed")
 		.def(py::init<>())
-		.def(py::init<int,int,float>())
+		.def(py::init<int,int,uint8_t>())
 		.def_readonly("seed_id",&SeedStruct::seed_id)
 		.def_readonly("star_num",&SeedStruct::star_num)
 		.def_readonly("resource_index",&SeedStruct::resource_index);
@@ -139,13 +158,20 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("veins_point",&StarCondition::veins_point)
 		.def_readonly("veins_amount",&StarCondition::veins_amount)
 		.def_readonly("planets",&StarCondition::planets);
+	py::class_<BondCondition>(m,"BondCondition")
+		.def(py::init<>())
+		.def_readonly("distance",&BondCondition::distance)
+		.def_readonly("satisfy_num",&BondCondition::satisfy_num)
+		.def_property_readonly("con1",[](const BondCondition& self) { return self.con1; })
+		.def_property_readonly("con2",[](const BondCondition& self) { return self.con2; });
 	py::class_<GalaxyCondition>(m,"GalaxyCondition")
 		.def(py::init<>())
 		.def_readonly("need_veins",&GalaxyCondition::need_veins)
 		.def_readonly("veins_point",&GalaxyCondition::veins_point)
 		.def_readonly("veins_amount",&GalaxyCondition::veins_amount)
 		.def_readonly("stars",&GalaxyCondition::stars)
-		.def_readonly("planets",&GalaxyCondition::planets);
+		.def_readonly("planets",&GalaxyCondition::planets)
+		.def_readonly("bonds", &GalaxyCondition::bonds);
 	py::class_<PlanetData>(m,"PlanetData")
 		.def(py::init<>())
 		.def_readonly("name",&PlanetData::name)
@@ -153,6 +179,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("type_id",&PlanetData::type_id)
 		.def_readonly("singularity",&PlanetData::singularity)
 		.def_readonly("singularity_str",&PlanetData::singularity_str)
+		.def_readonly("pos_m",&PlanetData::pos_m)
+		.def_readonly("pos_ly",&PlanetData::pos_ly)
 		.def_readonly("seed",&PlanetData::seed)
 		.def_readonly("lumino",&PlanetData::lumino)
 		.def_readonly("wind",&PlanetData::wind)
@@ -173,7 +201,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("dyson_lumino",&StarData::dyson_lumino)
 		.def_readonly("dyson_radius",&StarData::dyson_radius)
 		.def_readonly("distance",&StarData::distance)
-		.def_readonly("pos",&StarData::pos)
+		.def_readonly("pos_ly",&StarData::pos_ly)
+		.def_readonly("pos_m",&StarData::pos_m)
 		.def_readonly("planets",&StarData::planets)
 		.def_readonly("veins_point",&StarData::veins_point)
 		.def_readonly("veins_amount",&StarData::veins_amount)
@@ -243,6 +272,6 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("set_gpu_max_worker_c",&OpenCLManager::set_max_worker,py::arg("max_worker"));
 	m.def("get_gpu_max_worker_c",&OpenCLManager::get_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
-	m.def("get_galaxy_data_c",&get_galaxy_data_c,py::arg("seed"),py::arg("quick"));
+	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 }

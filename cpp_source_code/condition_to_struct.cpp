@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <cstdint>
 #include <array>
+#include <variant>
 
 #include "data_struct.hpp"
 
@@ -59,6 +60,23 @@ static StarCondition star_condition_to_struct(const py::dict& star_condition) {
 	return new_star_condition;
 }
 
+static BondCondition bond_condition_to_struct(const py::dict& bond_condition) {
+	BondCondition new_bond_condition = BondCondition();
+	new_bond_condition.distance = bond_condition["distance"].cast<double>();
+	new_bond_condition.satisfy_num = bond_condition["satisfy_num"].cast<int>();
+	if(bond_condition["con1_is_planet"].cast<bool>()) {
+		new_bond_condition.con1 = planet_condition_to_struct(bond_condition["con1"].cast<py::dict>());
+	} else {
+		new_bond_condition.con1 = star_condition_to_struct(bond_condition["con1"].cast<py::dict>());
+	}
+	if(bond_condition["con2_is_planet"].cast<bool>()) {
+		new_bond_condition.con2 = planet_condition_to_struct(bond_condition["con2"].cast<py::dict>());
+	} else {
+		new_bond_condition.con2 = star_condition_to_struct(bond_condition["con2"].cast<py::dict>());
+	}
+	return new_bond_condition;
+}
+
 GalaxyCondition galaxy_condition_to_struct(const py::dict& galaxy_condition) {
 	GalaxyCondition new_galaxy_condition = GalaxyCondition();
 	new_galaxy_condition.veins_point = galaxy_condition["veins_point"].cast<array<uint16_t,14>>();
@@ -72,6 +90,10 @@ GalaxyCondition galaxy_condition_to_struct(const py::dict& galaxy_condition) {
 	auto planet_conditions = galaxy_condition["planets"].cast<py::list>();
 	for(auto planet_condition : planet_conditions) {
 		new_galaxy_condition.planets.push_back(planet_condition_to_struct(planet_condition.cast<py::dict>()));
+	}
+	auto bond_conditions = galaxy_condition["bonds"].cast<py::list>();
+	for(auto bond_condition : bond_conditions) {
+		new_galaxy_condition.bonds.push_back(bond_condition_to_struct(bond_condition.cast<py::dict>()));
 	}
 	return new_galaxy_condition;
 }
