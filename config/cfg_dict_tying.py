@@ -67,6 +67,21 @@ class StarCondition(BaseModel):
     planet_condition: list[PlanetCondition] = []
     uuid: UUID = Field(default_factory=uuid4)
 
+class BondCondition(BaseModel):
+    custom_name: str = "绑定条件"
+    checked: bool = True
+
+    con1_is_planet: bool = False
+    con2_is_planet: bool = False
+
+    distance: float = -1.0
+    satisfy_num: int = 1
+
+    con1_planet: PlanetCondition = PlanetCondition()
+    con1_star: StarCondition = StarCondition()
+    con2_planet: PlanetCondition = PlanetCondition()
+    con2_star: StarCondition = StarCondition()
+
 class GalaxyCondition(BaseModel):
     custom_name: str = "星系条件"
     checked: bool = True
@@ -75,6 +90,7 @@ class GalaxyCondition(BaseModel):
     veins_amount_condition: VeinsCondition = VeinsCondition()
     star_condition: list[StarCondition] = []
     planet_condition: list[PlanetCondition] = []
+    bond_condition: list[BondCondition] = []
 
 # csv 导出设置
 class GalaxyExportCondition(BaseModel):

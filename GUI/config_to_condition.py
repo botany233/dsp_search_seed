@@ -2,6 +2,7 @@ __all__ = ["config_to_galaxy_condition"]
 
 from config.cfg_dict_tying import (
     GalaxyCondition,
+    BondCondition,
     PlanetCondition,
     StarCondition,
     VeinsCondition,
@@ -15,9 +16,29 @@ def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
             galaxy_condition["veins_point"] = veins_point
         if (veins_amount := get_veins_dict(galaxy_cfg.veins_amount_condition)):
             galaxy_condition["veins_amount"] = veins_amount
+    galaxy_condition["bonds"] = [config_to_bond_condition(bond_cfg) for bond_cfg in galaxy_cfg.bond_condition]
     galaxy_condition["stars"] = [config_to_star_condition(star_cfg) for star_cfg in galaxy_cfg.star_condition]
     galaxy_condition["planets"] = [config_to_planet_condition(planet_cfg) for planet_cfg in galaxy_cfg.planet_condition]
     return galaxy_condition
+
+def config_to_bond_condition(bond_cfg: BondCondition) -> dict:
+    bond_condition = {}
+    if bond_cfg.checked:
+        if bond_cfg.con1_is_planet:
+            bond_condition["con1"] = config_to_planet_condition(bond_cfg.con1_planet)
+        else:
+            bond_condition["con1"] = config_to_star_condition(bond_cfg.con1_star)
+
+        if bond_cfg.con2_is_planet:
+            bond_condition["con2"] = config_to_planet_condition(bond_cfg.con2_planet)
+        else:
+            bond_condition["con2"] = config_to_star_condition(bond_cfg.con2_star)
+
+        if bond_cfg.distance >= 0:
+            bond_condition["distance"] = bond_cfg.distance
+        if bond_cfg.satisfy_num > 1:
+            bond_condition["satisfy_num"] = bond_cfg.satisfy_num
+    return bond_condition
 
 def config_to_star_condition(star_cfg: StarCondition) -> dict:
     star_condition = {}
