@@ -261,6 +261,8 @@ class MainWindow(FluentWindow):
             planet_leaf = galaxy_leaf.addPlanetLeaf(planet_condition)
             for moon_condition in planet_condition.moon_conditions:
                 planet_leaf.addMoonLeaf(moon_condition)
+        for bond_condition in galaxy_condition.bond_condition:
+            galaxy_leaf.addBondLeaf(bond_condition)
 
     def __handle_exit__(self, signum, frame):
         import sys

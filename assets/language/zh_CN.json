@@ -111,7 +111,11 @@
                 "dsp_level": "戴森球接收",
                 "lumino": "光度级别",
                 "distance": "最远距离",
-                "satisfy_num": "符合数量"
+                "satisfy_num": "符合数量",
+                "bond_satisfy_num": "绑定数量",
+                "bond_condition_type": "条件类型",
+                "bond_con1": "条件1",
+                "bond_con2": "条件2"
             },
             "buttons": {
                 "veins_point": "矿脉数量",
@@ -121,13 +125,15 @@
                 "add_star": "添加恒星条件",
                 "add_planet": "添加星球条件",
                 "add_moon": "添加卫星条件",
+                "add_bond": "添加绑定条件",
                 "delete": "点击删除该项及其子项"
             },
             "menu": {
                 "delete": "删除项",
                 "add_star": "添加恒星条件",
                 "add_planet": "添加星球条件",
-                "add_moon": "添加卫星条件"
+                "add_moon": "添加卫星条件",
+                "add_bond": "添加绑定条件"
             },
             "no_limit": "无限制",
             "selected_count": "已选{count}项",
@@ -402,7 +408,12 @@
             "星系条件": "星系条件",
             "恒星系条件": "恒星系条件",
             "星球条件": "星球条件",
-            "卫星条件": "卫星条件"
+            "卫星条件": "卫星条件",
+            "绑定条件": "绑定条件"
+        },
+        "bond_condition_types": {
+            "star": "恒星系条件",
+            "planet": "星球条件"
         }
     }
 }

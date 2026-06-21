@@ -25,13 +25,17 @@ def config_to_bond_condition(bond_cfg: BondCondition) -> dict:
     bond_condition = {}
     if bond_cfg.checked:
         if bond_cfg.con1_is_planet:
+            bond_condition["con1_is_planet"] = True
             bond_condition["con1"] = config_to_planet_condition(bond_cfg.con1_planet)
         else:
+            bond_condition["con1_is_planet"] = False
             bond_condition["con1"] = config_to_star_condition(bond_cfg.con1_star)
 
         if bond_cfg.con2_is_planet:
+            bond_condition["con2_is_planet"] = True
             bond_condition["con2"] = config_to_planet_condition(bond_cfg.con2_planet)
         else:
+            bond_condition["con2_is_planet"] = False
             bond_condition["con2"] = config_to_star_condition(bond_cfg.con2_star)
 
         if bond_cfg.distance >= 0:
