@@ -756,8 +756,14 @@ class BondTreeLeave(LeaveBase):
 
     def _create_endpoint_switch(self, endpoint: int) -> SwitchButton:
         type_switch = SwitchButton()
-        type_switch.setOffText(tr_domain("bond_condition_types", "star"))
-        type_switch.setOnText(tr_domain("bond_condition_types", "planet"))
+        star_text = tr("search.condition_tree.bond_switch.star")
+        planet_text = tr("search.condition_tree.bond_switch.planet")
+        type_switch.setOffText(star_text)
+        type_switch.setOnText(planet_text)
+        type_switch.label.setFixedWidth(max(
+            type_switch.label.fontMetrics().horizontalAdvance(star_text),
+            type_switch.label.fontMetrics().horizontalAdvance(planet_text),
+        ) + 6)
         type_switch.setChecked(getattr(self.config_obj, f"con{endpoint}_is_planet"))
         type_switch.checkedChanged.connect(lambda checked, endpoint=endpoint: self._on_type_changed(endpoint, checked))
         return type_switch
@@ -863,7 +869,6 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         self.endpoint = endpoint
         self.has_moon = False
         super().__init__(root, self.active_config, f"con{endpoint}")
-        self.setFlags(self.flags() & ~Qt.ItemIsEditable)
         self._refresh_text()
 
     @property
@@ -890,15 +895,8 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         self.setExpanded(True)
 
     def setData(self, column: int, role: int, value: Any) -> None:
-        if column == 0 and role == Qt.CheckStateRole:
-            self.config_obj = self.active_config
-            self.config_obj.checked = bool(value)
-            cfg.save()
-            QTreeWidgetItem.setData(self, column, role, value)
-            return
-        if column == 0 and role == Qt.EditRole:
-            return
-        return QTreeWidgetItem.setData(self, column, role, value)
+        self.config_obj = self.active_config
+        return super().setData(column, role, value)
 
     def set_is_planet(self, is_planet: bool):
         if self.active_is_planet == is_planet:
@@ -917,7 +915,7 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         self.setExpanded(True)
 
     def _refresh_text(self):
-        self.setText(0, "")
+        self.setText(0, tr_domain("condition_names", self.active_config.custom_name))
 
     def _sync_manage_buttons(self):
         if self.active_is_planet:

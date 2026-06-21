@@ -138,6 +138,10 @@
             },
             "no_limit": "无限制",
             "selected_count": "已选{count}项",
+            "bond_switch": {
+                "star": "恒星系条件",
+                "planet": "星球条件  "
+            },
             "settings": {
                 "return": "返回",
                 "oil_rate_label": "油(单位: /s)",

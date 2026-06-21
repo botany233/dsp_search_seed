@@ -138,6 +138,10 @@
             },
             "no_limit": "No Limit",
             "selected_count": "{count} selected",
+            "bond_switch": {
+                "star": "Star Condition  ",
+                "planet": "Planet Condition"
+            },
             "settings": {
                 "return": "Back",
                 "oil_rate_label": "Oil (unit: /s)",
