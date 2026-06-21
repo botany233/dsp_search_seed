@@ -723,8 +723,9 @@ class PlanetTreeLeave(LeaveBase):
 
 
 class BondTreeLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj=None):
+    def __init__(self, parent=None, config_obj=None, bond_item: "BondTreeWidgetItem" = None):
         super().__init__(parent, config_obj=config_obj)
+        self.bond_item = bond_item
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
 
@@ -738,29 +739,35 @@ class BondTreeLeave(LeaveBase):
         self.satisfyNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
         self.mainLayout.addWidget(self.satisfyNumLineEdit)
 
+        self.con1Label = BodyLabel(tr("search.condition_tree.labels.bond_con1"))
+        self.mainLayout.addWidget(self.con1Label)
+        self.con1TypeSwitch = self._create_endpoint_switch(1)
+        self.mainLayout.addWidget(self.con1TypeSwitch)
+
+        self.con2Label = BodyLabel(tr("search.condition_tree.labels.bond_con2"))
+        self.mainLayout.addWidget(self.con2Label)
+        self.con2TypeSwitch = self._create_endpoint_switch(2)
+        self.mainLayout.addWidget(self.con2TypeSwitch)
+
         self.distanceLineEdit.setMaximumHeight(28)
         self.distanceLineEdit.setFixedHeight(28)
         self.satisfyNumLineEdit.setMaximumHeight(28)
         self.satisfyNumLineEdit.setFixedHeight(28)
 
+    def _create_endpoint_switch(self, endpoint: int) -> SwitchButton:
+        type_switch = SwitchButton()
+        type_switch.setOffText(tr_domain("bond_condition_types", "star"))
+        type_switch.setOnText(tr_domain("bond_condition_types", "planet"))
+        type_switch.setChecked(getattr(self.config_obj, f"con{endpoint}_is_planet"))
+        type_switch.checkedChanged.connect(lambda checked, endpoint=endpoint: self._on_type_changed(endpoint, checked))
+        return type_switch
 
-class BondEndpointSwitchLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj=None, endpoint_item: "BondEndpointTreeWidgetItem" = None):
-        super().__init__(parent, config_obj=config_obj)
-        self.endpoint_item = endpoint_item
-        self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(30, 0, 5, 0)
-        self.mainLayout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-
-        self.typeSwitch = SwitchButton()
-        self.typeSwitch.setOffText(tr_domain("bond_condition_types", "star"))
-        self.typeSwitch.setOnText(tr_domain("bond_condition_types", "planet"))
-        self.typeSwitch.setChecked(self.endpoint_item.active_is_planet)
-        self.typeSwitch.checkedChanged.connect(self._on_type_changed)
-        self.mainLayout.addWidget(self.typeSwitch)
-
-    def _on_type_changed(self, checked: bool):
-        self.endpoint_item.set_is_planet(checked)
+    def _on_type_changed(self, endpoint: int, checked: bool):
+        if self.bond_item is not None:
+            self.bond_item.set_endpoint_is_planet(endpoint, checked)
+        else:
+            setattr(self.config_obj, f"con{endpoint}_is_planet", checked)
+            cfg.save()
 
 
 class BondEndpointTreeLeave(LeaveBase):
@@ -792,7 +799,7 @@ class BondTreeWidgetItem(TreeWidgetItem):
         super().__init__(root, config_obj, "bond_condition")
 
     def add_widgets(self):
-        self.leaf = BondTreeLeave(config_obj=self.config_obj)
+        self.leaf = BondTreeLeave(config_obj=self.config_obj, bond_item=self)
         self.root.setItemWidget(self, 1, self.leaf)
 
         self.manageButtons = TreeWidgetLeave()
@@ -811,6 +818,21 @@ class BondTreeWidgetItem(TreeWidgetItem):
         self.addChild(new_leaf)
         new_leaf.add_widgets()
         return new_leaf
+
+    def getEndpointLeaf(self, endpoint: int) -> "BondEndpointTreeWidgetItem | None":
+        for index in range(self.childCount()):
+            child = self.child(index)
+            if isinstance(child, BondEndpointTreeWidgetItem) and child.endpoint == endpoint:
+                return child
+        return None
+
+    def set_endpoint_is_planet(self, endpoint: int, is_planet: bool):
+        endpoint_leaf = self.getEndpointLeaf(endpoint)
+        if endpoint_leaf is not None:
+            endpoint_leaf.set_is_planet(is_planet)
+            return
+        setattr(self.config_obj, f"con{endpoint}_is_planet", is_planet)
+        cfg.save()
 
     def _on_del_button_clicked(self):
         if self.parent() is None:
@@ -855,9 +877,6 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         return getattr(self.bond_config_obj, f"con{self.endpoint}_star")
 
     def add_widgets(self):
-        self.switchLeaf = BondEndpointSwitchLeave(config_obj=self.bond_config_obj, endpoint_item=self)
-        self.root.setItemWidget(self, 0, self.switchLeaf)
-
         self.leaf = BondEndpointTreeLeave(config_obj=self.bond_config_obj, endpoint_item=self)
         self.root.setItemWidget(self, 1, self.leaf)
 
@@ -892,10 +911,6 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         self.has_moon = False
         self._refresh_text()
         self._update_check_state_from_config()
-        if hasattr(self, "switchLeaf") and self.switchLeaf.typeSwitch.isChecked() != is_planet:
-            was_blocked = self.switchLeaf.typeSwitch.blockSignals(True)
-            self.switchLeaf.typeSwitch.setChecked(is_planet)
-            self.switchLeaf.typeSwitch.blockSignals(was_blocked)
         self.leaf.switch_condition_widget()
         self._sync_manage_buttons()
         self._populate_children()
