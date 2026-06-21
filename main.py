@@ -15,7 +15,7 @@ def main():
     # cfg.config.local_size = get_local_size_c()
     # cfg.config.device_id = get_device_id_c()
     if cfg.config.language == "en_US":
-        cfg.config.ui_scale_factor = 0.85
+        cfg.config.ui_scale_factor = 0.84
     else:
         cfg.config.ui_scale_factor = 1.0
     os.environ["QT_SCALE_FACTOR"] = str(cfg.config.ui_scale_factor)
