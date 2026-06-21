@@ -113,6 +113,7 @@
                 "distance": "Max Distance",
                 "satisfy_num": "Required Count",
                 "bond_satisfy_num": "Bond Count",
+                "max_connection_num": "Max Connections",
                 "bond_condition_type": "Condition Type",
                 "bond_con1": "Condition 1",
                 "bond_con2": "Condition 2"

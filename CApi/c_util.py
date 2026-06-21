@@ -18,7 +18,7 @@ def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     return galaxy_condition
 
 def change_bond_condition_legal(bond_condition:dict) -> dict:
-    bond_condition["satisfy_num"] = bond_condition["satisfy_num"]
+    bond_condition["satisfy_num"] = bond_condition.get("satisfy_num", 1)
     bond_condition["distance"] = bond_condition.get("distance", 1000)
     if bond_condition["con1_is_planet"]:
         bond_condition["con1"] = change_planet_condition_legal(bond_condition["con1"])

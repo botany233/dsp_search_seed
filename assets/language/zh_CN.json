@@ -113,6 +113,7 @@
                 "distance": "最远距离",
                 "satisfy_num": "符合数量",
                 "bond_satisfy_num": "绑定数量",
+                "max_connection_num": "最大连接数",
                 "bond_condition_type": "条件类型",
                 "bond_con1": "条件1",
                 "bond_con2": "条件2"

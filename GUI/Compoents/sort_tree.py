@@ -17,6 +17,7 @@ from qfluentwidgets import (
     Action,
     BodyLabel,
     FluentIcon,
+    SwitchButton,
     ToolButton,
     TransparentToolButton,
     setFont,
@@ -743,6 +744,25 @@ class BondTreeLeave(LeaveBase):
         self.satisfyNumLineEdit.setFixedHeight(28)
 
 
+class BondEndpointSwitchLeave(LeaveBase):
+    def __init__(self, parent=None, config_obj=None, endpoint_item: "BondEndpointTreeWidgetItem" = None):
+        super().__init__(parent, config_obj=config_obj)
+        self.endpoint_item = endpoint_item
+        self.mainLayout = QHBoxLayout(self)
+        self.mainLayout.setContentsMargins(30, 0, 5, 0)
+        self.mainLayout.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+
+        self.typeSwitch = SwitchButton()
+        self.typeSwitch.setOffText(tr_domain("bond_condition_types", "star"))
+        self.typeSwitch.setOnText(tr_domain("bond_condition_types", "planet"))
+        self.typeSwitch.setChecked(self.endpoint_item.active_is_planet)
+        self.typeSwitch.checkedChanged.connect(self._on_type_changed)
+        self.mainLayout.addWidget(self.typeSwitch)
+
+    def _on_type_changed(self, checked: bool):
+        self.endpoint_item.set_is_planet(checked)
+
+
 class BondEndpointTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None, endpoint_item: "BondEndpointTreeWidgetItem" = None):
         super().__init__(parent, config_obj=config_obj)
@@ -750,19 +770,8 @@ class BondEndpointTreeLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setContentsMargins(5, 0, 5, 0)
 
-        self.typeLabel = BodyLabel(tr("search.condition_tree.labels.bond_condition_type"))
-        self.mainLayout.addWidget(self.typeLabel)
-        self.typeComboBox = AutoFixedComboBox(domain="bond_condition_types")
-        self.typeComboBox.addItems(["star", "planet"])
-        self.typeComboBox.setCurrentIndex(1 if self.endpoint_item.active_is_planet else 0)
-        self.mainLayout.addWidget(self.typeComboBox)
-
         self.conditionWidget: StarTreeLeave | PlanetTreeLeave | None = None
         self.switch_condition_widget()
-        self.typeComboBox.currentIndexChanged.connect(self._on_type_changed)
-
-    def _on_type_changed(self, index: int):
-        self.endpoint_item.set_is_planet(index == 1)
 
     def switch_condition_widget(self):
         if self.conditionWidget is not None:
@@ -774,6 +783,7 @@ class BondEndpointTreeLeave(LeaveBase):
         else:
             self.conditionWidget = StarTreeLeave(config_obj=self.endpoint_item.active_config)
         self.conditionWidget.load_config()
+        self.conditionWidget.hitStarNumLabel.setText(tr("search.condition_tree.labels.max_connection_num"))
         self.mainLayout.addWidget(self.conditionWidget)
 
 
@@ -845,6 +855,9 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         return getattr(self.bond_config_obj, f"con{self.endpoint}_star")
 
     def add_widgets(self):
+        self.switchLeaf = BondEndpointSwitchLeave(config_obj=self.bond_config_obj, endpoint_item=self)
+        self.root.setItemWidget(self, 0, self.switchLeaf)
+
         self.leaf = BondEndpointTreeLeave(config_obj=self.bond_config_obj, endpoint_item=self)
         self.root.setItemWidget(self, 1, self.leaf)
 
@@ -879,15 +892,17 @@ class BondEndpointTreeWidgetItem(TreeWidgetItem):
         self.has_moon = False
         self._refresh_text()
         self._update_check_state_from_config()
+        if hasattr(self, "switchLeaf") and self.switchLeaf.typeSwitch.isChecked() != is_planet:
+            was_blocked = self.switchLeaf.typeSwitch.blockSignals(True)
+            self.switchLeaf.typeSwitch.setChecked(is_planet)
+            self.switchLeaf.typeSwitch.blockSignals(was_blocked)
         self.leaf.switch_condition_widget()
         self._sync_manage_buttons()
         self._populate_children()
         self.setExpanded(True)
 
     def _refresh_text(self):
-        endpoint_label = tr(f"search.condition_tree.labels.bond_con{self.endpoint}")
-        type_text = tr_domain("bond_condition_types", "planet" if self.active_is_planet else "star")
-        self.setText(0, f"{endpoint_label}: {type_text}")
+        self.setText(0, "")
 
     def _sync_manage_buttons(self):
         if self.active_is_planet:
