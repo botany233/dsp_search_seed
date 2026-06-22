@@ -36,19 +36,23 @@ def benchmark_condition_easy():
     planet_condition_3 = {"liquid": "水"}
     planet_condition_4 = {"liquid": "硫酸"}
     planet_condition_5 = {"dsp_level": "全包"}
-    star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4, planet_condition_5], "veins_group": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "type": "O型恒星", "distance": 5}
+    star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4, planet_condition_5], "veins_point": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "type": "O型恒星", "distance": 5}
     galaxy_condition = {"veins_point": {"单极磁石": 80, "刺笋结晶": 400}, "stars":[star_condition_1]}
     return galaxy_condition, (0, 4999999), (64, 64), False
 
-def benchmark_condition_hydro():
-    planet_condition_1 = {"type": "高产气巨", "satisfy_num": 1000}
-    planet_condition_2 = {"satisfy_num": 1}
-    bond_condition = {"con1_is_planet": True, "con1": planet_condition_1,
-                      "con2_is_planet": True, "con2": planet_condition_2,
-                      "satisfy_num": 100, "distance": 3}
-    galaxy_condition = {"bonds":[bond_condition]}
-    return galaxy_condition, (0, 1999999), (64, 64), True
+def benchmark_condition_better_develop():
+    planet_condition_1 = {"type": "高产气巨"}
+    planet_condition_2 = {"dsp_level": "全接收"}
+    planet_condition_3 = {"liquid": "硫酸"}
+    planet_condition_4 = {"liquid": "水"}
+    star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4], "veins_point": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "type": "O型恒星"}
+    planet_condition_5 = {"veins_point": {"单极磁石": 1}}
+    bond_condition = {"con1_is_planet": False, "con1": star_condition_1,
+                      "con2_is_planet": True, "con2": planet_condition_5,
+                      "satisfy_num": 1, "distance": 12}
+    galaxy_condition = {"bonds":[bond_condition], "veins_point": {"单极磁石": 120}}
+    return galaxy_condition, (0, 1999999), (64, 64), False
 
 benchmark_condition_functions = [
     benchmark_condition_level_1, benchmark_condition_level_2, benchmark_condition_level_3_quick, benchmark_condition_level_3_standard, benchmark_condition_level_4,
-    benchmark_condition_better_birthstar, benchmark_condition_easy, benchmark_condition_hydro]
+    benchmark_condition_better_birthstar, benchmark_condition_easy, benchmark_condition_better_develop]

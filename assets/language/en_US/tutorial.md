@@ -18,10 +18,12 @@ Each Dyson Sphere Program save is a galaxy. By celestial hierarchy, it can be di
 Similarly, this program divides search conditions into three types: galaxy, star, and planet. A planet condition can add itself as a child condition, corresponding to the four-level celestial hierarchy. The supported search content and notes for the three condition types are listed below:
 
 Galaxy conditions
+
 - Minimum counts for 14 vein types
 - Minimum amounts for 14 vein types
 
 Star conditions
+
 - Star type: multiple selection supported
 - Minimum luminosity
 - Max distance: enter 0 for the initial star system
@@ -30,6 +32,7 @@ Star conditions
 - Minimum amounts for 14 vein types
 
 Planet conditions
+
 - Planet type: multiple selection supported. Only the initial planet can be Mediterranean.
 - Planet traits: also called planet entries; multiple selection supported
 - Liquid type
@@ -142,36 +145,40 @@ The searcher performance table is shown below. All results are for 64-star galax
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Level 4 - Standard</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Better Starting System - Standard</th>
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">All Rares Hard Flight - Standard</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">All Rares Magnet - Standard</th>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">196692</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59100</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57208</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">333.6</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.03</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159345</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">142000</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">211107</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">61689</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57503</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">351.6</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.08</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">173111</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">173742</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57963</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Integrated GPU (Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">191775</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">58673</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">56701</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">703.9</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.31</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">151714</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">153775</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">209361</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62071</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">56214</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">719.5</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.35</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">163283</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">172023</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">61004</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Dedicated GPU (RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">185885</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59784</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57237</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2281</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">7.93</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159957</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">162340</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">205052</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63463</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59208</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2315</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8.13</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">170105</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">171869</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">65358</td>
   </tr>
 </table>
 
@@ -181,6 +188,7 @@ The searcher performance table is shown below. All results are for 64-star galax
 - Level 4: Iron veins x30000
 - Better Starting System: the initial star system has a Gas Giant, one of its satellites is Mediterranean, and another satellite is Desolus with Stalagmite Crystal and Fire Ice
 - All Rares Hard Flight: galaxy Unipolar Magnet veins x80 + Stalagmite Crystal veins x400; within max distance 5, an O Type Star system has a Gas Giant, Tidal Locking, a Full Cover Planet, Water and Sulfuric Acid, and all rare resources except Unipolar Magnet
+- All Rares Magnet: galaxy Unipolar Magnet veins x120; an O Type Star system has a High-Yield Gas Giant, a Full Receive Planet, Water and Sulfuric Acid, and all rare resources except Unipolar Magnet, while the nearest Unipolar Magnet planet is within 12 light-years
 
 ## Viewer Performance
 The viewer sorting performance table is shown below. All results are for 64-star galaxies. Seed information export speed is similar to Standard Mode:
