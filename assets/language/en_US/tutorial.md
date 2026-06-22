@@ -41,6 +41,8 @@ Planet conditions
 - Minimum counts for 14 vein types
 - Minimum amounts for 14 vein types
 
+There is also a special condition type used to check whether the current seed contains enough paired celestial bodies. A Bond Condition has two independent child conditions, which can be star or planet conditions. Each child condition can set a maximum connection count to limit how many celestial bodies from the other group a single celestial body can pair with at most. During search, the searcher first filters two groups of celestial bodies based on the child conditions, then filters all possible pair connections by distance requirements, and finally filters the pair connections by the maximum connection counts of the two celestial body groups. Note that for planet conditions, coordinate information is approximated using the star's coordinates.
+
 ### Search Condition Structure
 When searching seeds, the searcher starts from the galaxy condition and checks whether the current seed satisfies itself and all of its child conditions. When multiple child conditions exist, the searcher checks them one by one. Child conditions are independent of each other, so the same celestial body can satisfy multiple child conditions. The parent condition is considered satisfied only when all child conditions are satisfied, meaning child conditions are combined with an AND relationship.
 
@@ -53,8 +55,9 @@ Galaxy Condition
 |   `-- Planet Condition
 |       `-- Moon Condition
 |-- Planet Condition
-`-- Planet Condition
-    `-- Moon Condition
+|-- Planet Condition
+|   `-- Moon Condition
+`-- Bond Condition
 ```
 
 Click the button before a condition name to choose whether to enable the current condition. This does not cascade to its child conditions.
