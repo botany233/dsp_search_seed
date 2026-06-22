@@ -10,6 +10,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <windows.h>
 
 #include "defines.hpp"
 #include "data_struct.hpp"
@@ -110,31 +111,32 @@ protected:
 	queue<SeedStruct> tasks;
 	condition_variable cv_generator;
 	condition_variable cv_consumer;
+
 	atomic<int> working_num = 0;
+	enum class State: uint8_t {Running,Paused,Stopped};
+	atomic<State> state{State::Running};
 	atomic<bool> finish = false;
-	atomic<bool> stop = false;
-	bool wait = false;
+
 	uint8_t resource_index;
-	atomic<size_t> finish_task_num = 0;
-	mutex wait_mtx;
-	condition_variable cv_wait;
-	
 	SeedManager* seed_manager = nullptr;
 	GalaxyCondition galaxy_condition;
 	int max_thread;
 	int check_level;
 
+	atomic<size_t> finish_task_num = 0;
 	mutex result_mtx;
-	vector<SeedStruct> result = vector<SeedStruct>(0);
+	vector<SeedStruct> result;
 
 	void task_generator() {
+		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		seed_manager->reset_index();
 		while(true) {
+			state.wait(State::Paused);
 			{
 				unique_lock<mutex> lck(task_mtx);
-				cv_generator.wait(lck,[this]() {return tasks.size() <= 1024 || stop.load();});
+				cv_generator.wait(lck,[this]() {return tasks.size() <= 1024 || state.load()==State::Stopped;});
 			}
-			if(stop.load())
+			if(state.load()==State::Stopped)
 				break;
 			vector<SeedStruct> batch_seeds = seed_manager->get_seeds(1024,resource_index);
 			if(batch_seeds.empty())
@@ -151,16 +153,17 @@ protected:
 	}
 
 	void search_func() {
+		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
+		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		while(true) {
-			{
-				unique_lock<mutex> lck(wait_mtx);
-				cv_wait.wait(lck, [this]() { return !wait || stop.load(); });
-			}
+			state.wait(State::Paused);
 			SeedStruct current_task;
 			{
 				unique_lock<mutex> lck(task_mtx);
-				cv_consumer.wait(lck,[this]() { return !tasks.empty() || finish.load() || stop.load(); });
-				if((tasks.empty() && finish.load()) || stop.load())
+				cv_consumer.wait(lck,[this]() { return !tasks.empty() || finish.load() || state.load()==State::Stopped; });
+				if(state.load()==State::Stopped)
+					break;
+				if(tasks.empty() && finish.load())
 					break;
 				current_task = tasks.front();
 				tasks.pop();
@@ -172,7 +175,7 @@ protected:
 			}
 			finish_task_num.fetch_add(1);
 		}
-		working_num.fetch_add(-1);
+		working_num.fetch_sub(1);
 	}
 public:
 	CheckPreciseManager(SeedManager& seed_manager,uint8_t resource_index,
@@ -190,16 +193,14 @@ public:
 	}
 
 	void start_wait() {
-		lock_guard<mutex> lck(wait_mtx);
-		wait = true;
+		State expected = State::Running;
+		state.compare_exchange_strong(expected,State::Paused);
 	}
 
 	void end_wait() {
-		{
-			lock_guard<mutex> lck(wait_mtx);
-			wait = false;
-		}
-		cv_wait.notify_all();
+		State expected = State::Paused;
+		state.compare_exchange_strong(expected,State::Running);
+		state.notify_all();
 	}
 
 	void run() {
@@ -215,13 +216,12 @@ public:
 	}
 
 	void shutdown() {
-		stop.store(true);
-		cv_wait.notify_all();
+		state.store(State::Stopped);
+		state.notify_all();
 		cv_generator.notify_all();
 		cv_consumer.notify_all();
 		if(task_thread.joinable())
 			task_thread.join();
-		task_thread = thread();
 		for(thread& search_thread: search_threads) {
 			if(search_thread.joinable())
 				search_thread.join();
@@ -261,10 +261,8 @@ protected:
 	atomic<int> working_num = 0;
 	atomic<size_t> task_id = 0;
 	atomic<size_t> finish_task_num = 0;
-	atomic<bool> stop = false;
-	atomic<bool> wait = false;
-	mutex wait_mtx;
-	condition_variable cv_wait;
+	enum class State: uint8_t {Running,Paused,Stopped};
+	atomic<State> state{State::Running};
 
 	GalaxyCondition galaxy_condition;
 	int check_level;
@@ -277,17 +275,18 @@ protected:
 	int max_thread;
 
 	mutex mtx;
-	vector<SeedStruct> result = vector<SeedStruct>(0);
+	vector<SeedStruct> result;
 
 	void search_func() {
+		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
+		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		while(true) {
-			if(wait.load()) {
-				unique_lock<mutex> lck(wait_mtx);
-				cv_wait.wait(lck, [this]() { return !wait.load() || stop.load(); });
-			}
-			
+			state.wait(State::Paused);
+			if(state.load()==State::Stopped)
+				break;
+
 			size_t current_task_id = task_id.fetch_add(1);
-			if(current_task_id >= task_num || stop.load()) {
+			if(current_task_id >= task_num) {
 				break;
 			}
 
@@ -301,7 +300,7 @@ protected:
 			}
 			finish_task_num.fetch_add(1);
 		}
-		working_num.fetch_add(-1);
+		working_num.fetch_sub(1);
 	}
 public:
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
@@ -315,7 +314,9 @@ public:
 		this->end_star_num = end_star_num;
 		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		this->task_num = (size_t)(end_seed - start_seed) * (size_t)(end_star_num - start_star_num);
+		size_t seed_count = end_seed > start_seed ? end_seed - start_seed : 0;
+		size_t star_num_count = end_star_num > start_star_num ? end_star_num - start_star_num : 0;
+		this->task_num = seed_count * star_num_count;
 	}
 
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
@@ -329,7 +330,9 @@ public:
 		this->end_star_num = end_star_num;
 		this->resource_index = resource_index;
 		this->max_thread = max_thread;
-		this->task_num = (size_t)(end_seed - start_seed) * (size_t)(end_star_num - start_star_num);
+		size_t seed_count = end_seed > start_seed ? end_seed - start_seed : 0;
+		size_t star_num_count = end_star_num > start_star_num ? end_star_num - start_star_num : 0;
+		this->task_num = seed_count * star_num_count;
 	}
 
 	~CheckBatchManager() {
@@ -337,12 +340,14 @@ public:
 	}
 
 	void start_wait() {
-		wait.store(true);
+		State expected = State::Running;
+		state.compare_exchange_strong(expected,State::Paused);
 	}
 
 	void end_wait() {
-		wait.store(false);
-		cv_wait.notify_all();
+		State expected = State::Paused;
+		state.compare_exchange_strong(expected,State::Running);
+		state.notify_all();
 	}
 
 	void run() {
@@ -357,8 +362,8 @@ public:
 	}
 
 	void shutdown() {
-		stop.store(true);
-		cv_wait.notify_all();
+		state.store(State::Stopped);
+		state.notify_all();
 		for(thread& search_thread: search_threads) {
 			if(search_thread.joinable())
 				search_thread.join();

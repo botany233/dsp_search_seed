@@ -40,6 +40,15 @@ def benchmark_condition_easy():
     galaxy_condition = {"veins_point": {"单极磁石": 80, "刺笋结晶": 400}, "stars":[star_condition_1]}
     return galaxy_condition, (0, 4999999), (64, 64), False
 
+def benchmark_condition_hydro():
+    planet_condition_1 = {"type": "高产气巨", "satisfy_num": 1000}
+    planet_condition_2 = {"satisfy_num": 1}
+    bond_condition = {"con1_is_planet": True, "con1": planet_condition_1,
+                      "con2_is_planet": True, "con2": planet_condition_2,
+                      "satisfy_num": 100, "distance": 3}
+    galaxy_condition = {"bonds":[bond_condition]}
+    return galaxy_condition, (0, 1999999), (64, 64), True
+
 benchmark_condition_functions = [
     benchmark_condition_level_1, benchmark_condition_level_2, benchmark_condition_level_3_quick, benchmark_condition_level_3_standard, benchmark_condition_level_4,
-    benchmark_condition_better_birthstar, benchmark_condition_easy]
+    benchmark_condition_better_birthstar, benchmark_condition_easy, benchmark_condition_hydro]

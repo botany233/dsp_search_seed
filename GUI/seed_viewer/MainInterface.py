@@ -21,7 +21,7 @@ class ViewerInterface(QFrame):
 
         self.current_select = None
         self.getting_seed = set()
-        self.get_data_manager = GetDataManager(cpu_count(), False, 32)
+        self.get_data_manager = GetDataManager(cpu_count()-1, False, 32)
 
         self.mainLayout = QHBoxLayout(self)
         self.__init_left()

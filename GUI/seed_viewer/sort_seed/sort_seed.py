@@ -36,7 +36,7 @@ class SortThread(QThread):
             resource_index = self.resource_rate_combo.current_resource_index()
             value_func = get_value_function(self.main_type_combo.current_value(), self.sub_type_combo.current_value())
 
-            get_data_manager = GetDataManager(min(cpu_count(), cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
+            get_data_manager = GetDataManager(min(cpu_count()-1, cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
 
             data = self.seed_list.get_all_data()
             task_num = len(data)
