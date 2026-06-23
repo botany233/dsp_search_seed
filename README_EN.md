@@ -65,6 +65,8 @@
   - Match Count: Number of planets that need to meet the condition
   - Minimum count of 14 vein types
   - Minimum yield of 14 vein types
+- Bond Condition
+  - Contains two independent star/planet-level sub-conditions, designed to search for combinations of two celestial bodies within a specified distance.
 
 ## Special Thanks
 
