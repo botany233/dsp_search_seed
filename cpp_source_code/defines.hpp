@@ -183,7 +183,7 @@ public:
 	float orbitLongitude;
 	double orbitalPeriod = 3600.0;
 	float orbitPhase;
-	float obliquity;
+	float obliquity; //倾角
 	double rotationPeriod = 480.0;
 	float rotationPhase;
 	float radius = 200.0f;

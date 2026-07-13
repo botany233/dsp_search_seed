@@ -188,6 +188,9 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("liquid",&PlanetData::liquid)
 		.def_readonly("is_gas",&PlanetData::is_gas)
 		.def_readonly("dsp_level",&PlanetData::dsp_level)
+		.def_readonly("raw_dsp_degree",&PlanetData::raw_dsp_degree)
+		.def_readonly("enhance_dsp_degree",&PlanetData::enhance_dsp_degree)
+		.def_readonly("obliquity",&PlanetData::obliquity)
 		.def_readonly("veins_point",&PlanetData::veins_point)
 		.def_readonly("veins_amount",&PlanetData::veins_amount)
 		.def_readonly("gas_veins",&PlanetData::gas_veins)
@@ -273,5 +276,6 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("get_gpu_max_worker_c",&OpenCLManager::get_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
+	m.def("get_galaxy_data_fast_c",&get_galaxy_data_fast,py::arg("seed"),py::arg("quick"),py::arg("gen_planet_num")=-1,py::arg("vein_mask")=0x3FFF);
 	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 }

@@ -231,7 +231,11 @@
             "wind_usage": "Wind usage: {value:.0%}",
             "light_usage": "Light usage: {value:.0%}",
             "infinite": "Infinite",
-            "ocean": "Ocean"
+            "ocean": "Ocean",
+            "raw_dsp_degree": "No lens continuous reception latitude >{value:.0f}°",
+            "enhance_dsp_degree": "With lens continuous reception latitude >{value:.0f}°",
+            "orbital_radius": "Orbital Radius: {value:.3f}AU",
+            "obliquity": "Obliquity: {value:.2f}°"
         },
         "export": {
             "title": "Select Export Content",
@@ -266,7 +270,8 @@
                 "star_location": "Star Location",
                 "planet_type": "Planet Type",
                 "singularity": "Traits",
-                "dsp_level": "Dyson Reception",
+                "dsp_level": "Dyson Reception Level",
+                "dsp_degree": "Dyson Reception Degree",
                 "wind_usage": "Wind Usage",
                 "light_usage": "Light Usage"
             },
@@ -282,7 +287,9 @@
                 "name": "Name",
                 "type": "Type",
                 "traits": "Traits",
-                "dsp_reception": "Dyson Reception",
+                "dsp_level": "Dyson Reception Level",
+                "dsp_degree_raw": "No Lens Dyson Reception Degree",
+                "dsp_degree_enhance": "With Lens Dyson Reception Degree",
                 "liquid": "Liquid",
                 "no_liquid": "No Liquid",
                 "wind_usage": "Wind Usage",

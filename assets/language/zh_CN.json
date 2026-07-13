@@ -231,7 +231,11 @@
             "wind_usage": "风能利用率：{value:.0%}",
             "light_usage": "光能利用率：{value:.0%}",
             "infinite": "无限",
-            "ocean": "海洋"
+            "ocean": "海洋",
+            "raw_dsp_degree": "无透镜持续接收纬度>{value:.0f}°",
+            "enhance_dsp_degree": "有透镜持续接收纬度>{value:.0f}°",
+            "orbital_radius": "公转半径：{value:.3f}AU",
+            "obliquity": "轨道倾角：{value:.2f}°"
         },
         "export": {
             "title": "选择导出内容",
@@ -266,7 +270,8 @@
                 "star_location": "恒星坐标",
                 "planet_type": "星球类型",
                 "singularity": "词条",
-                "dsp_level": "戴森球接收",
+                "dsp_level": "戴森球接收等级",
+                "dsp_degree": "戴森球接收角度",
                 "wind_usage": "风能利用率",
                 "light_usage": "光能利用率"
             },
@@ -282,7 +287,9 @@
                 "name": "名称",
                 "type": "类型",
                 "traits": "词条",
-                "dsp_reception": "戴森球接收",
+                "dsp_level": "戴森球接收等级",
+                "dsp_degree_raw": "无透镜戴森球接收角度",
+                "dsp_degree_enhance": "有透镜戴森球接收角度",
                 "liquid": "液体",
                 "no_liquid": "无液体",
                 "wind_usage": "风能利用率",

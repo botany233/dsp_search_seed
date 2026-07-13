@@ -123,6 +123,7 @@ class PlanetExportCondition(BaseModel):
     star_type: bool = True
     singularity: bool = True
     dsp_level: bool = True
+    dsp_degree: bool = False
     liquid: bool = True
     veins_point: bool = True
     veins_amount: bool = False

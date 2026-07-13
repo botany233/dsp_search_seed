@@ -371,7 +371,7 @@ public:
 		search_threads.clear();
 	}
 
-	size_t get_task_num() {
+	size_t get_task_num() const {
 		return task_num;
 	}
 

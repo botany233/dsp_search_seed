@@ -191,9 +191,27 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_planet_table"), config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
-            [(tr("viewer.export.fields.star_name"), "star_name"), (tr("viewer.export.fields.star_type"), "star_type"), (tr("viewer.export.fields.star_lumino"), "star_lumino"), (tr("viewer.export.fields.star_distance"), "star_distance"), (tr("viewer.export.fields.star_location"), "star_location")],
-            [(tr("viewer.export.fields.planet_type"), "planet_type"), (tr("viewer.export.fields.singularity"), "singularity"), (tr("viewer.export.fields.dsp_level"), "dsp_level"), (tr("viewer.export.fields.liquid"), "liquid")],
-            [(tr("viewer.export.fields.wind_usage"), "wind_usage"), (tr("viewer.export.fields.light_usage"), "light_usage"), (tr("viewer.export.fields.gas_veins"), "gas_veins"), (tr("viewer.export.fields.veins_point"), "veins_point"), (tr("viewer.export.fields.veins_amount"), "veins_amount")]
+            [
+                (tr("viewer.export.fields.star_name"), "star_name"),
+                (tr("viewer.export.fields.star_type"), "star_type"),
+                (tr("viewer.export.fields.star_lumino"), "star_lumino"),
+                (tr("viewer.export.fields.star_distance"), "star_distance"),
+                (tr("viewer.export.fields.star_location"), "star_location")
+                ],
+            [
+                (tr("viewer.export.fields.planet_type"), "planet_type"),
+                (tr("viewer.export.fields.singularity"), "singularity"),
+                (tr("viewer.export.fields.dsp_level"), "dsp_level"),
+                (tr("viewer.export.fields.dsp_degree"), "dsp_degree"),
+                (tr("viewer.export.fields.liquid"), "liquid")
+                ],
+            [
+                (tr("viewer.export.fields.wind_usage"), "wind_usage"),
+                (tr("viewer.export.fields.light_usage"), "light_usage"),
+                (tr("viewer.export.fields.gas_veins"), "gas_veins"),
+                (tr("viewer.export.fields.veins_point"), "veins_point"),
+                (tr("viewer.export.fields.veins_amount"), "veins_amount")
+                ]
         ]
 
         curGridLayout = QGridLayout()

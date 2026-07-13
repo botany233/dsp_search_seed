@@ -71,6 +71,9 @@ struct PlanetData {
 	float radius;
 	int liquid;
 	int dsp_level;
+	float raw_dsp_degree;
+	float enhance_dsp_degree;
+	float obliquity;
 	array<double,3> pos_m = {};
 	array<double,3> pos_ly = {};
 	vector<string> singularity_str = vector<string>();
