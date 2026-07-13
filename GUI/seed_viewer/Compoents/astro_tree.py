@@ -150,7 +150,7 @@ class StarTreeWidgetItem(QTreeWidgetItem):
             if star_data.veins_point[i] > 0:
                 show_text.append(vein_names[i])
 
-        self.setText(0, tr_domain("star_types", star_data.type))
+        self.setText(0, f"{star_data.star_index+1}-{tr_domain('star_types', star_data.type)}")
         info_label = IgnoreLabel()
         info_label.set_texts(show_text)
         self.root.setItemWidget(self, 1, info_label)

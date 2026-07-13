@@ -17,6 +17,7 @@ from qfluentwidgets import (
 from GUI.Compoents import ConfigCheckBox
 from CApi import GetDataManager, resource_rate_c
 from config import cfg
+from logger import log
 from language import tr
 
 from .combox import ResourceRateComboBox
@@ -307,7 +308,7 @@ QFrame {
 
         if not dir_path:
             return False
-        
+
         resource_index = self.left_dialog.resource_rate_combox.current_resource_index()
 
         self.is_running = True
@@ -345,9 +346,12 @@ QFrame {
             return False
 
     def _onYesButtonClicked(self):
-        if not self.__do_export_seeds():
-            return
-        self.accept()
+        try:
+            if not self.__do_export_seeds():
+                return
+            self.accept()
+        except Exception as e:
+            log.error(f"Error occurred while exporting seeds: {e}")
 
     def _onCancelButtonClicked(self):
         if self.is_running:

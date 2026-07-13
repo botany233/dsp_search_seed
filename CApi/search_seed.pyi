@@ -1,4 +1,6 @@
 class PlanetData:
+    star_index: int
+    planet_index: int
     name: str
     type: str
     type_id: int
@@ -22,6 +24,7 @@ class PlanetData:
     moons: list[PlanetData]
 
 class StarData:
+    star_index: int
     name: str
     type: str
     type_id: int
