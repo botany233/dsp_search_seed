@@ -30,7 +30,7 @@ def get_mask(mask_pras: list) -> list[bool]:
     return mask
 
 def get_planet_text(galaxy: GalaxyData, cfg: PlanetExportCondition) -> str:
-    mask_para = [cfg.star_name, cfg.star_type, cfg.star_lumino, cfg.star_distance, (cfg.star_location, 3), True, cfg.planet_type, cfg.singularity, cfg.dsp_level, cfg.liquid, cfg.wind_usage, cfg.light_usage, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins_point, len(vein_names_c)), (cfg.veins_amount, len(vein_names_c))]
+    mask_para = [cfg.star_name, cfg.star_type, cfg.star_lumino, cfg.star_distance, (cfg.star_location, 3), True, cfg.planet_type, cfg.singularity, cfg.dsp_level, (cfg.dsp_degree, 2), cfg.liquid, cfg.wind_usage, cfg.light_usage, (cfg.gas_veins, len(gas_veins_c)), (cfg.veins_point, len(vein_names_c)), (cfg.veins_amount, len(vein_names_c))]
     mask = get_mask(mask_para)
 
     dsp_name = [""] + _tr_values("dsp_levels", dsp_level_c)
