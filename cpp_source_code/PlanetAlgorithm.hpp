@@ -276,6 +276,7 @@ static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
 	PlanetClassSimple planet_simple;
 	planet_simple.id = planet.id;
 	planet_simple.seed = planet.seed;
+	planet_simple.type = planet.type;
 	planet_simple.theme = planet.theme;
 	planet_simple.mod_x = planet.mod_x;
 	planet_simple.mod_y = planet.mod_y;
@@ -312,7 +313,7 @@ public:
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
-	void get_veins(const GalaxyClass& galaxy,const StarClass& star,const PlanetClass& planet,int* veins_point,uint64_t* veins_amount)
+	float get_veins(const GalaxyClass& galaxy,const StarClass& star,const PlanetClass& planet,int* veins_point,uint64_t* veins_amount)
 	{
 		PlanetClassSimple planet_simple = planet_to_simple(planet);
 		StarClassSimple star_simple = star_to_simple(star);
@@ -330,8 +331,38 @@ public:
 			veins_point[i] = planet_simple.veins_point[i];
 			veins_amount[i] = planet_simple.veins_amount[i];
 		}
+		return CalcLandPercent(planet_simple);
 	}
-	
+
+	float CalcLandPercent(const PlanetClassSimple& planet) {
+		if(planet.theme == 15) //水世界
+			return 1.0f;
+		if(planet.type == EPlanetType::Gas)
+			return 0.0f;
+
+		const PlanetRawData& data = planet.data;
+
+		float threshold = planet.radius * 100.0f - 20.0f;
+		int num3 = 0;
+		int num4 = 0;
+		for(int i = 0; i < data.heightData.size(); i++)
+		{
+			int num5 = i % STRIDE;
+			int num6 = i / STRIDE;
+			if(num5 > LANDPERCENT_NUM)
+				num5--;
+			if(num6 > LANDPERCENT_NUM)
+				num6--;
+			if(num5 & num6 & 1)
+			{
+				if((float)data.heightData[i] >= threshold)
+					num4++;
+				num3++;
+			}
+		}
+		return ((num3 > 0) ? ((float)num4 / (float)num3) : 0.0f);
+	}
+
 	virtual void GenerateTerrain(PlanetClassSimple& planet) = 0;
 
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {

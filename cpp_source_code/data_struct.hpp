@@ -60,6 +60,8 @@ struct GalaxyCondition {
 };
 
 struct PlanetData {
+	int star_index;
+	int planet_index;
 	string name;
 	string type;
 	int type_id;
@@ -74,6 +76,7 @@ struct PlanetData {
 	float raw_dsp_degree;
 	float enhance_dsp_degree;
 	float obliquity;
+	float land_percent = 0.0f;
 	array<double,3> pos_m = {};
 	array<double,3> pos_ly = {};
 	vector<string> singularity_str = vector<string>();
@@ -84,6 +87,7 @@ struct PlanetData {
 };
 
 struct StarData {
+	int star_index;
 	string name;
 	string type;
 	int type_id;

@@ -222,14 +222,21 @@ class PlanetInfo(InfoBase):
         self.add_subtitle(sub_title_text)
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid, data.is_gas))
-        other_label = CaptionLabel("\n".join([
-            tr("viewer.astro.orbital_radius").format(value=data.radius),
-            tr("viewer.astro.obliquity").format(value=data.obliquity),
-            tr("viewer.astro.wind_usage").format(value=data.wind),
-            tr("viewer.astro.light_usage").format(value=data.lumino),
-            tr("viewer.astro.raw_dsp_degree").format(value=data.raw_dsp_degree),
-            tr("viewer.astro.enhance_dsp_degree").format(value=data.enhance_dsp_degree)
-        ]))
+        if data.is_gas:
+            other_label = CaptionLabel("\n".join([
+                tr("viewer.astro.orbital_radius").format(value=data.radius),
+                tr("viewer.astro.obliquity").format(value=data.obliquity)
+            ]))
+        else:
+            other_label = CaptionLabel("\n".join([
+                tr("viewer.astro.wind_usage").format(value=data.wind),
+                tr("viewer.astro.light_usage").format(value=data.lumino),
+                tr("viewer.astro.land_percent").format(value=data.land_percent),
+                tr("viewer.astro.orbital_radius").format(value=data.radius),
+                tr("viewer.astro.obliquity").format(value=data.obliquity),
+                tr("viewer.astro.raw_dsp_degree").format(value=data.raw_dsp_degree),
+                tr("viewer.astro.enhance_dsp_degree").format(value=data.enhance_dsp_degree)
+            ]))
         self.main_layout.addWidget(other_label)
 
 def get_veins_list(veins_point: list[int], veins_amount: list[int], gas_veins: list[float], liquid: list[int]|int, is_gas = False) -> list[str]:

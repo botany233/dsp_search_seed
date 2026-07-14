@@ -166,10 +166,8 @@ static bool check_planet_level_2(const PlanetClassSimple& planet_data,const Plan
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
-		for(const PlanetClassSimple* moon_ptr: planet_data.moons) {
-			if(moon_ptr == nullptr)
-				break;
-			if(check_planet_level_2(*moon_ptr,moon_condition)) {
+		for(const PlanetClassSimple& moon: planet_data.moons) {
+			if(check_planet_level_2(moon,moon_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
 					break;
@@ -268,10 +266,8 @@ void tag_need_veins_planet(PlanetClassSimple& planet_data,const PlanetCondition&
 	if(planet_condition.need_veins_amount)
 		planet_data.need_generate_veins_amount = true;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
-		for(PlanetClassSimple* moon_ptr: planet_data.moons) {
-			if(moon_ptr == nullptr)
-				break;
-			tag_need_veins_planet(*moon_ptr,moon_condition);
+		for(PlanetClassSimple& moon: planet_data.moons) {
+			tag_need_veins_planet(moon,moon_condition);
 		}
 	}
 }
@@ -350,10 +346,8 @@ static bool check_planet_level_3(const PlanetClassSimple& planet_data,const Plan
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
-		for(const PlanetClassSimple* moon_ptr: planet_data.moons) {
-			if(moon_ptr == nullptr)
-				break;
-			if(check_planet_level_3(*moon_ptr,moon_condition)) {
+		for(const PlanetClassSimple& moon: planet_data.moons) {
+			if(check_planet_level_3(moon,moon_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
 					break;
@@ -458,10 +452,8 @@ static bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCond
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
-		for(PlanetClassSimple* moon_ptr: planet_data.moons) {
-			if(moon_ptr == nullptr)
-				break;
-			if(check_planet_level_4(*moon_ptr,moon_condition)) {
+		for(PlanetClassSimple& moon: planet_data.moons) {
+			if(check_planet_level_4(moon,moon_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
 					break;

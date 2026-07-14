@@ -31,6 +31,7 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 	for(StarClass& star : g.stars)
 	{
 		StarData star_data;
+		star_data.star_index = star.index;
 		star_data.name = star.name;
 		star_data.type = star.typeString();
 		star_data.type_id = star.typeId();
@@ -49,6 +50,8 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 		for(PlanetClass& planet : star.planets)
 		{
 			PlanetData planet_data;
+			planet_data.star_index = star.index;
+			planet_data.planet_index = planet.index;
 			planet_data.name = planet.name;
 			planet_data.type = planet.display_name;
 			planet_data.type_id = planet.typeId();
@@ -107,9 +110,10 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 				uint64_t veins_amount[14] = {0};
 				if(quick) {
 					g.MyGenerateVeins(star,planet,veins_point,veins_amount);
+					planet_data.land_percent = 0.0f;
 				} else {
 					std::unique_ptr planet_algorithm = PlanetAlgorithmManager(planet.algoId);
-					planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
+					planet_data.land_percent = planet_algorithm->get_veins(g,star,planet,veins_point,veins_amount);
 				}
 				for(int i = 0; i < 14; i++) {
 					planet_data.veins_point[i] = veins_point[i];

@@ -18,6 +18,7 @@ class PlanetData:
     raw_dsp_degree: float
     enhance_dsp_degree: float
     obliquity: float #deg
+    land_percent: float
     veins_point: list[int]
     veins_amount: list[int]
     gas_veins: list[float]

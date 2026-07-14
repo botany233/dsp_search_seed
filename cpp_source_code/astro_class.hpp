@@ -61,7 +61,7 @@ public:
 	double mod_x;
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
-	PlanetClassSimple* moons[5] = {};
+	span<PlanetClassSimple> moons;
 	PlanetRawData data = PlanetRawData();
 	float orbitRadius = 1.0f;
 	float rotationPhase;
@@ -389,14 +389,9 @@ protected:
 			{
 				if(orbitAround == p.number && p.orbitAround == 0) {
 					planet.orbitAroundPlanet = &p;
-					int moon_index = 0;
-					while(planet.orbitAroundPlanet->moons[moon_index] != nullptr)
-						moon_index++;
-					planet.orbitAroundPlanet->moons[moon_index] = &planet;
-					if(orbitIndex > 1) {
-						planet.orbitAroundPlanet->singularity |= EPlanetSingularity::MultipleSatellites;
-						break;
-					}
+					p.moons = span(&p+1,&planet+1);
+					if(orbitIndex > 1)
+						p.singularity |= EPlanetSingularity::MultipleSatellites;
 					break;
 				}
 			}

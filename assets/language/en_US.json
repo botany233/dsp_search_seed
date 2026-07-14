@@ -235,7 +235,8 @@
             "raw_dsp_degree": "No lens continuous reception latitude >{value:.0f}°",
             "enhance_dsp_degree": "With lens continuous reception latitude >{value:.0f}°",
             "orbital_radius": "Orbital Radius: {value:.3f}AU",
-            "obliquity": "Obliquity: {value:.2f}°"
+            "obliquity": "Planet Obliquity: {value:.2f}°",
+            "land_percent": "Constructible Area: {value:.1%}"
         },
         "export": {
             "title": "Select Export Content",

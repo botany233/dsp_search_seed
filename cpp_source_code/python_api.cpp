@@ -174,6 +174,8 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("bonds", &GalaxyCondition::bonds);
 	py::class_<PlanetData>(m,"PlanetData")
 		.def(py::init<>())
+		.def_readonly("star_index",&PlanetData::star_index)
+		.def_readonly("planet_index",&PlanetData::planet_index)
 		.def_readonly("name",&PlanetData::name)
 		.def_readonly("type",&PlanetData::type)
 		.def_readonly("type_id",&PlanetData::type_id)
@@ -191,12 +193,14 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("raw_dsp_degree",&PlanetData::raw_dsp_degree)
 		.def_readonly("enhance_dsp_degree",&PlanetData::enhance_dsp_degree)
 		.def_readonly("obliquity",&PlanetData::obliquity)
+		.def_readonly("land_percent",&PlanetData::land_percent)
 		.def_readonly("veins_point",&PlanetData::veins_point)
 		.def_readonly("veins_amount",&PlanetData::veins_amount)
 		.def_readonly("gas_veins",&PlanetData::gas_veins)
 		.def_readonly("moons",&PlanetData::moons);
 	py::class_<StarData>(m,"StarData")
 		.def(py::init<>())
+		.def_readonly("star_index",&StarData::star_index)
 		.def_readonly("type",&StarData::type)
 		.def_readonly("type_id",&StarData::type_id)
 		.def_readonly("name",&StarData::name)
