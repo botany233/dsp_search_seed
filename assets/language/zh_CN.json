@@ -95,7 +95,9 @@
             "seed_count": "种子数：{count}",
             "found_summary": "累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed_id}, {last_star_num}",
             "progress": "搜索进度: {finish_task}/{total_task}({percent}%)",
-            "completed": "搜索完成！用时{time}"
+            "completed": "搜索完成！用时{time}",
+            "valid_state": "保存有效种子",
+            "invalid_state": "保存无效种子"
         },
         "condition_tree": {
             "headers": {

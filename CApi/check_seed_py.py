@@ -127,9 +127,11 @@ def check_seed_py(seed: Seed, galaxy_condition: GalaxyCondition, quick: bool) ->
     if not quick:
         galaxy_data = get_galaxy_data_c(seed, True)
         if not check_galaxy_py(galaxy_data, galaxy_condition):
-            return False
+            return not galaxy_condition.valid_state
     galaxy_data = get_galaxy_data_c(seed, quick)
-    return check_galaxy_py(galaxy_data, galaxy_condition)
+    if not check_galaxy_py(galaxy_data, galaxy_condition):
+        return not galaxy_condition.valid_state
+    return galaxy_condition.valid_state
 
 def check_batch_py(tasks: list[tuple[int, int, int]], galaxy_condition: dict, quick: bool) -> list[tuple[int, int]]:
     galaxy_condition = galaxy_condition_to_struct(galaxy_condition)

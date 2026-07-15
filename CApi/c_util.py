@@ -19,7 +19,6 @@ def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
     return galaxy_condition
 
 def change_bond_condition_legal(bond_condition:dict) -> dict:
-    bond_condition["valid_state"] = bond_condition.get("valid_state", True)
     bond_condition["satisfy_num"] = bond_condition.get("satisfy_num", 1)
     bond_condition["distance"] = bond_condition.get("distance", 1000)
     if bond_condition["con1_is_planet"]:
@@ -33,7 +32,6 @@ def change_bond_condition_legal(bond_condition:dict) -> dict:
     return bond_condition
 
 def change_star_condition_legal(star_condition:dict) -> dict:
-    star_condition["valid_state"] = star_condition.get("valid_state", True)
     star_condition["satisfy_num"] = star_condition.get("satisfy_num", 1)
     star_condition["type"] = get_star_type_mask(star_condition["type"]) if "type" in star_condition else (1<<16)-1
     star_condition["distance"] = star_condition.get("distance", 1000)
@@ -44,7 +42,6 @@ def change_star_condition_legal(star_condition:dict) -> dict:
     return star_condition
 
 def change_planet_condition_legal(planet_condition:dict) -> dict:
-    planet_condition["valid_state"] = planet_condition.get("valid_state", True)
     planet_condition["satisfy_num"] = planet_condition.get("satisfy_num", 1)
     planet_condition["dsp_level"] = dsp_level_c.index(planet_condition["dsp_level"]) + 1 if "dsp_level" in planet_condition else 0
     planet_condition["type"] = get_planet_type_mask(planet_condition["type"]) if "type" in planet_condition else (1<<32)-1

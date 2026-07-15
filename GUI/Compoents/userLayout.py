@@ -29,6 +29,11 @@ class UserLayout(QVBoxLayout):
         self.quick_check_switch.set_config(config_obj=cfg.config, config_key="quick_check")
         self.userButtonsLayout.addWidget(self.quick_check_switch)
 
+        self.valid_state_switch = ConfigSwitchButton(tr("search.status.invalid_state"), indicatorPos=1)
+        self.valid_state_switch.setOnText(tr("search.status.valid_state"))
+        self.valid_state_switch.set_config(config_obj=cfg.config.galaxy_condition, config_key="valid_state")
+        self.userButtonsLayout.addWidget(self.valid_state_switch)
+
         self.outputFileLabel = BodyLabel(tr("search.status.output_file_name"))
         self.userButtonsLayout.addWidget(self.outputFileLabel)
         self.outputFileLine = LineEdit()

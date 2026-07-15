@@ -95,7 +95,9 @@
             "seed_count": "Seeds: {count}",
             "found_summary": "Seeds found: {total_seed_num}  Last hit: {last_seed_id}, {last_star_num}",
             "progress": "Search progress: {finish_task}/{total_task}({percent}%)",
-            "completed": "Search completed in {time}"
+            "completed": "Search completed in {time}",
+            "valid_state": "Save Valid Seeds  ",
+            "invalid_state": "Save Invalid Seeds"
         },
         "condition_tree": {
             "headers": {

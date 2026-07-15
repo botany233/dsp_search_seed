@@ -53,7 +53,6 @@ class GalaxyData:
     liquid: list[int]
 
 class PlanetCondition:
-    valid_state: bool = True
     satisfy_num: int = 1
     dsp_level: int = 0
     type: int = 0
@@ -64,7 +63,6 @@ class PlanetCondition:
     moons: list[PlanetCondition] = []
 
 class StarCondition:
-    valid_state: bool = True
     satisfy_num: int = 1
     type: int = 0
     distance: float = 1000.0
@@ -75,7 +73,6 @@ class StarCondition:
     planets: list[PlanetCondition] = []
 
 class BondCondition:
-    valid_state: bool = True
     satisfy_num: int = 0
     distance: float = 1000.0 #LY
     con1: PlanetCondition|StarCondition = PlanetCondition()

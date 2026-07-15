@@ -36,7 +36,7 @@ class VeinsCondition(BaseModel):
 
 class PlanetCondition(BaseModel):
     custom_name: str = "星球条件"
-    valid_state: bool = True
+    checked: bool = True
 
     # planet_type: str = "无限制"
     planet_type: list[str] = []
@@ -54,7 +54,7 @@ class PlanetCondition(BaseModel):
 
 class StarCondition(BaseModel):
     custom_name: str = "恒星系条件"
-    valid_state: bool = True
+    checked: bool = True
 
     # star_type: str = "无限制"
     star_type: list[str] = []
@@ -69,7 +69,7 @@ class StarCondition(BaseModel):
 
 class BondCondition(BaseModel):
     custom_name: str = "绑定条件"
-    valid_state: bool = True
+    checked: bool = True
 
     con1_is_planet: bool = False
     con2_is_planet: bool = False
@@ -84,6 +84,7 @@ class BondCondition(BaseModel):
 
 class GalaxyCondition(BaseModel):
     custom_name: str = "星系条件"
+    checked: bool = True
     valid_state: bool = True
 
     veins_point_condition: VeinsCondition = VeinsCondition()

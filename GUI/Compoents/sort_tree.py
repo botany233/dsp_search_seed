@@ -85,19 +85,18 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
+    
+    # def add_widgets(self): ...
 
     def _update_check_state_from_config(self):
-        if self.config_obj.valid_state:
+        if self.config_obj.checked:
             self.setCheckState(0, Qt.CheckState.Checked)
-            self.setToolTip(0, "不反转条件")
         else:
             self.setCheckState(0, Qt.CheckState.Unchecked)
-            self.setToolTip(0, "反转条件")
 
     def setData(self, column: int, role: int, value: Any) -> None:
         if column == 0 and role == Qt.CheckStateRole:
-            self.config_obj.valid_state = bool(value)
-            self.setToolTip(0, "不反转条件" if self.config_obj.valid_state else "反转条件")
+            self.config_obj.checked = bool(value)
             cfg.save()
             super().setData(column, role, value)
             return
@@ -1039,7 +1038,8 @@ class SortTree(TreeWidget):
         super().__init__(parent)
         self.leaf = None
         self.setIndentation(15)
-
+        # self.setItemsExpandable(False)
+        # self.setExpandsOnDoubleClick(False)
         self.setHeaderHidden(False)
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
@@ -1063,6 +1063,10 @@ class SortTree(TreeWidget):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
+    #     self.itemCollapsed.connect(lambda item: item.setExpanded(True))
+
+    # def drawBranches(self, painter, rect, index):
+    #     return
 
     def on_custom_context_menu_requested(self, pos: QPoint):
         item = self.itemAt(pos)
