@@ -85,18 +85,18 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setSizeHint(0, QSize(0, 40))
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
-    
+
     # def add_widgets(self): ...
 
     def _update_check_state_from_config(self):
-        if self.config_obj.checked:
+        if self.config_obj.valid_state:
             self.setCheckState(0, Qt.CheckState.Checked)
         else:
             self.setCheckState(0, Qt.CheckState.Unchecked)
 
     def setData(self, column: int, role: int, value: Any) -> None:
         if column == 0 and role == Qt.CheckStateRole:
-            self.config_obj.checked = bool(value)
+            self.config_obj.valid_state = bool(value)
             cfg.save()
             super().setData(column, role, value)
             return
@@ -1037,6 +1037,7 @@ class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.leaf = None
+        self.setRootIsDecorated(False)
         self.setIndentation(15)
         self.setItemsExpandable(False)
         self.setExpandsOnDoubleClick(False)

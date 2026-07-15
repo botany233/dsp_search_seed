@@ -97,7 +97,7 @@ class UserLayout(QVBoxLayout):
         else:
             last_batch_id, last_use_time = self.progress_cache[0]
             speed = (batch_id - last_batch_id) / (use_time - last_use_time + 1e-8)
-            if speed > 200000:
+            if speed > 500000:
                 print(last_batch_id, batch_id, last_use_time, use_time, speed)
                 print(self.progress_cache)
                 raise ValueError("计算得到的速度过快，可能是因为时间记录出现了问题！")
