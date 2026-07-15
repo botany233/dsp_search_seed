@@ -89,12 +89,15 @@ class TreeWidgetItem(QTreeWidgetItem):
     def _update_check_state_from_config(self):
         if self.config_obj.valid_state:
             self.setCheckState(0, Qt.CheckState.Checked)
+            self.setToolTip(0, "不反转条件")
         else:
             self.setCheckState(0, Qt.CheckState.Unchecked)
+            self.setToolTip(0, "反转条件")
 
     def setData(self, column: int, role: int, value: Any) -> None:
         if column == 0 and role == Qt.CheckStateRole:
             self.config_obj.valid_state = bool(value)
+            self.setToolTip(0, "不反转条件" if self.config_obj.valid_state else "反转条件")
             cfg.save()
             super().setData(column, role, value)
             return
