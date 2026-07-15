@@ -86,8 +86,6 @@ class TreeWidgetItem(QTreeWidgetItem):
         self.setFlags(self.flags() | Qt.ItemIsEditable)
         self._update_check_state_from_config()
 
-    # def add_widgets(self): ...
-
     def _update_check_state_from_config(self):
         if self.config_obj.valid_state:
             self.setCheckState(0, Qt.CheckState.Checked)
@@ -134,7 +132,7 @@ class TreeWidgetLeave(LeaveBase):
         super().__init__(parent, config_obj)
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self._placeholders: dict[int, TransparentToolButton] = {}
         self.addButton = ToolButton(AppIcons.STAR)
         self.addButton.setToolTip(tr("search.condition_tree.tooltips.add_star"))
@@ -588,7 +586,7 @@ class GalaxyTreeLeave(LeaveBase):
         super().__init__(parent, config_obj=config_obj)
 
         self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.veinsConditionButton = SettingsTreeLeave(
             buttonText=tr("search.condition_tree.buttons.veins_point"),
             config_obj=config_obj,
@@ -615,7 +613,7 @@ class StarTreeLeave(LeaveBase):
     def __init__(self, parent=None, config_obj=None):
         super().__init__(parent, config_obj=config_obj)
         self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.starTypeLabel = BodyLabel(tr("search.condition_tree.labels.star_type"))
         self.mainLayout.addWidget(self.starTypeLabel)
         # self.starTypeComboBox = AutoFixedComboBox(config_key="star_type")
@@ -675,7 +673,7 @@ class PlanetTreeLeave(LeaveBase):
 
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignLeft)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
         self.planetTypeLabel = BodyLabel(tr("search.condition_tree.labels.planet_type"))
         self.mainLayout.addWidget(self.planetTypeLabel)
         # self.planetTypeComboBox = AutoFixedComboBox(config_key="planet_type")
@@ -747,7 +745,7 @@ class BondTreeLeave(LeaveBase):
         super().__init__(parent, config_obj=config_obj)
         self.bond_item = bond_item
         self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(5, 0, 5, 0)
+        self.mainLayout.setContentsMargins(0, 0, 0, 0)
 
         self.distanceLabel = BodyLabel(tr("search.condition_tree.labels.distance"))
         self.mainLayout.addWidget(self.distanceLabel)
@@ -1037,10 +1035,8 @@ class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.leaf = None
-        self.setRootIsDecorated(False)
         self.setIndentation(15)
-        self.setItemsExpandable(False)
-        self.setExpandsOnDoubleClick(False)
+
         self.setHeaderHidden(False)
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
@@ -1064,10 +1060,6 @@ class SortTree(TreeWidget):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
-        self.itemCollapsed.connect(lambda item: item.setExpanded(True))
-
-    def drawBranches(self, painter, rect, index):
-        return
 
     def on_custom_context_menu_requested(self, pos: QPoint):
         item = self.itemAt(pos)
