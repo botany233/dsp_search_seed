@@ -10,8 +10,6 @@ def check_planet_py(planet_data: PlanetData, planet_condition: PlanetCondition) 
         return False
     if ((1 << (planet_data.type_id - 1)) & planet_condition.type) == 0:
         return False
-    if (planet_condition.liquid & planet_data.liquid) != planet_condition.liquid:
-        return False
     if (planet_condition.singularity & planet_data.singularity) != planet_condition.singularity:
         return False
     if planet_condition.need_veins:

@@ -1055,7 +1055,7 @@ class SortTree(TreeWidget):
         self.setColumnWidth(2, 130)
 
         self.root = self.invisibleRootItem()
-        
+
         self.root.setExpanded(True)
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)

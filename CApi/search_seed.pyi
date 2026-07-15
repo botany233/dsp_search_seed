@@ -53,10 +53,10 @@ class GalaxyData:
     liquid: list[int]
 
 class PlanetCondition:
+    valid_state: bool = True
     satisfy_num: int = 1
     dsp_level: int = 0
     type: int = 0
-    liquid: int = 0
     singularity: int = 0
     need_veins: int = 0
     veins_point: list[int] = [0] * 14
@@ -64,6 +64,7 @@ class PlanetCondition:
     moons: list[PlanetCondition] = []
 
 class StarCondition:
+    valid_state: bool = True
     satisfy_num: int = 1
     type: int = 0
     distance: float = 1000.0
@@ -74,12 +75,14 @@ class StarCondition:
     planets: list[PlanetCondition] = []
 
 class BondCondition:
+    valid_state: bool = True
     satisfy_num: int = 0
     distance: float = 1000.0 #LY
     con1: PlanetCondition|StarCondition = PlanetCondition()
     con2: PlanetCondition|StarCondition = PlanetCondition()
 
 class GalaxyCondition:
+    valid_state: bool = True
     need_veins: int = 0
     veins_point: list[int] = [0] * 14
     veins_amount: list[int] = [0] * 14
