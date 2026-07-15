@@ -1037,6 +1037,9 @@ class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.leaf = None
+        self.setIndentation(15)
+        self.setItemsExpandable(False)
+        self.setExpandsOnDoubleClick(False)
         self.setHeaderHidden(False)
         self.setEditTriggers(TreeWidget.NoEditTriggers)  # 先禁用自动编辑
         self.setUniformRowHeights(True)
@@ -1060,6 +1063,10 @@ class SortTree(TreeWidget):
 
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self.on_custom_context_menu_requested)
+        self.itemCollapsed.connect(lambda item: item.setExpanded(True))
+
+    def drawBranches(self, painter, rect, index):
+        return
 
     def on_custom_context_menu_requested(self, pos: QPoint):
         item = self.itemAt(pos)
