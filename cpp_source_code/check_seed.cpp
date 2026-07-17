@@ -1,4 +1,3 @@
-//#include <memory>
 #include <cstring>
 #include <cstdint>
 #include <iostream>
@@ -245,27 +244,29 @@ bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,i
 	GalaxyClassSimple galaxy;
 	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
 	if(!check_galaxy_level_1(galaxy,galaxy_condition))
-		return false;
+		return !galaxy_condition.valid_state;
 	if(check_level <= 1)
-		return true;
+		return galaxy_condition.valid_state;
 
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level2 check start" << endl;
 	galaxy.CreatePlanets(get_need_generate_planet_num(galaxy,galaxy_condition));
 	if(!check_galaxy_level_2(galaxy,galaxy_condition))
-		return false;
+		return !galaxy_condition.valid_state;
 	if(check_level <= 2)
-		return true;
+		return galaxy_condition.valid_state;
 
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level3 check start" << endl;
 	tag_need_veins_galaxy(galaxy,galaxy_condition);
 	galaxy.GenerateUpperVeins();
 	if(!check_galaxy_level_3(galaxy,galaxy_condition))
-		return false;
+		return !galaxy_condition.valid_state;
 	if(check_level <= 3)
-		return true;
+		return galaxy_condition.valid_state;
 
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level4 check start" << endl;
 	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
 	memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
-	return check_galaxy_level_4(galaxy,galaxy_condition);
+	if(!check_galaxy_level_4(galaxy,galaxy_condition))
+		return !galaxy_condition.valid_state;
+	return galaxy_condition.valid_state;
 }

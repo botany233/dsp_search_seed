@@ -128,7 +128,7 @@ def get_planet_condition(resource_index: int, need_veins: bool, quick: bool):
     if need_veins and "moons" not in planet_condition:
         veins_point_condition, veins_amount_condition = get_veins_condition("planet", resource_index, quick)
         planet_condition["veins_point"] = veins_point_condition
-        if resource_rate_c[resource_index] != "无限":
+        if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
             planet_condition["veins_amount"] = veins_amount_condition
     return planet_condition
 
@@ -147,7 +147,7 @@ def get_star_condition(resource_index: int, need_veins: bool, quick: bool):
     if need_veins:
         veins_point_condition, veins_amount_condition = get_veins_condition("star", resource_index, quick)
         star_condition["veins_point"] = veins_point_condition
-        if resource_rate_c[resource_index] != "无限":
+        if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
             star_condition["veins_amount"] = veins_amount_condition
     return star_condition
 
@@ -170,7 +170,9 @@ def get_bond_condition(resource_index: int, need_veins: bool, quick: bool):
     return bond_condition
 
 def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool):
-    galaxy_condition = {}
+    galaxy_condition = {
+        "valid_state": random.random() < 0.7
+    }
     if random.random() < 0.5 and not need_veins:
         galaxy_condition["stars"] = [get_star_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 2))]
     if random.random() < 0.5:
@@ -180,7 +182,7 @@ def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool):
     if need_veins:
         veins_point_condition, veins_amount_condition = get_veins_condition("galaxy", resource_index, quick)
         galaxy_condition["veins_point"] = veins_point_condition
-        if resource_rate_c[resource_index] != "无限":
+        if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
             galaxy_condition["veins_amount"] = veins_amount_condition
     return galaxy_condition
 

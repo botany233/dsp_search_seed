@@ -30,6 +30,7 @@ protected:
 	void SetPlanetTheme(StarClass& star,PlanetClass& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed)
 	{
 		std::vector <int> tmp_theme;
+		tmp_theme.reserve(25);
 		std::vector<int>& themeIds = LDB.themeIds;
 		int length1 = (int)themeIds.size();
 		for(int index1 = 0; index1 < length1; ++index1)
@@ -915,14 +916,12 @@ protected:
 
 	int GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
 	{
-
 		std::vector<VectorLF3> tmp_drunk;
 		std::vector<VectorLF3> tmp_poses;
 		RandomPoses(tmp_poses,tmp_drunk,seed,targetCount * iterCount,minDist,minStepLen,maxStepLen,flatten);
 		poses.resize(targetCount);
 		for(int i = 0; i < targetCount; i++)
 			poses[i] = tmp_poses[i * 4];
-
 		return (int)poses.size();
 	}
 

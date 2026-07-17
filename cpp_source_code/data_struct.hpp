@@ -19,8 +19,6 @@ struct PlanetCondition {
 	uint32_t type = 0xFFFFFFFF;
 	uint16_t satisfy_num = 1;
 	uint8_t dsp_level = 0;
-	//uint8_t type = 0;
-	uint8_t liquid = 0;
 	uint8_t singularity = 0;
 	bool need_veins_amount = false;
 	uint16_t need_veins = 0;
@@ -51,6 +49,7 @@ struct BondCondition {
 
 struct GalaxyCondition {
 	uint16_t need_veins = 0;
+	bool valid_state = true;
 	bool need_veins_amount = false;
 	array<uint16_t,14> veins_point = {};
 	array<uint64_t,14> veins_amount = {};

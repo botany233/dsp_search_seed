@@ -9,6 +9,12 @@
 using namespace std;
 namespace py = pybind11;
 
+const uint32_t liquid_mask[] = {
+	0xFFFFFFFF,
+	0x0022E281,
+	0x00001000
+};
+
 static uint16_t get_need_veins(const array<uint16_t,14>& veins_point,const array<uint64_t,14>& veins_amount) {
 	uint16_t result = 0;
 	for(int i=0;i<14;i++) {
@@ -30,7 +36,7 @@ static PlanetCondition planet_condition_to_struct(const py::dict& planet_conditi
 	new_planet_condition.satisfy_num = planet_condition["satisfy_num"].cast<uint16_t>();
 	new_planet_condition.dsp_level = planet_condition["dsp_level"].cast<uint8_t>();
 	new_planet_condition.type = planet_condition["type"].cast<uint32_t>();
-	new_planet_condition.liquid = planet_condition["liquid"].cast<uint8_t>();
+	new_planet_condition.type &= liquid_mask[planet_condition["liquid"].cast<int>()];
 	new_planet_condition.singularity = planet_condition["singularity"].cast<uint8_t>();
 	new_planet_condition.veins_point = planet_condition["veins_point"].cast<array<uint16_t,14>>();
 	new_planet_condition.veins_amount = planet_condition["veins_amount"].cast<array<uint64_t,14>>();
@@ -79,6 +85,7 @@ static BondCondition bond_condition_to_struct(const py::dict& bond_condition) {
 
 GalaxyCondition galaxy_condition_to_struct(const py::dict& galaxy_condition) {
 	GalaxyCondition new_galaxy_condition = GalaxyCondition();
+	new_galaxy_condition.valid_state = galaxy_condition["valid_state"].cast<bool>();
 	new_galaxy_condition.veins_point = galaxy_condition["veins_point"].cast<array<uint16_t,14>>();
 	new_galaxy_condition.veins_amount = galaxy_condition["veins_amount"].cast<array<uint64_t,14>>();
 	new_galaxy_condition.need_veins = get_need_veins(new_galaxy_condition.veins_point,new_galaxy_condition.veins_amount);
