@@ -166,6 +166,8 @@ class InfoBase(QWidget):
         count = len(stars)
         df_count = (self.veins_count - count) // 2
         for i in range(count):
+            if stars[i] == "":
+                continue
             name, value = stars[i].split("：")
             star_name_label = InfoLabel(tr_domain("star_types", name))
             star_value_label = InfoLabel(value)
@@ -183,10 +185,33 @@ class GalaxyInfo(InfoBase):
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
+        star_sort = [
+            "M型恒星",
+            "K型恒星",
+            "G型恒星",
+            "F型恒星",
+            "A型恒星",
+            "B型恒星",
+            "O型恒星",
+            "",
+            "白矮星",
+            "中子星",
+            "黑洞",
+            "",
+            "红巨星",
+            "黄巨星",
+            "白巨星",
+            "蓝巨星"
+            ]
         star_type_nums = [0] * 14
         for star in data.stars:
             star_type_nums[star.type_id-1] += 1
-        star_labels = [f"{star_types_c[i]}：{star_type_nums[i]}" for i in range(14)]
+        star_labels = []
+        for star_type in star_sort:
+            if star_type == "":
+                star_labels.append("")
+            else:
+                star_labels.append(f"{star_type}：{star_type_nums[star_types_c.index(star_type)]}")
         self.add_stars(star_labels)
 
 
