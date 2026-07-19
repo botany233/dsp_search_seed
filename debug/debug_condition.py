@@ -23,7 +23,7 @@ def debug_condition_good_start():
     planet_condition_3 = {"liquid": "硫酸"}
     planet_condition_4 = {"dsp_level": "全接收"}
 
-    star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4], "veins_point": {"油":1, "可燃冰":1, "金伯利":1, "分型硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "type": "O型恒星", "distance": 10}
+    star_condition_1 = {"planets": [planet_condition_1, planet_condition_2, planet_condition_3, planet_condition_4], "veins_point": {"油":1, "可燃冰":1, "金伯利":1, "分形硅":1, "有机晶体":1, "光栅石":1, "刺笋结晶":1}, "type": "O型恒星", "distance": 10}
 
     galaxy_condition = {"stars":[star_condition_1]}
     return galaxy_condition, (0, 999999), (64, 64), "无限", 2
@@ -38,7 +38,7 @@ def debug_condition_better_birthstar():
 
 def debug_condition_100k_factory():
     planet_condition_1 = {"veins_point": {"金伯利":20, "刺笋结晶":20, "煤":30}} #增产剂
-    planet_condition_2 = {"veins_point": {"分型硅":30, "油":20, "刺笋结晶":30, "煤":20}} #紫糖
+    planet_condition_2 = {"veins_point": {"分形硅":30, "油":20, "刺笋结晶":30, "煤":20}} #紫糖
     planet_condition_3 = {"veins_point": {"光栅石":100}, "singularity": "卫星"} #卡晶
     planet_condition_4 = {"dsp_level": "全接收", "satisfy_num": 2}
 

@@ -37,7 +37,7 @@ class DSPIcons(FluentIconBase, Enum):
             "水": DSPIcons.WATER,
             "钛": DSPIcons.TITANIUM,
             "硅": DSPIcons.SILICIUM,
-            "分型硅": DSPIcons.FRACTAL,
+            "分形硅": DSPIcons.FRACTAL,
             "氢": DSPIcons.HYDROGEN,
             "重氢": DSPIcons.DEUTERIUM,
             "可燃冰": DSPIcons.FIREICE,

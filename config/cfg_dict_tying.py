@@ -12,7 +12,7 @@ class VeinsName(BaseModel):
     oil: str = "油"
     ice: str = "可燃冰"
     kimberley: str = "金伯利"
-    fractal_silicon: str = "分型硅"
+    fractal_silicon: str = "分形硅"
     organic_crystal: str = "有机晶体"
     grating_stone: str = "光栅石"
     bamboo_shoot_crystal: str = "刺笋结晶"
