@@ -83,7 +83,7 @@ class BondCondition(BaseModel):
     con2_star: StarCondition = StarCondition()
 
 class GalaxyCondition(BaseModel):
-    custom_name: str = "星系条件"
+    custom_name: str = "星区条件"
     checked: bool = True
     valid_state: bool = True
 

@@ -420,7 +420,7 @@
             "全包星": "Full Cover Planet"
         },
         "condition_names": {
-            "星系条件": "Galaxy Condition",
+            "星区条件": "Galaxy Condition",
             "恒星系条件": "Star Condition",
             "星球条件": "Planet Condition",
             "卫星条件": "Moon Condition",

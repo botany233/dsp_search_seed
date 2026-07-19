@@ -594,7 +594,7 @@ class GalaxyTreeLeave(LeaveBase):
             config_obj=config_obj,
             config_key="veins_point_condition",
             items=VeinsName().model_dump(),
-            obj_name="星系矿脉数量筛选",
+            obj_name="星区矿脉数量筛选",
             display_title=tr("search.condition_tree.settings.galaxy_veins_point_title"),
             description=tr("search.condition_tree.settings.galaxy_veins_point_description"),
         )
@@ -603,7 +603,7 @@ class GalaxyTreeLeave(LeaveBase):
             config_obj=config_obj,
             config_key="veins_amount_condition",
             items=VeinsName().model_dump(),
-            obj_name="星系矿脉储量筛选",
+            obj_name="星区矿脉储量筛选",
             display_title=tr("search.condition_tree.settings.galaxy_veins_amount_title"),
             description=tr("search.condition_tree.settings.galaxy_veins_amount_description"),
         )

@@ -147,14 +147,14 @@
             "settings": {
                 "return": "返回",
                 "oil_rate_label": "油(单位: /s)",
-                "galaxy_veins_point_title": "星系矿脉数量筛选",
-                "galaxy_veins_amount_title": "星系矿脉储量筛选",
+                "galaxy_veins_point_title": "星区矿脉数量筛选",
+                "galaxy_veins_amount_title": "星区矿脉储量筛选",
                 "star_veins_point_title": "恒星系矿脉数量筛选",
                 "star_veins_amount_title": "恒星系矿脉储量筛选",
                 "planet_veins_point_title": "星球矿脉数量筛选",
                 "planet_veins_amount_title": "星球矿脉储量筛选",
-                "galaxy_veins_point_description": "设置星系内最少有多少对应矿脉数量, 不填写则不限制",
-                "galaxy_veins_amount_description": "设置星系内最少有多少对应矿脉储量, 不填写则不限制",
+                "galaxy_veins_point_description": "设置星区内最少有多少对应矿脉数量, 不填写则不限制",
+                "galaxy_veins_amount_description": "设置星区内最少有多少对应矿脉储量, 不填写则不限制",
                 "star_veins_point_description": "设置恒星系内最少有多少对应矿脉数量, 不填写则不限制",
                 "star_veins_amount_description": "设置恒星系内最少有多少对应矿脉储量, 不填写则不限制",
                 "planet_veins_point_description": "设置星球内最少有多少对应矿脉数量, 不填写则不限制",
@@ -222,10 +222,10 @@
             "type": "类型",
             "info": "信息",
             "loading": "加载中...",
-            "galaxy": "星系"
+            "galaxy": "星区"
         },
         "astro": {
-            "galaxy_info": "星系信息",
+            "galaxy_info": "星区信息",
             "star_count": "{star_num}星",
             "dyson_radius": "戴森球半径：{value:.0f}m",
             "dyson_lumino": "戴森球光度：{value:.3f}L",
@@ -243,10 +243,10 @@
         "export": {
             "title": "选择导出内容",
             "resource_rate": "资源倍率: ",
-            "galaxy_section": "选择导出的星系信息",
+            "galaxy_section": "选择导出的星区信息",
             "star_section": "选择导出的恒星信息",
             "planet_section": "选择导出的行星信息",
-            "create_galaxy_table": "创建星系表",
+            "create_galaxy_table": "创建星区表",
             "create_star_table": "创建恒星表",
             "create_planet_table": "创建行星表",
             "preview": "预览",
@@ -420,7 +420,7 @@
             "全包星": "全包星"
         },
         "condition_names": {
-            "星系条件": "星系条件",
+            "星区条件": "星区条件",
             "恒星系条件": "恒星系条件",
             "星球条件": "星球条件",
             "卫星条件": "卫星条件",
