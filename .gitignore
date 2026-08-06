@@ -9,6 +9,6 @@ test.py
 logs/
 build/
 dist/
-dsp/
 __pycache__/
 export_seeds/
+CApi_old/
