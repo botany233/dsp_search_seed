@@ -1,49 +1,96 @@
 import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
-import json
 from time import perf_counter, sleep
 
 from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        # "planets": [
-        #     {
-        #         "satisfy_num": 2,
-        #         "veins_point": {
-        #             "有机晶体": 23
-        #         },
-        #         "veins_amount": {
-        #             "有机晶体": 27056
-        #         }
-        #     }
-        # ],
-        # "veins_point": {
-        #     "铜": 13179,
-        #     "金伯利": 1647
-        # },
-        "veins_amount": {
-            "铜": 505269781,
-            # "金伯利": 58948141
-        }
+        "valid_state": True,
+        "stars": [
+            {
+                "satisfy_num": 3,
+                "dyson_lumino": 0.9941314210289814,
+                "planets": [
+                    {
+                        "satisfy_num": 1,
+                        "dsp_level": "全接收",
+                        "type": [
+                            "红石",
+                            "橙晶荒漠",
+                            "灰烬冻土",
+                            "潘多拉沼泽",
+                            "飓风石林",
+                            "干旱荒漠",
+                            "冰原冻土",
+                            "冰巨星",
+                            "黑石盐滩",
+                            "戈壁",
+                            "气态巨星",
+                            "极寒冻土"
+                        ]
+                    }
+                ]
+            }
+        ],
+        "planets": [
+            {
+                "satisfy_num": 3,
+                "liquid": "硫酸"
+            },
+            {
+                "satisfy_num": 2,
+                "type": [
+                    "气态巨星",
+                    "极寒冻土",
+                    "水世界",
+                    "高产气巨",
+                    "草原",
+                    "海洋丛林",
+                    "樱林海",
+                    "冰巨星",
+                    "黑石盐滩",
+                    "灰烬冻土",
+                    "戈壁",
+                    "地中海"
+                ]
+            },
+            {
+                "satisfy_num": 1,
+                "dsp_level": "全接收",
+                "type": [
+                    "火山灰",
+                    "潘多拉沼泽",
+                    "草原",
+                    "红石",
+                    "干旱荒漠",
+                    "熔岩",
+                    "冰巨星",
+                    "冰原冻土",
+                    "极寒冻土",
+                    "地中海",
+                    "樱林海"
+                ]
+            }
+        ]
     },
     "seeds": [
         0,
-        99999
+        199999
     ],
     "star_nums": [
         64,
         64
     ],
-    "resource_index": 0,
+    "resource_index": 10,
     "quick": True
 }
 
 def main():
     cpu_thread = 20
     gpu_thread = 8
-    device_id = 1
+    device_id = -1
     local_size = 256
 
     c_save_path = os.path.join(os.path.dirname(__file__), "debug_results_c.csv")

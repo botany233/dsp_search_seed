@@ -1,12 +1,11 @@
 from csv import reader
-from multiprocessing import cpu_count
 
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog, QGridLayout, QTreeWidgetItem, QApplication, QDialog
 from PySide6.QtCore import Qt
 from qfluentwidgets import BodyLabel, PushButton
 
-from CApi import GetDataManager, resource_rate_c
-# from config import cfg
+from CApi import GetDataQueue, Seed
+from config import cfg
 # from logger import log
 from language import tr
 from .Compoents import *
@@ -21,7 +20,7 @@ class ViewerInterface(QFrame):
 
         self.current_select = None
         self.getting_seed = set()
-        self.get_data_manager = GetDataManager(cpu_count()-1, False, 32)
+        self.get_data_manager = GetDataQueue(32)
 
         self.mainLayout = QHBoxLayout(self)
         self.__init_left()
@@ -192,7 +191,7 @@ class ViewerInterface(QFrame):
             return
         self.getting_seed.add((seed_id, star_num, resource_index))
 
-        self.get_data_manager.add_task(seed_id, star_num, resource_index)
+        self.get_data_manager.add_task(Seed(seed_id, star_num, resource_index), cfg.config.max_thread)
         while True:
             results = self.get_data_manager.get_results()
             for result in results:

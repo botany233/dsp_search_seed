@@ -85,7 +85,7 @@ class GPUBenchmarkThread(QThread):
                 log.error("Failed to start GPU benchmark thread: mutex is locked")
                 return
 
-            gpu_benchmark = GPUBenchmark(self.cpu_thread)
+            gpu_benchmark = GPUBenchmark(self.cpu_thread, False)
             gpu_benchmark.run()
             sleep(0.5)
 

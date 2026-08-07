@@ -1,18 +1,19 @@
 import os
-cur_dir = os.path.dirname(__file__)
 import sys
 import json
-sys.path.append(os.path.dirname(cur_dir))
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from copy import deepcopy
 from time import perf_counter, sleep
 
 from CApi import *
 from debug_random_condition import get_random_debug_condition
 
+cur_dir = os.path.dirname(__file__)
+
 def main(test_num: int, load_condition: bool = False):
-    cpu_thread = 12
+    cpu_thread = 8
     gpu_thread = 8
-    device_id = 1
+    device_id = -1
     local_size = 256
 
     set_device_id_c(device_id)

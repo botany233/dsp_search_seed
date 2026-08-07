@@ -42,7 +42,7 @@ class SortThread(QThread):
             task_num = len(data)
             time_tag = perf_counter()
             for seed_id, star_num, _ in data:
-                get_data_manager.add_task(seed_id, star_num, resource_index)
+                get_data_manager.add_task(Seed(seed_id, star_num, resource_index))
 
                 if self.end_flag:
                     get_data_manager.shutdown()
