@@ -205,7 +205,7 @@ class GalaxyInfo(InfoBase):
             ]
         star_type_nums = [0] * 14
         for star in data.stars:
-            star_type_nums[star.type_id-1] += 1
+            star_type_nums[star.type_id] += 1
         star_labels = []
         for star_type in star_sort:
             if star_type == "":
