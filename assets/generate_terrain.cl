@@ -7,7 +7,7 @@ __constant float grad3[12][3] = {
 	{ 0,  1,  1}, { 0, -1,  1}, { 0,  1, -1}, { 0, -1, -1}
 };
 
-float Noise(float xin,float yin,float zin,local const short* perm,local const short* permMod12) {
+float Noise(float xin,float yin,float zin,local const int* perm,local const int* permMod12) {
 	float num = (xin + yin + zin) * F3;
 	int num2 = floor(xin + num);
 	int num3 = floor(yin + num);
@@ -92,7 +92,7 @@ float Noise(float xin,float yin,float zin,local const short* perm,local const sh
 	return 32.696434f * total;
 }
 
-float Noise3DFBM_6arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,local const short* perm,local const short* permMod12)
+float Noise3DFBM_6arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,local const int* perm,local const int* permMod12)
 {
 	float num = 0.0f;
 	float num2 = 0.5f;
@@ -107,17 +107,17 @@ float Noise3DFBM_6arg(float x,float y,float z,int nOctaves,float deltaAmp,float 
 	return num;
 }
 
-float Noise3DFBM_5arg(float x,float y,float z,int nOctaves,float deltaAmp,local const short* perm,local const short* permMod12)
+float Noise3DFBM_5arg(float x,float y,float z,int nOctaves,float deltaAmp,local const int* perm,local const int* permMod12)
 {
 	return Noise3DFBM_6arg(x,y,z,nOctaves,deltaAmp,2.0f,perm,permMod12);
 }
 
-float Noise3DFBM_4arg(float x,float y,float z,int nOctaves,local const short* perm,local const short* permMod12)
+float Noise3DFBM_4arg(float x,float y,float z,int nOctaves,local const int* perm,local const int* permMod12)
 {
 	return Noise3DFBM_6arg(x,y,z,nOctaves,0.5f,2.0f,perm,permMod12);
 }
 
-float RidgedNoise_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const short* perm,local const short* permMod12)
+float RidgedNoise_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const int* perm,local const int* permMod12)
 {
 	float num = 0.0f;
 	float num2 = initialAmp;
@@ -132,7 +132,7 @@ float RidgedNoise_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float
 	return num;
 }
 
-float Noise3DFBMInitialAmp_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const short* perm,local const short* permMod12)
+float Noise3DFBMInitialAmp_7arg(float x,float y,float z,int nOctaves,float deltaAmp,float deltaWLen,float initialAmp,local const int* perm,local const int* permMod12)
 {
 	float num = 0.0f;
 	float num2 = initialAmp;
@@ -251,19 +251,19 @@ float CurveEvaluate(float t)
 kernel void GenerateTerrain2(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_custom[4];
 
 	// Load permutation tables into local memory
@@ -278,7 +278,7 @@ kernel void GenerateTerrain2(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -296,19 +296,19 @@ kernel void GenerateTerrain2(
 kernel void GenerateTerrain4(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_custom[401];
 
 	// Load permutation tables into local memory
@@ -323,7 +323,7 @@ kernel void GenerateTerrain4(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -368,19 +368,19 @@ kernel void GenerateTerrain4(
 kernel void GenerateTerrain5(
 	global const float* vertices,
 	float planet_radius,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_planet_radius;
 
 	// Load permutation tables into local memory
@@ -395,7 +395,7 @@ kernel void GenerateTerrain5(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -436,19 +436,19 @@ kernel void GenerateTerrain5(
 kernel void GenerateTerrain6(
 	global const float* vertices,
 	float planet_radius,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_planet_radius;
 
 	// Load permutation tables into local memory
@@ -463,7 +463,7 @@ kernel void GenerateTerrain6(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -507,19 +507,19 @@ kernel void GenerateTerrain6(
 kernel void GenerateTerrain7(
 	global const float* vertices,
 	float planet_radius,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_planet_radius;
 
 	// Load permutation tables into local memory
@@ -534,7 +534,7 @@ kernel void GenerateTerrain7(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -553,15 +553,15 @@ kernel void GenerateTerrain7(
 kernel void GenerateTerrain8(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* permMod12_1,
+	global const int* perm_1,
+	global const int* permMod12_1,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPermMod12_1[512];
+	local int localPerm_1[512];
+	local int localPermMod12_1[512];
 	local float local_custom[5];
 
 	// Load permutation tables into local memory
@@ -574,7 +574,7 @@ kernel void GenerateTerrain8(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -602,19 +602,19 @@ kernel void GenerateTerrain8(
 kernel void GenerateTerrain9(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_custom[3];
 
 	// Load permutation tables into local memory
@@ -629,7 +629,7 @@ kernel void GenerateTerrain9(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -662,27 +662,27 @@ kernel void GenerateTerrain9(
 kernel void GenerateTerrain10(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* perm_3,
-	global const short* perm_4,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
-	global const short* permMod12_3,
-	global const short* permMod12_4,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* perm_3,
+	global const int* perm_4,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
+	global const int* permMod12_3,
+	global const int* permMod12_4,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPerm_3[512];
-	local short localPerm_4[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
-	local short localPermMod12_3[512];
-	local short localPermMod12_4[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPerm_3[512];
+	local int localPerm_4[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
+	local int localPermMod12_3[512];
+	local int localPermMod12_4[512];
 	local float local_custom[61];
 
 	// Load permutation tables into local memory
@@ -701,7 +701,7 @@ kernel void GenerateTerrain10(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -774,23 +774,23 @@ kernel void GenerateTerrain10(
 kernel void GenerateTerrain11(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* perm_3,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
-	global const short* permMod12_3,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* perm_3,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
+	global const int* permMod12_3,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPerm_3[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
-	local short localPermMod12_3[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPerm_3[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
+	local int localPermMod12_3[512];
 	local float local_custom[5];
 
 	// Load permutation tables into local memory
@@ -807,7 +807,7 @@ kernel void GenerateTerrain11(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -832,19 +832,19 @@ kernel void GenerateTerrain11(
 kernel void GenerateTerrain12(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* perm_2,
-	global const short* permMod12_1,
-	global const short* permMod12_2,
+	global const int* perm_1,
+	global const int* perm_2,
+	global const int* permMod12_1,
+	global const int* permMod12_2,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPerm_2[512];
-	local short localPermMod12_1[512];
-	local short localPermMod12_2[512];
+	local int localPerm_1[512];
+	local int localPerm_2[512];
+	local int localPermMod12_1[512];
+	local int localPermMod12_2[512];
 	local float local_custom[3];
 
 	// Load permutation tables into local memory
@@ -859,7 +859,7 @@ kernel void GenerateTerrain12(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
@@ -887,15 +887,15 @@ kernel void GenerateTerrain12(
 kernel void GenerateTerrain13(
 	global const float* vertices,
 	global const float* custom,
-	global const short* perm_1,
-	global const short* permMod12_1,
+	global const int* perm_1,
+	global const int* permMod12_1,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
 
-	local short localPerm_1[512];
-	local short localPermMod12_1[512];
+	local int localPerm_1[512];
+	local int localPermMod12_1[512];
 	local float local_custom[5];
 
 	// Load permutation tables into local memory
@@ -908,7 +908,7 @@ kernel void GenerateTerrain13(
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
-	if(gid >= 161604) {
+	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;

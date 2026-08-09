@@ -80,12 +80,12 @@ class GPUBenchmarkThread(QThread):
         self.end_flag = True
 
     def run(self):
-        try:
-            if not self.mutex.try_lock():
-                log.error("Failed to start GPU benchmark thread: mutex is locked")
-                return
+        if not self.mutex.try_lock():
+            log.error("Failed to start GPU benchmark thread: mutex is locked")
+            return
 
-            gpu_benchmark = GPUBenchmark(self.cpu_thread, False)
+        try:
+            gpu_benchmark = GPUBenchmark(self.cpu_thread, True)
             gpu_benchmark.run()
             sleep(0.5)
 

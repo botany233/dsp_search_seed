@@ -13,6 +13,9 @@ def main():
     test_num = 1000
     max_thread = 8
 
+    set_device_id_c(0)
+    set_local_size_c(256)
+
     data_manager = GetDataManager(8, False, 128)
     data_queue = GetDataQueue(128)
     for _ in tqdm(range(test_num)):

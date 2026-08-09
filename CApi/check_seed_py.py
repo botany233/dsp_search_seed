@@ -8,7 +8,7 @@ from .max_flow import MaxFlowGraph
 def check_planet_py(planet_data: PlanetData, planet_condition: PlanetCondition) -> bool:
     if planet_condition.dsp_level > planet_data.dsp_level:
         return False
-    if ((1 << (planet_data.type_id - 1)) & planet_condition.type) == 0:
+    if ((1 << planet_data.type_id) & planet_condition.type) == 0:
         return False
     if (planet_condition.singularity & planet_data.singularity) != planet_condition.singularity:
         return False
@@ -29,7 +29,7 @@ def check_planet_py(planet_data: PlanetData, planet_condition: PlanetCondition) 
     return True
 
 def check_star_py(star_data: StarData, star_condition: StarCondition) -> bool:
-    if ((1 << (star_data.type_id - 1)) & star_condition.type) == 0:
+    if ((1 << star_data.type_id) & star_condition.type) == 0:
         return False
     if star_condition.distance < star_data.distance:
         return False

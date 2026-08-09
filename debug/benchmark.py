@@ -17,7 +17,7 @@ from benchmark_condition import benchmark_condition_functions
 
 cpu_thread = 20
 gpu_thread = 4
-device_id = 0
+device_id = -1
 local_size = 256
 
 set_device_id_c(device_id)
@@ -25,7 +25,7 @@ set_local_size_c(local_size)
 set_gpu_max_worker_c(gpu_thread)
 
 galaxy_conditions = []
-for condition_func in benchmark_condition_functions[:1]:
+for condition_func in benchmark_condition_functions:
     galaxy_condition, seeds, star_nums, quick = condition_func()
     name = condition_func.__name__
     if quick:
