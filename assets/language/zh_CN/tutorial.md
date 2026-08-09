@@ -71,7 +71,7 @@
 点击额外设置中的第一个按钮可以在两种搜索模式中切换。
 
 ### 标准模式/快速模式
-标准模式下，会确保计算的矿脉数量/储量与游戏中尽可能一致，代表本程序的最高精度。但完整生成矿脉的性能开销极大，因此引入快速模式。在快速模式中，计算的矿脉数量/储量为理论最大值，实际矿脉数量平均为该值的78%，矿脉储量平均为该值的72%。快速模式对每个种子的性能开销基本一致，而标准模式差异较大，具体原因请见搜索性能优化章节。
+标准模式下，会确保计算的矿脉数量/储量与游戏中尽可能一致，代表本程序的最高精度。但完整生成矿脉的性能开销较大，因此引入快速模式。在快速模式中，计算的矿脉数量/储量为理论最大值，实际矿脉数量平均为该值的78%，矿脉储量平均为该值的72%。快速模式对每个种子的性能开销基本一致，而标准模式差异较大。
 
 点击额外设置中的第二个按钮可以在两种搜索精度中切换。
 
@@ -84,9 +84,9 @@
 此设置影响查看器中种子信息生成和种子排序的资源倍率。
 
 ### 种子列表
-查看器本身设计时并未考虑过大的种子量级，因此设置了10万个种子的上限。点击任意种子即可切换天体信息展示的内容。按住左键+拖拽可以多选种子进行批量删除或种子信息导出。
+查看器本身设计时并未考虑过大的种子量级，因此设置了10万个种子的上限。点击任意种子即可切换天体信息展示的内容。按住左键+拖拽可以多选种子进行批量删除或种子信息导出。Ctrl + A可以全选。
 
-使用CPU完整获取一个种子信息大约需要3~10秒，启用GPU加速后一般<1秒。程序会缓存最近100个点击的种子信息，可以快速点击多个种子以利用多线程加速生成。
+使用CPU完整获取一个种子信息视线程数不同大约需要1~3秒。启用GPU加速后一般<1秒。程序会缓存最近100个点击的种子信息。
 
 除了种子id和恒星数外，还提供了排序值用来评估种子价值。在导出种子列表时，排序值会被一并导出。
 
@@ -96,13 +96,12 @@
 ### 种子排序
 查看器内置了矿脉数量、矿脉储量、行星类别、恒星类别四种常用的种子排序方式，同时可使用python代码进行自定义，具体教程可以参考[README.md](../README.md)。
 
-第一个按钮可以切换升序/降序的排序方式。第二个按钮切换快速模式/标准模式。与搜索器不同的是，查看器标准模式并未进行性能优化，排序时需要完整的生成每个种子的全部信息，CPU下速度较快速模式大约慢2万倍，请谨慎使用。
+第一个按钮可以切换升序/降序的排序方式。第二个按钮切换快速模式/标准模式。与搜索器不同的是，查看器标准模式并未进行性能优化，排序时需要完整的生成每个种子的全部信息，CPU下速度较快速模式大约慢3000倍，请谨慎使用。
 
 注意高产气巨在按照星球类别排序时会被视为气态巨星。
 
 ### 种子信息导出
 在种子列表中单选或多选种子后，右键可选择导出种子信息。确定需要导出的内容后，点击下方导出按钮，选择导出文件夹。每个种子会生成一个**.csv**文件，因此在导出大量种子时，建议新建文件夹<s>（你也不想电脑桌面被文件淹没吧）</s>。
-<!-- ![image](tutorial_export.png) -->
 ![image](tutorial_export_sample.png)
 
 ## 设置教程
@@ -113,30 +112,19 @@
 ### 基础设置
 最大CPU线程数：控制搜索器和查看器最多同时创建的线程数。最高可设置为128线程，但实际调用的线程数不会超过CPU逻辑处理器数量。默认值与CPU逻辑处理器数量相同，注意此时在搜索和排序时UI界面可能会卡顿，若在意UI流畅性请将该值-1。
 
-启用GPU加速：在计算种子精确矿物数量/储量时需要生成星球地形，该过程及其耗时但可利用GPU加速计算。启用后，可显著降低查看器刷新种子信息时的延迟。本程序的GPU加速依赖OpenCL3.0，部分上古GPU可能不支持。某些GPU不支持双精度（主要是Ultra系列前的酷睿核显），此时将使用单精度进行计算，但是生成的矿物信息会与双精度下有小幅差异（大约10%的种子会有1~2个球出现异常）。
+启用GPU加速：查看器在计算星球建造面积时需要生成星球地形，该过程极其耗时但可利用GPU加速计算。启用后，可显著降低查看器刷新种子信息时的延迟和排序用时。本程序的GPU加速依赖OpenCL3.0，部分上古GPU可能不支持。某些GPU不支持双精度（主要是Ultra系列前的酷睿核显），此时将使用单精度进行计算，但是生成的矿物信息会与双精度下有小幅差异（大约10%的种子会有1~2个球出现异常）。
 
 ### GPU设置
-工作组大小：提高该值可轻微提高GPU加速时的性能。不同GPU支持的最大值不同，在无法正常搜索/排序时请尝试减小该值。
+工作组大小：该值对GPU加速的性能影响微乎其微，但不同GPU支持的最大值不同，在无法正常搜索/排序时请尝试减小该值。
 
 GPU设备：目前应用只支持调用最多一块GPU，推荐使用性能最高的GPU以提高性能。
 
-最大GPU线程数：管理最多同时使用GPU加速的线程数，可以通过性能测试找到最优值，一般在2~6之间。
+最大GPU线程数：管理最多同时使用GPU加速的线程数，可以通过性能测试找到最优值。核显推荐4~8，独显性能差异较大，可选8~16。
 
 GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地形生成速度的影响，默认每个线程测试时间为1s，可酌情修改。
 
-## 搜索性能优化
-为了提高搜索效率，搜索器采取了一系列的优化措施。判定一个种子是否满足条件可分为星系生成和条件判断两步，其中星系生成为用时大头。考虑到进行条件判断时，不满足任一条件即可剔除该种子，不是所有的星系信息都会被使用到。因此，将星系生成拆分为多步，同时进行多次条件判断能够极大的提高搜索性能。
-
-目前，星系生成被拆分为生成恒星信息、生成星球信息、生成矿物上限、生成精确矿物四个级别。每个级别的信息生成后，都会进行一次条件判定。如果条件中用到了还未生成的信息，则默认该条件通过留待后续检查。在快速模式下，不会进行级别4生成精确矿物的部分，通过前三个级别条件判定的种子将直接通过。
-
-前三个级别由于生成速度较快，将一次性生成该种子所有相关信息。而级别4极其耗时，除了使用GPU加速外，还可以只生成必要星球的精确矿物。即如果该星球的矿物数量不会影响到判断结果，则不进行生成。
-
-具体的，若某星球未通过除矿物外的条件判定或具有的矿物类型与条件要求不符（对行星和卫星条件）/无重叠（对恒星和星区条件），则不进行生成。同时，在已经有足够数量天体满足一个条件后将跳过对后续星体的检查。
-
-其中，星区级矿物条件通常对性能影响最明显。若在标准模式下的星区条件对常见矿物进行要求并且数值较大（比如要求星区包含3万铁矿脉），则几乎每个星球都会生成精确矿物，性能开销接近无任何优化时。因此，不建议星区条件中包含常见矿物，只推荐单极磁石和1~2种稀有资源。
-
 ## 搜索器性能
-搜索器性能表格如下，均为64星情况：
+目前搜索器已经不再使用GPU计算。性能表格如下，均为64星情况：
 
 <table style="width:100%; border-collapse: collapse;">
   <tr class="table-header">
@@ -152,36 +140,14 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">211107</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">61689</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57503</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">351.6</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.08</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">173111</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">173742</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">57963</td>
-  </tr>
-  <tr class="zebra-row">
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">209361</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62071</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">56214</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">719.5</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.35</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">163283</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">172023</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">61004</td>
-  </tr>
-  <tr>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">205052</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63463</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">59208</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2315</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8.13</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">170105</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">171869</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">65358</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">156977</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">55584</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">51760</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">15786</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">76.52</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">145663</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">144623</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">55583</td>
   </tr>
 </table>
 
@@ -204,17 +170,17 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">1.08</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">3.77</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">2.37</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.21</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9266</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">8.56</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">28.85</td>
   </tr>
 </table>

@@ -32,7 +32,7 @@
 
 ### Viewer
 - Seed List: Maximum import limit is `100,000` seeds, with deduplication.
-- Refresh Delay: Completely acquiring info for one seed takes about `3~10` seconds in CPU mode, and usually `<1` second with GPU acceleration enabled. The program caches info for the last `100` clicked seeds. You can quickly click multiple seeds to utilize multi-threading for accelerated generation.
+- Refresh Delay: Completely acquiring info for one seed takes about `1~3` seconds in CPU mode, and usually `<1` second with GPU acceleration enabled. The program caches info for the last `100` clicked seeds. You can quickly click multiple seeds to utilize multi-threading for accelerated generation.
 - Seed Info Export: You can select seeds in the list, right-click, and batch export seed info. Each seed corresponds to a `.csv` file.
 - Special Conditions: When sorting, high-yield gas giants are considered gas giants, but gas giants are not considered high-yield gas giants.
 

@@ -16,13 +16,10 @@ from benchmark_condition import benchmark_condition_functions
 # singularity = ["卫星", "多卫星", "潮汐锁定永昼永夜", "潮汐锁定1:2", "潮汐锁定1:4", "横躺自转", "反向自转"]
 
 cpu_thread = 20
-gpu_thread = 4
-device_id = -1
-local_size = 256
 
-set_device_id_c(device_id)
-set_local_size_c(local_size)
-set_gpu_max_worker_c(gpu_thread)
+set_device_id_c(-1)
+# set_local_size_c(256)
+# set_gpu_max_worker_c(4)
 
 galaxy_conditions = []
 for condition_func in benchmark_condition_functions:
