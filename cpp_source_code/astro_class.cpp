@@ -185,7 +185,7 @@ void PlanetClassSimple::MyGenerateVeins()
 }
 
 void PlanetClassSimple::generate_real_veins() {
-	std::unique_ptr planet_algorithm = PlanetAlgorithmManager(algoId);
+	unique_ptr planet_algorithm = GetPlanetAlgorithm(algoId);
 	planet_algorithm->GenerateTerrain(*this);
 	planet_algorithm->GenerateVeins(*this,this->star->galaxy->birthPlanetId);
 	is_real_veins = true;

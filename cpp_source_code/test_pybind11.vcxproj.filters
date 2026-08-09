@@ -27,14 +27,8 @@
     <ClCompile Include="check_seed.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="PlanetRawData.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="PlanetAlgorithm.hpp">
       <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="PlanetAlgorithm.cpp">
-      <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="condition_to_struct.cpp">
       <Filter>源文件</Filter>
@@ -46,6 +40,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="astro_class.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PlanetAlgorithm.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

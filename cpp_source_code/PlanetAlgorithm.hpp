@@ -1,4 +1,5 @@
 #pragma once
+#include <tuple>
 #include <atomic>
 #include <vector>
 #include <memory>
@@ -6,6 +7,7 @@
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <cstdint>
 #include <mutex>
 #include <glm/glm.hpp>
@@ -23,13 +25,14 @@
 #include "const_value.hpp"
 #include "SimplexNoise.hpp"
 #include "RandomTable.hpp"
-#include "PlanetRawData.hpp"
 #include "LDB.hpp"
 #include "defines.hpp"
 
-#pragma warning(disable:4267)
-#pragma warning(disable:4244)
-#pragma warning(disable:4838)
+using namespace std;
+
+//#pragma warning(disable:4267)
+//#pragma warning(disable:4244)
+//#pragma warning(disable:4838)
 
 class OpenCLManager
 {
@@ -58,97 +61,11 @@ public:
 		cfg_version = 0;
 		set_device_id(-1);
 		set_local_size();
+		max_worker = 4;
 	}
 
-	static bool set_device_id(int input_device_id) {
-		lock_guard<mutex> lck(lock);
-		cfg_version++;
-
-		devices.clear();
-		devices_info.clear();
-		std::vector<cl::Platform> platforms;
-		cl::Platform::get(&platforms);
-		for(const cl::Platform& plat : platforms) {
-			std::vector<cl::Device> devs;
-			plat.getDevices(CL_DEVICE_TYPE_GPU,&devs);
-			std::string plat_name = plat.getInfo<CL_PLATFORM_NAME>();
-			for(const cl::Device& dev : devs) {
-				devices.push_back(dev);
-				std::string dev_name = dev.getInfo<CL_DEVICE_NAME>();
-				devices_info.push_back(plat_name + " " + dev_name);
-			}
-		}
-		if(input_device_id < 0 || devices.size() <= input_device_id) {
-			SUPPORT_GPU = false;
-			return false;
-		}
-
-		device_id = input_device_id;
-		device = devices[device_id];
-
-		// 检查是否支持double类型
-		SUPPORT_DOUBLE = false;
-		try {
-			std::string extensions = device.getInfo<CL_DEVICE_EXTENSIONS>();
-
-			// 检查cl_khr_fp64扩展
-			if(extensions.find("cl_khr_fp64") != std::string::npos) {
-				SUPPORT_DOUBLE = true;
-			}
-
-			// 检查cl_amd_fp64扩展（AMD特有）
-			if(extensions.find("cl_amd_fp64") != std::string::npos) {
-				SUPPORT_DOUBLE = true;
-			}
-
-			// 直接尝试获取double精度信息
-			try {
-				cl_device_fp_config doubleConfig = device.getInfo<CL_DEVICE_DOUBLE_FP_CONFIG>();
-				if(doubleConfig != 0) {
-					SUPPORT_DOUBLE = true;
-				}
-			} catch(...) {
-				// 如果获取double配置失败，继续检查其他方式
-			}
-		} catch(...) {
-			// 扩展信息获取失败时的处理
-		}
-
-		// 创建上下文和命令队列
-		context = cl::Context(device);
-
-		// 创建程序
-		cl::Program::Sources sources;
-		if(SUPPORT_DOUBLE)
-			AddSources(sources,"assets/generate_terrain_double.cl");
-		else
-			AddSources(sources,"assets/generate_terrain.cl");
-		program = cl::Program(context,sources);
-		cl_int buildResult = program.build({device});
-
-		// 检查构建状态
-		if(buildResult != CL_SUCCESS) {
-			std::cerr << "Program build failed with error code: " << buildResult << std::endl;
-
-			// 获取构建日志
-			std::string buildLog = program.getBuildInfo<CL_PROGRAM_BUILD_LOG>(device);
-			std::cerr << "Build Log:\n" << buildLog << std::endl;
-
-			throw std::runtime_error("Program build failed");
-		}
-
-		vector<float> vertices(DATALENGTH*3);
-		for(int i=0;i<DATALENGTH;i++) {
-			vertices[i*3] = PlanetRawData::vertices[i].x;
-			vertices[i*3+1] = PlanetRawData::vertices[i].y;
-			vertices[i*3+2] = PlanetRawData::vertices[i].z;
-		}
-		vertices_buffer = cl::Buffer(context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(float) * vertices.size(),vertices.data());
-
-		SUPPORT_GPU = true;
-		return true;
-	}
-
+	static bool set_device_id(int input_device_id);
+	
 	static int get_device_id() {
 		lock_guard<mutex> lck(lock);
 		if(SUPPORT_GPU)
@@ -232,15 +149,15 @@ public:
 		if(local_cfg_version != OpenCLManager::cfg_version) {
 			queue = cl::CommandQueue(OpenCLManager::context,OpenCLManager::device);
 			custom_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(float) * 512);
-			perm_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			perm_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			perm_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			perm_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			permMod12_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			permMod12_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			permMod12_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			permMod12_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(short) * PERM_LENGTH);
-			heightData_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+			perm_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			perm_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			perm_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			perm_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			permMod12_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			permMod12_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			permMod12_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			permMod12_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
+			heightData_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * LAND_DATALENGTH);
 			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 			local_cfg_version = OpenCLManager::cfg_version;
 		}
@@ -277,18 +194,19 @@ static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
 	planet_simple.id = planet.id;
 	planet_simple.seed = planet.seed;
 	planet_simple.type = planet.type;
+	planet_simple.scale = planet.scale;
 	planet_simple.theme = planet.theme;
 	planet_simple.mod_x = planet.mod_x;
 	planet_simple.mod_y = planet.mod_y;
 	planet_simple.radius = planet.radius;
+	planet_simple.orbitPhase = planet.orbitPhase;
 	planet_simple.waterItemId = planet.waterItemId;
 	planet_simple.orbitRadius = planet.orbitRadius;
 	planet_simple.orbitalPeriod = planet.orbitalPeriod;
 	planet_simple.rotationPhase = planet.rotationPhase;
-	planet_simple.orbitInclination = planet.orbitInclination;
-	planet_simple.orbitPhase = planet.orbitPhase;
 	planet_simple.orbitalPeriod = planet.orbitalPeriod;
 	planet_simple.rotationPeriod = planet.rotationPeriod;
+	planet_simple.orbitInclination = planet.orbitInclination;
 	planet_simple.runtimeOrbitRotation = planet.runtimeOrbitRotation;
 	planet_simple.runtimeSystemRotation = planet.runtimeSystemRotation;
 	return planet_simple;
@@ -297,12 +215,250 @@ static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
 class PlanetAlgorithm
 {
 protected:
-	std::vector<Vector3> veinVectors = std::vector<Vector3>(512, Vector3());
-	std::vector<EVeinType> veinVectorTypes = std::vector<EVeinType>(512, EVeinType::None_vein);
-	std::vector<Vector2> tmp_vecs;
-	int veinVectorCount = 0;
+	vector<unsigned short> heightData;
+
+	static int trans(float x,int pr)
+	{
+		int num = (int)((Mathf.Sqrt(x + 0.23f) - 0.4795832f) / 0.6294705f * (float)pr);
+		if(num >= pr)
+		{
+			num = pr - 1;
+		}
+		return num;
+	}
+
+	static int PositionHash(Vector3 v,int corner = 0)
+	{
+		if(corner == 0)
+		{
+			corner = ((v.x > 0.0f) ? 1 : 0) + ((v.y > 0.0f) ? 2 : 0) + ((v.z > 0.0f) ? 4 : 0);
+		}
+		if(v.x < 0.0f)
+		{
+			v.x = 0.0f - v.x;
+		}
+		if(v.y < 0.0f)
+		{
+			v.y = 0.0f - v.y;
+		}
+		if(v.z < 0.0f)
+		{
+			v.z = 0.0f - v.z;
+		}
+		if((double)v.x < 1E-06 && (double)v.y < 1E-06 && (double)v.z < 1E-06)
+		{
+			return 0;
+		}
+		int num = 0;
+		int num2 = 0;
+		int num3 = 0;
+		if(v.x >= v.y && v.x >= v.z)
+		{
+			num = 0;
+			num2 = trans(v.z / v.x,INDEXMAP_PRECISION);
+			num3 = trans(v.y / v.x,INDEXMAP_PRECISION);
+		} else if(v.y >= v.x && v.y >= v.z)
+		{
+			num = 1;
+			num2 = trans(v.x / v.y,INDEXMAP_PRECISION);
+			num3 = trans(v.z / v.y,INDEXMAP_PRECISION);
+		} else
+		{
+			num = 2;
+			num2 = trans(v.x / v.z,INDEXMAP_PRECISION);
+			num3 = trans(v.y / v.z,INDEXMAP_PRECISION);
+		}
+		return num2 + num3 * INDEXMAP_PRECISION + num * INDEXMAP_FACE_STRIDE + corner * INDEXMAP_CORNER_STRIDE;
+	};
+
+	static void ReadVerts()
+	{
+		std::ifstream file("assets/vertices.data");  // 打开txt文件
+		if(!file.is_open()) {
+			throw std::runtime_error("无法打开vertices.data文件");
+		}
+
+		std::string line;
+
+		int line_index = 0;
+		while(std::getline(file,line)) {
+			std::stringstream ss(line);
+			std::string item;
+			std::vector<float> values;
+
+			// 按逗号分割每行
+			while(std::getline(ss,item,',')) {
+				values.push_back(std::stof(item));
+			}
+			vertices[line_index] = Vector3(values[0],values[1],values[2]);
+			line_index++;
+		}
+		if(line_index != 161604) {
+			throw std::runtime_error("vertices.data数据异常");
+		}
+		file.close();
+	};
+
+	static void ReadIndex()
+	{
+		std::ifstream file("assets/indexMap.data");  // 打开txt文件
+		if(!file.is_open()) {
+			throw std::runtime_error("无法打开indexMap.data文件");
+		}
+
+		std::string line;
+
+		int line_index = 0;
+		while(std::getline(file,line)) {
+			indexMap[line_index] = std::stoi(line);
+			line_index++;
+		}
+		if(line_index != 60000) {
+			throw std::runtime_error("indexMap.data数据异常");
+		}
+		file.close();
+	};
+
+	//static void CalcVerts()
+	//{
+	//	static bool is_init = false;
+	//	if(is_init)
+	//		return;
+	//	is_init = true;
+	//	int num = (PRECISION + 1) * 2;
+	//	int num2 = PRECISION + 1;
+	//	std::vector<Vector3> poles = {
+	//		Vector3::right(),
+	//		Vector3::left(),
+	//		Vector3::up(),
+	//		Vector3::down(),
+	//		Vector3::forward(),
+	//		Vector3::back()
+	//	};
+	//	for(int j = 0; j < DATALENGTH; j++)
+	//	{
+	//		int num3 = j % num;
+	//		int num4 = j / num;
+	//		int num5 = num3 % num2;
+	//		int num6 = num4 % num2;
+	//		int num7 = (((num3 >= num2) ? 1 : 0) + ((num4 >= num2) ? 1 : 0) * 2) * 2 + ((num5 < num6) ? 1 : 0);
+	//		float num8 = ((num5 >= num6) ? (PRECISION - num5) : num5);
+	//		float num9 = ((num5 >= num6) ? num6 : (PRECISION - num6));
+	//		float num10 = (float)PRECISION - num9;
+	//		num9 /= (float)PRECISION;
+	//		num8 = ((num10 > 0.0f) ? (num8 / num10) : 0.0f);
+	//		int num11 = 0;
+	//		Vector3 a;
+	//		Vector3 a2;
+	//		Vector3 b;
+	//		switch(num7)
+	//		{
+	//			case 0:
+	//				a = poles[2];
+	//				a2 = poles[0];
+	//				b = poles[4];
+	//				num11 = 7;
+	//				break;
+	//			case 1:
+	//				a = poles[3];
+	//				a2 = poles[4];
+	//				b = poles[0];
+	//				num11 = 5;
+	//				break;
+	//			case 2:
+	//				a = poles[2];
+	//				a2 = poles[4];
+	//				b = poles[1];
+	//				num11 = 6;
+	//				break;
+	//			case 3:
+	//				a = poles[3];
+	//				a2 = poles[1];
+	//				b = poles[4];
+	//				num11 = 4;
+	//				break;
+	//			case 4:
+	//				a = poles[2];
+	//				a2 = poles[1];
+	//				b = poles[5];
+	//				num11 = 2;
+	//				break;
+	//			case 5:
+	//				a = poles[3];
+	//				a2 = poles[5];
+	//				b = poles[1];
+	//				num11 = 0;
+	//				break;
+	//			case 6:
+	//				a = poles[2];
+	//				a2 = poles[5];
+	//				b = poles[0];
+	//				num11 = 3;
+	//				break;
+	//			case 7:
+	//				a = poles[3];
+	//				a2 = poles[0];
+	//				b = poles[5];
+	//				num11 = 1;
+	//				break;
+	//			default:
+	//				a = poles[2];
+	//				a2 = poles[0];
+	//				b = poles[4];
+	//				num11 = 7;
+	//				break;
+	//		}
+	//		vertices[j] = Vector3::Slerp(Vector3::Slerp(a,b,num9),Vector3::Slerp(a2,b,num9),num8);
+	//		//int num12 = PositionHash(vertices[j],num11);
+	//		//if(indexMap[num12] == -1)
+	//		//{
+	//		//	indexMap[num12] = j;
+	//		//}
+	//	}
+	//	//int num13 = 0;
+	//	//for(int k = 1; k < INDEXMAP_DATA_LENGTH; k++)
+	//	//{
+	//	//	if(indexMap[k] == -1)
+	//	//	{
+	//	//		indexMap[k] = indexMap[k - 1];
+	//	//		num13++;
+	//	//	}
+	//	//}
+	//};
+
+	unsigned short GetHeight(int index) {
+		if(heightData[index] == 0)
+			GenerateSingleHeight(index);
+		return heightData[index];
+	}
 
 public:
+	static Vector3 vertices[VERTICES_DATALENGTH];
+	static int indexMap[INDEXMAP_DATALENGTH];
+	static int landIndex[LAND_DATALENGTH];
+	//vector<float> debugData;
+	
+	static void do_init()
+	{
+		static bool is_init = false;
+		if(is_init)
+			return;
+		is_init = true;
+		ReadVerts();
+		ReadIndex();
+		int index = 0;
+		for(int i = 0; i < VERTICES_DATALENGTH; i++) {
+			int num5 = i % STRIDE;
+			int num6 = i / STRIDE;
+			if(num5 > LANDPERCENT_NUM)
+				num5--;
+			if(num6 > LANDPERCENT_NUM)
+				num6--;
+			if(num5 & num6 & 1)
+				landIndex[index++] = i;
+		}
+	}
+	
 	glm::vec3 vector3_to_glm(const Vector3& vec)
 	{
 		return glm::vec3(vec.x,vec.y,vec.z);
@@ -313,8 +469,123 @@ public:
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
-	float get_veins(const GalaxyClass& galaxy,const StarClass& star,const PlanetClass& planet,int* veins_point,uint64_t* veins_amount)
+	static Pose PredictPose(const PlanetClassSimple& planet,const double time) {
+		double num = time / planet.orbitalPeriod + (double)planet.orbitPhase / 360.0;
+		int num2 = (int)(num + 0.1);
+		num -= (double)num2;
+		num *= Math.PI * 2.0;
+		double num3 = time / planet.rotationPeriod + (double)planet.rotationPhase / 360.0;
+		int num4 = (int)(num3 + 0.1);
+		num3 = (num3 - (double)num4) * 360.0;
+		Vector3 position = Maths::QRotate(planet.runtimeOrbitRotation,Vector3((float)Math.Cos(num) * planet.orbitRadius,0.0f,(float)Math.Sin(num) * planet.orbitRadius));
+		if(planet.orbitAroundPlanet != nullptr) {
+			Pose pose = PredictPose(*(planet.orbitAroundPlanet),time);
+			position.x += pose.position.x;
+			position.y += pose.position.y;
+			position.z += pose.position.z;
+		}
+		return Pose(position,planet.runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
+	}
+
+	tuple<Vector3,Vector3,Vector3> GenBirthPoints(const PlanetClassSimple& planet,const int _birthSeed,const VectorLF3& star_uPosition) {
+		DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
+		Pose pose = PredictPose(planet,85.0);
+		Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - pose.position * 40000.0);
+		vector.Normalize();
+		Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
+		Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
+		int i = 0;
+		int num;
+		Vector3 birthPoint,birthResourcePoint0,birthResourcePoint1;
+		for(num = 256; i < num; i++)
+		{
+			float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+			float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
+			Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
+			vector2.Normalize();
+			birthPoint = vector2 * (planet.realRadius() + 0.2f + 1.45f);
+			normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
+			normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
+			bool flag = false;
+			for(int j = 0; j < 10; j++)
+			{
+				float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+				float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
+				Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
+				Vector2 vector4 = -vector3;
+				float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+				float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
+				vector4.x += num4;
+				vector4.y += num5;
+				Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
+				Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
+				birthResourcePoint0 = Vector3::Normalize(normalized3);
+				birthResourcePoint1 = Vector3::Normalize(normalized4);
+				float num6 = planet.realRadius() + 0.2f;
+				if(QueryHeight(vector2) > num6 && QueryHeight(normalized3) > num6 && QueryHeight(normalized4) > num6)
+				{
+					Vector3 vpos = normalized3 + normalized * 0.03f;
+					Vector3 vpos2 = normalized3 - normalized * 0.03f;
+					Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
+					Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
+					Vector3 vpos5 = normalized4 + normalized * 0.03f;
+					Vector3 vpos6 = normalized4 - normalized * 0.03f;
+					Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
+					Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
+					if(QueryHeight(vpos) > num6 && QueryHeight(vpos2) > num6 && QueryHeight(vpos3) > num6 && QueryHeight(vpos4) > num6 && QueryHeight(vpos5) > num6 && QueryHeight(vpos6) > num6 && QueryHeight(vpos7) > num6 && QueryHeight(vpos8) > num6)
+					{
+						flag = true;
+						break;
+					}
+				}
+			}
+			if(flag)
+			{
+				break;
+			}
+		}
+		if(i >= num)
+		{
+			birthPoint = Vector3(0.0f,planet.realRadius() + 5.0f,0.0f);
+		}
+		return {birthPoint,birthResourcePoint0,birthResourcePoint1};
+	}
+
+	float QueryHeight(Vector3 vpos)
 	{
+		vpos.Normalize();
+		int num = PositionHash(vpos);
+		int num2 = indexMap[num];
+		float num3 = Mathf.PI / (float)(PRECISION * 2) * 1.2f;
+		float num4 = num3 * num3;
+		float num5 = 0.0f;
+		float num6 = 0.0f;
+		for(int i = -1; i <= 3; i++)
+		{
+			for(int j = -1; j <= 3; j++)
+			{
+				int num8 = num2 + i + j * STRIDE;
+				if((unsigned int)num8 < VERTICES_DATALENGTH)
+				{
+					float sqrMagnitude = (vertices[num8] - vpos).sqrMagnitude();
+					if(sqrMagnitude <= num4)
+					{
+						float num9 = 1.0f - Mathf.Sqrt(sqrMagnitude) / num3;
+						float num10 = (int)GetHeight(num8);
+						num5 += num9;
+						num6 += num10 * num9;
+					}
+				}
+			}
+		}
+		if(num5 == 0.0f)
+		{
+			return (float)(int)GetHeight(0) * 0.01f;
+		}
+		return num6 / num5 * 0.01f;
+	};
+	
+	void get_veins(const GalaxyClass& galaxy,const StarClass& star,PlanetClass& planet) {
 		PlanetClassSimple planet_simple = planet_to_simple(planet);
 		StarClassSimple star_simple = star_to_simple(star);
 		GalaxyClassSimple galaxy_simple = galaxy_to_simple(galaxy);
@@ -325,37 +596,34 @@ public:
 			planet_simple_orbit = planet_to_simple(*planet.orbitAroundPlanet);
 			planet_simple.orbitAroundPlanet = &planet_simple_orbit;
 		}
-		this->GenerateTerrain(planet_simple);
+		this->GenerateTerrain(planet_simple,true);
+		float land_percent = CalcLandPercent(planet_simple);
 		this->GenerateVeins(planet_simple,galaxy.birthPlanetId);
 		for(int i=0; i < 14; i++) {
-			veins_point[i] = planet_simple.veins_point[i];
-			veins_amount[i] = planet_simple.veins_amount[i];
+			planet.veins_point[i] = planet_simple.veins_point[i];
+			planet.veins_amount[i] = planet_simple.veins_amount[i];
 		}
-		return CalcLandPercent(planet_simple);
+		planet.landPercent = land_percent;
 	}
 
 	float CalcLandPercent(const PlanetClassSimple& planet) {
-		if(planet.theme == 15) //水世界
+		if(planet.theme == 16) //水世界
 			return 1.0f;
 		if(planet.type == EPlanetType::Gas)
 			return 0.0f;
 
-		const PlanetRawData& data = planet.data;
-
 		float threshold = planet.radius * 100.0f - 20.0f;
 		int num3 = 0;
 		int num4 = 0;
-		for(int i = 0; i < data.heightData.size(); i++)
-		{
+		for(int i = 0; i < VERTICES_DATALENGTH; i++) {
 			int num5 = i % STRIDE;
 			int num6 = i / STRIDE;
 			if(num5 > LANDPERCENT_NUM)
 				num5--;
 			if(num6 > LANDPERCENT_NUM)
 				num6--;
-			if(num5 & num6 & 1)
-			{
-				if((float)data.heightData[i] >= threshold)
+			if(num5 & num6 & 1) {
+				if((float)GetHeight(i) >= threshold)
 					num4++;
 				num3++;
 			}
@@ -363,8 +631,10 @@ public:
 		return ((num3 > 0) ? ((float)num4 / (float)num3) : 0.0f);
 	}
 
-	virtual void GenerateTerrain(PlanetClassSimple& planet) = 0;
+	virtual void GenerateSingleHeight(int index) = 0;
 
+	virtual void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) = 0;
+	
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
 		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
@@ -374,7 +644,6 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -530,12 +799,8 @@ public:
 				array[num2]++;
 			}
 		}
-		bool flag = birthPlanetId == planet.id;
-		if(flag)
-		{
-			planet.GenBirthPoints(birthSeed,star.uPosition);
-		}
 		float num8 = star.resourceCoef;
+		bool flag = birthPlanetId == planet.id;
 		if(flag)
 			num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
@@ -543,29 +808,24 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		veinVectorCount = 0;
+		vector<Vector3> veinVectors(512);
+		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		vector<Vector2> tmp_vecs;
+		int veinVectorCount = 0;
 		Vector3 birthPoint;
-		if(flag)
-		{
-			birthPoint = planet.birthPoint;
+		if(flag) {
+			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
 			birthPoint.Normalize();
 			birthPoint *= 0.75f;
-		}
-		else
-		{
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectorCount = 2;
+		} else {
 			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
 			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
 			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
 			birthPoint.Normalize();
 			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
-		}
-		if(flag)
-		{
-			veinVectorTypes[0] = EVeinType::Iron;
-			veinVectors[0] = planet.birthResourcePoint0;
-			veinVectorTypes[1] = EVeinType::Copper;
-			veinVectors[1] = planet.birthResourcePoint1;
-			veinVectorCount = 2;
 		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
@@ -594,7 +854,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = rawData.QueryHeight(target_pos);
+					float target_height = QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f))
 					{
 						continue;
@@ -633,7 +893,6 @@ public:
 		//		cout << "矿脉 " << i << ": " << veinVectorTypes[i] << ", " << veinVectors[i].x << " " << veinVectors[i].y << " " << veinVectors[i].z << endl;
 		//	}
 		//}
-		tmp_vecs.clear();
 		for(int vein_group_index = 0; vein_group_index < veinVectorCount; vein_group_index++)
 		{
 			tmp_vecs.clear();
@@ -744,7 +1003,7 @@ public:
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = rawData.QueryHeight(vein_pos);
+				float num29 = QueryHeight(vein_pos);
 				//if(planet.id == 101)
 				//{
 				//	cout << "real_pos: " << vein_pos.x << " " << vein_pos.y << " " << vein_pos.z << ", height: " << num29 << endl;
@@ -768,73 +1027,78 @@ public:
 class PlanetAlgorithm0: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH,(unsigned short)((double)planet.radius * 100.0));
-		//if(OpenCLManager::SUPPORT_GPU) {
-		//	cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain0");
+	float radius;
 
-		//	cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
+	void GenerateSingleHeight(int index) override {
+		heightData[index] = (unsigned short)((double)radius * 100.0);
+	}
 
-		//	kernel.setArg(0,sizeof(float),&planet.radius);
-		//	kernel.setArg(1,heightData_buffer);
-
-		//	int local_size = OpenCLManager::local_size;
-		//	int global_size = (int)ceil(161604.0/local_size) * local_size;
-		//	cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-		//	OpenCLManager::queue.finish();
-		//	if(err != CL_SUCCESS){
-		//		std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-		//		throw std::runtime_error("Kernel execution failed");
-		//	}
-
-		//	OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
-		//				  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
-		//}
-		//else {
-		//	for(int i = 0; i < DATALENGTH; i++)
-		//	{
-		//		data.heightData[i] = (unsigned short)((double)planet.radius * 100.0);
-		//	}
-		//}
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
+		heightData.resize(VERTICES_DATALENGTH,(unsigned short)((double)planet.radius * 100.0));
 	}
 	
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
 		//do nothing
 	}
+
 };
 
 class PlanetAlgorithm1: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr double num = 0.01;
+	static constexpr double num2 = 0.012;
+	static constexpr double num3 = 0.01;
+	static constexpr double num4 = 3.0;
+	static constexpr double num5 = -0.2;
+	static constexpr double num6 = 0.9;
+	static constexpr double num7 = 0.5;
+	static constexpr double num8 = 2.5;
+	static constexpr double num9 = 0.3;
+
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num12 = vertices[index].x * radius;
+		double num13 = vertices[index].y * radius;
+		double num14 = vertices[index].z * radius;
+		double num15 = 0.0;
+		double num16 = 0.0;
+		double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
+		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
+		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
+		double num20 = num17 + num19;
+		double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
+		double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
+		double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
+		double num24 = num21 * num8 + num23 + num9;
+		double num25 = ((num24 < 1.0) ? num24 : ((num24 - 1.0) * 0.8 + 1.0));
+		num15 = num22;
+		num16 = num25;
+		heightData[index] = (unsigned short)(((double)radius + num15 + 0.2) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
-		double num = 0.01;
-		double num2 = 0.012;
-		double num3 = 0.01;
-		double num4 = 3.0;
-		double num5 = -0.2;
-		double num6 = 0.9;
-		double num7 = 0.5;
-		double num8 = 2.5;
-		double num9 = 0.3;
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
 		int num11 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num10);
-		SimplexNoise simplexNoise2 = SimplexNoise(num11);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(true)) {
+		simplexNoise = SimplexNoise(num10);
+		simplexNoise2 = SimplexNoise(num11);
+		heightData.resize(VERTICES_DATALENGTH);
+		//debugData.resize(DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(true)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
@@ -847,7 +1111,7 @@ public:
 			//kernel.setArg(7,debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -855,30 +1119,13 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			//OpenCLManager::queue.enqueueReadBuffer(debugData_buffer,CL_TRUE,0,
 			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
 			OpenCLManager::return_worker();
-		}
-		else {
-			for(int i = 0; i < DATALENGTH; i++) {
-				double num12 = data.vertices[i].x * planet.radius;
-				double num13 = data.vertices[i].y * planet.radius;
-				double num14 = data.vertices[i].z * planet.radius;
-				double num15 = 0.0;
-				double num16 = 0.0;
-				double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
-				double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
-				double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
-				double num20 = num17 + num19;
-				double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
-				double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
-				double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
-				double num24 = num21 * num8 + num23 + num9;
-				double num25 = ((num24 < 1.0) ? num24 : ((num24 - 1.0) * 0.8 + 1.0));
-				num15 = num22;
-				num16 = num25;
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num15 + 0.2) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -887,15 +1134,41 @@ public:
 class PlanetAlgorithm2: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	double num,num2,num3,num4;
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num8 = vertices[index].x * radius;
+		double num9 = vertices[index].y * radius;
+		double num10 = vertices[index].z * radius;
+		double num11 = vertices[index].y;
+		double num12 = 0.0;
+		double num13 = 0.0;
+		double num14 = simplexNoise.Noise3DFBM(num8 * num,num9 * num2,num10 * num3,6,0.45,1.8);
+		double num15 = simplexNoise2.Noise3DFBM(num8 * num * 2.0,num9 * num2 * 2.0,num10 * num3 * 2.0,3);
+		double value = num14 * num4 + num4 * 0.4;
+		double num16 = 0.6 / (Math.Abs(value) + 0.6) - 0.25;
+		double num17 = ((num16 < 0.0) ? (num16 * 0.3) : num16);
+		double num18 = Math.Pow(Math.Abs(num11 * 1.01),3.0) * 1.0;
+		double num19 = ((num15 < 0.0) ? 0.0 : num15);
+		double num20 = ((num18 > 1.0) ? 1.0 : num18);
+		num12 = num17;
+		num13 = num17 * 1.5 + num19 * 1.0 + num20;
+		heightData[index] = (unsigned short)(((double)radius + num12 + 0.1) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
+		radius = planet.radius;
 		double modX = planet.mod_x;
 		double modY = planet.mod_y;
 		modX = (3.0 - modX - modX) * modX * modX;
-		double num = 0.0035;
-		double num2 = 0.025 * modX + 0.0035 * (1.0 - modX);
-		double num3 = 0.0035;
-		double num4 = 3.0;
+		num = 0.0035;
+		num2 = 0.025 * modX + 0.0035 * (1.0 - modX);
+		num3 = 0.0035;
+		num4 = 3.0;
 		double num5 = 1.0 + 1.3 * modY;
 		num *= num5;
 		num2 *= num5;
@@ -903,21 +1176,20 @@ public:
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num6 = dotNet35Random.Next();
 		int num7 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num6);
-		SimplexNoise simplexNoise2 = SimplexNoise(num7);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num6);
+		simplexNoise2 = SimplexNoise(num7);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
 			float custom[4] = {planet.radius,num,num2,num3};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -928,7 +1200,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -936,28 +1208,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num8 = data.vertices[i].x * planet.radius;
-				double num9 = data.vertices[i].y * planet.radius;
-				double num10 = data.vertices[i].z * planet.radius;
-				double num11 = data.vertices[i].y;
-				double num12 = 0.0;
-				double num13 = 0.0;
-				double num14 = simplexNoise.Noise3DFBM(num8 * num,num9 * num2,num10 * num3,6,0.45,1.8);
-				double num15 = simplexNoise2.Noise3DFBM(num8 * num * 2.0,num9 * num2 * 2.0,num10 * num3 * 2.0,3);
-				double value = num14 * num4 + num4 * 0.4;
-				double num16 = 0.6 / (Math.Abs(value) + 0.6) - 0.25;
-				double num17 = ((num16 < 0.0) ? (num16 * 0.3) : num16);
-				double num18 = Math.Pow(Math.Abs(num11 * 1.01),3.0) * 1.0;
-				double num19 = ((num15 < 0.0) ? 0.0 : num15);
-				double num20 = ((num18 > 1.0) ? 1.0 : num18);
-				num12 = num17;
-				num13 = num17 * 1.5 + num19 * 1.0 + num20;
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num12 + 0.1) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	};
@@ -970,31 +1225,83 @@ private:
 		return a + (b - a) * t;
 	}
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
-		double modX = planet.mod_x;
-		double num = 0.007;
-		double num2 = 0.007;
-		double num3 = 0.007;
+	static constexpr double num = 0.007;
+	static constexpr double num2 = 0.007;
+	static constexpr double num3 = 0.007;
+
+	double modX;
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num6 = vertices[index].x * radius;
+		double num7 = vertices[index].y * radius;
+		double num8 = vertices[index].z * radius;
+		num6 += Math.Sin(num7 * 0.15) * 3.0;
+		num7 += Math.Sin(num8 * 0.15) * 3.0;
+		num8 += Math.Sin(num6 * 0.15) * 3.0;
+		double num9 = 0.0;
+		double num10 = 0.0;
+		double num11 = simplexNoise.Noise3DFBM(num6 * num * 1.0,num7 * num2 * 1.1,num8 * num3 * 1.0,6,0.5,1.8);
+		double num12 = simplexNoise2.Noise3DFBM(num6 * num * 1.3 + 0.5,num7 * num2 * 2.8 + 0.2,num8 * num3 * 1.3 + 0.7,3) * 2.0;
+		double num13 = simplexNoise2.Noise3DFBM(num6 * num * 6.0,num7 * num2 * 12.0,num8 * num3 * 6.0,2) * 2.0;
+		num13 = Lerp(num13,num13 * 0.1,modX);
+		double num14 = simplexNoise2.Noise3DFBM(num6 * num * 0.8,num7 * num2 * 0.8,num8 * num3 * 0.8,2) * 2.0;
+		double num15 = num11 * 2.0 + 0.92;
+		double num16 = num12 * (double)Mathf.Abs((float)num14 + 0.5f);
+		num15 += (double)Mathf.Clamp01((float)(num16 - 0.35) * 1.0f);
+		if(num15 < 0.0)
+		{
+			num15 *= 2.0;
+		}
+		double num17 = num15;
+		num17 = Maths::Levelize2(num15);
+		if(num17 > 0.0)
+		{
+			num17 = Maths::Levelize2(num15);
+			num17 = Lerp(Maths::Levelize4(num17),num17,modX);
+		}
+		double b = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
+		double a = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num17 - 1.0f) + num13 * 0.12))));
+		double num18 = Lerp(a,b,modX);
+		if(num15 < 0.0)
+		{
+			num15 *= 2.0;
+		}
+		if(num15 < 1.0)
+		{
+			num15 = Maths::Levelize(num15);
+		}
+		num9 = num18;
+		num10 = Mathf.Abs((float)num15);
+		num10 = ((num10 > 0.0) ? ((num10 > 2.0) ? 2.0 : num10) : 0.0);
+		num10 += ((num10 > 1.8) ? ((0.0 - num13) * 0.8) : (num13 * 0.2));
+		heightData[index] = (unsigned short)(((double)radius + num9 + 0.2) * 100.0);
+		//data.debugData[i] = num18;
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
+		modX = planet.mod_x;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num4);
-		SimplexNoise simplexNoise2 = SimplexNoise(num5);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
+		simplexNoise = SimplexNoise(num4);
+		simplexNoise2 = SimplexNoise(num5);
+		heightData.resize(VERTICES_DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(true)) {
+		if(gen_terr && OpenCLManager::get_worker(true)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
 			float custom[2] = {planet.radius,modX};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -1006,7 +1313,7 @@ public:
 			//kernel.setArg(7,OpenCLManager::debugData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1014,55 +1321,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num6 = data.vertices[i].x * planet.radius;
-				double num7 = data.vertices[i].y * planet.radius;
-				double num8 = data.vertices[i].z * planet.radius;
-				num6 += Math.Sin(num7 * 0.15) * 3.0;
-				num7 += Math.Sin(num8 * 0.15) * 3.0;
-				num8 += Math.Sin(num6 * 0.15) * 3.0;
-				double num9 = 0.0;
-				double num10 = 0.0;
-				double num11 = simplexNoise.Noise3DFBM(num6 * num * 1.0,num7 * num2 * 1.1,num8 * num3 * 1.0,6,0.5,1.8);
-				double num12 = simplexNoise2.Noise3DFBM(num6 * num * 1.3 + 0.5,num7 * num2 * 2.8 + 0.2,num8 * num3 * 1.3 + 0.7,3) * 2.0;
-				double num13 = simplexNoise2.Noise3DFBM(num6 * num * 6.0,num7 * num2 * 12.0,num8 * num3 * 6.0,2) * 2.0;
-				num13 = Lerp(num13,num13 * 0.1,modX);
-				double num14 = simplexNoise2.Noise3DFBM(num6 * num * 0.8,num7 * num2 * 0.8,num8 * num3 * 0.8,2) * 2.0;
-				double num15 = num11 * 2.0 + 0.92;
-				double num16 = num12 * (double)Mathf.Abs((float)num14 + 0.5f);
-				num15 += (double)Mathf.Clamp01((float)(num16 - 0.35) * 1.0f);
-				if(num15 < 0.0)
-				{
-					num15 *= 2.0;
-				}
-				double num17 = num15;
-				num17 = Maths::Levelize2(num15);
-				if(num17 > 0.0)
-				{
-					num17 = Maths::Levelize2(num15);
-					num17 = Lerp(Maths::Levelize4(num17),num17,modX);
-				}
-				double b = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
-				double a = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num17 - 1.0f) + num13 * 0.12))));
-				double num18 = Lerp(a,b,modX);
-				if(num15 < 0.0)
-				{
-					num15 *= 2.0;
-				}
-				if(num15 < 1.0)
-				{
-					num15 = Maths::Levelize(num15);
-				}
-				num9 = num18;
-				num10 = Mathf.Abs((float)num15);
-				num10 = ((num10 > 0.0) ? ((num10 > 2.0) ? 2.0 : num10) : 0.0);
-				num10 += ((num10 > 1.8) ? ((0.0 - num13) * 0.8) : (num13 * 0.2));
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num9 + 0.2) * 100.0);
-				//data.debugData[i] = num18;
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1070,50 +1333,106 @@ public:
 
 class PlanetAlgorithm4: public PlanetAlgorithm
 {
-private:
-	static constexpr int kCircleCount = 80;
-
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr int kCircleCount = 80;
+	static constexpr double num = 0.007;
+	static constexpr double num2 = 0.007;
+	static constexpr double num3 = 0.007;
+
+	Vector4 circles[80];
+	double heights[80];
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num7 = vertices[index].x * radius;
+		double num8 = vertices[index].y * radius;
+		double num9 = vertices[index].z * radius;
+		double num10 = 0.0;
+		double num11 = 0.0;
+		double num12 = simplexNoise.Noise3DFBM(num7 * num,num8 * num2,num9 * num3,4,0.45,1.8);
+		double num13 = simplexNoise2.Noise3DFBM(num7 * num * 5.0,num8 * num2 * 5.0,num9 * num3 * 5.0,4);
+		double num14 = num12 * 1.5;
+		double num15 = num13 * 0.2;
+		double num16 = num14 * 0.08 + num15 * 2.0;
+		double num17 = 0.0;
+		for(int k = 0; k < 80; k++)
+		{
+			double num18 = (double)circles[k].x - num7;
+			double num19 = (double)circles[k].y - num8;
+			double num20 = (double)circles[k].z - num9;
+			double num21 = num18 * num18 + num19 * num19 + num20 * num20;
+			if(!(num21 > (double)circles[k].w))
+			{
+				double num22 = num21 / (double)circles[k].w + num15 * 1.2;
+				if(num22 < 0.0)
+				{
+					num22 = 0.0;
+				}
+				double num23 = num22 * num22;
+				double num24 = num23 * num22;
+				double num25 = -15.0 * num24 + 21.833333333334 * num23 - 7.533333333333 * num22 + 0.7 + num15;
+				if(num25 < 0.0)
+				{
+					num25 = 0.0;
+				}
+				num25 *= num25;
+				num25 *= heights[k];
+				num17 = ((num17 > num25) ? num17 : num25);
+			}
+		}
+		num10 = num17 + num16 + 0.2;
+		num11 = num14 * 2.0 + 0.8;
+		num11 = ((num11 > 2.0) ? 2.0 : ((num11 < 0.0) ? 0.0 : num11));
+		num11 += ((num11 > 1.5) ? (0.0 - num17) : num17) * 0.5;
+		num11 += num13 * 0.63;
+		heightData[index] = (unsigned short)(((double)radius + num10 + 0.1) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
-		double num = 0.007;
-		double num2 = 0.007;
-		double num3 = 0.007;
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num4);
-		SimplexNoise simplexNoise2 = SimplexNoise(num5);
+		simplexNoise = SimplexNoise(num4);
+		simplexNoise2 = SimplexNoise(num5);
 		int num6 = dotNet35Random.Next();
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		for(int i = 0; i < 80; i++) {
+			VectorLF3 vectorLF = RandomTable::SphericNormal(num6,1.0);
+			Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
+			vector.Normalize();
+			vector *= planet.radius;
+			vector.w = (float)vectorLF.magnitude() * 8.0f + 8.0f;
+			vector.w *= vector.w;
+			circles[i] = vector;
+			heights[i] = dotNet35Random.NextDouble() * 0.4 + 0.20000000298023224;
+		}
+
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
 			float custom[401];
 			custom[0] = planet.radius;
 
 			for(int i = 0; i < 80; i++)
-			{
-				VectorLF3 vectorLF = RandomTable::SphericNormal(num6,1.0);
-				Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
-				vector.Normalize();
-				vector *= planet.radius;
-				vector.w = (float)vectorLF.magnitude() * 8.0f + 8.0f;
-				vector.w *= vector.w;
-				custom[4*i+81] = vector.x;
-				custom[4*i+82] = vector.y;
-				custom[4*i+83] = vector.z;
-				custom[4*i+84] = vector.w;
-				custom[i+1] = dotNet35Random.NextDouble() * 0.4 + 0.20000000298023224;
+				custom[i+1] = heights[i];
+			for(int i = 0; i < 80; i++) {
+				const Vector4& t = circles[i];
+				custom[4*i+81] = t.x;
+				custom[4*i+82] = t.y;
+				custom[4*i+83] = t.z;
+				custom[4*i+84] = t.w;
 			}
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -1124,7 +1443,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1132,66 +1451,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			Vector4 circles[80] = {};
-			double heights[80] = {};
-			for(int i = 0; i < 80; i++)
-			{
-				VectorLF3 vectorLF = RandomTable::SphericNormal(num6,1.0);
-				Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
-				vector.Normalize();
-				vector *= planet.radius;
-				vector.w = (float)vectorLF.magnitude() * 8.0f + 8.0f;
-				vector.w *= vector.w;
-				circles[i] = vector;
-				heights[i] = dotNet35Random.NextDouble() * 0.4 + 0.20000000298023224;
-			}
-			for(int j = 0; j < DATALENGTH; j++)
-			{
-				double num7 = data.vertices[j].x * planet.radius;
-				double num8 = data.vertices[j].y * planet.radius;
-				double num9 = data.vertices[j].z * planet.radius;
-				double num10 = 0.0;
-				double num11 = 0.0;
-				double num12 = simplexNoise.Noise3DFBM(num7 * num,num8 * num2,num9 * num3,4,0.45,1.8);
-				double num13 = simplexNoise2.Noise3DFBM(num7 * num * 5.0,num8 * num2 * 5.0,num9 * num3 * 5.0,4);
-				double num14 = num12 * 1.5;
-				double num15 = num13 * 0.2;
-				double num16 = num14 * 0.08 + num15 * 2.0;
-				double num17 = 0.0;
-				for(int k = 0; k < 80; k++)
-				{
-					double num18 = (double)circles[k].x - num7;
-					double num19 = (double)circles[k].y - num8;
-					double num20 = (double)circles[k].z - num9;
-					double num21 = num18 * num18 + num19 * num19 + num20 * num20;
-					if(!(num21 > (double)circles[k].w))
-					{
-						double num22 = num21 / (double)circles[k].w + num15 * 1.2;
-						if(num22 < 0.0)
-						{
-							num22 = 0.0;
-						}
-						double num23 = num22 * num22;
-						double num24 = num23 * num22;
-						double num25 = -15.0 * num24 + 21.833333333334 * num23 - 7.533333333333 * num22 + 0.7 + num15;
-						if(num25 < 0.0)
-						{
-							num25 = 0.0;
-						}
-						num25 *= num25;
-						num25 *= heights[k];
-						num17 = ((num17 > num25) ? num17 : num25);
-					}
-				}
-				num10 = num17 + num16 + 0.2;
-				num11 = num14 * 2.0 + 0.8;
-				num11 = ((num11 > 2.0) ? 2.0 : ((num11 < 0.0) ? 0.0 : num11));
-				num11 += ((num11 > 1.5) ? (0.0 - num17) : num17) * 0.5;
-				num11 += num13 * 0.63;
-				data.heightData[j] = (unsigned short)(((double)planet.radius + num10 + 0.1) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1200,23 +1464,70 @@ public:
 class PlanetAlgorithm5: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num3 = vertices[index].x * radius;
+		double num4 = vertices[index].y * radius;
+		double num5 = vertices[index].z * radius;
+		double num6 = 0.0;
+		double num7 = 0.0;
+		double num8 = Maths::Levelize(num3 * 0.007);
+		double num9 = Maths::Levelize(num4 * 0.007);
+		double num10 = Maths::Levelize(num5 * 0.007);
+		num8 += simplexNoise.Noise(num3 * 0.05,num4 * 0.05,num5 * 0.05) * 0.04;
+		num9 += simplexNoise.Noise(num4 * 0.05,num5 * 0.05,num3 * 0.05) * 0.04;
+		num10 += simplexNoise.Noise(num5 * 0.05,num3 * 0.05,num4 * 0.05) * 0.04;
+		double num11 = Math.Abs(simplexNoise2.Noise(num8,num9,num10));
+		double num12 = (0.16 - num11) * 10.0;
+		num12 = ((!(num12 > 0.0)) ? 0.0 : ((num12 > 1.0) ? 1.0 : num12));
+		num12 *= num12;
+		double num13 = (simplexNoise.Noise3DFBM(num4 * 0.005,num5 * 0.005,num3 * 0.005,4) + 0.22) * 5.0;
+		num13 = ((!(num13 > 0.0)) ? 0.0 : ((num13 > 1.0) ? 1.0 : num13));
+		double num14 = Math.Abs(simplexNoise2.Noise3DFBM(num8 * 1.5,num9 * 1.5,num10 * 1.5,2));
+		double num15 = simplexNoise.Noise3DFBM(num5 * 0.06,num4 * 0.06,num3 * 0.06,2);
+		num6 -= num12 * 1.2 * num13;
+		if(num6 >= 0.0)
+		{
+			num6 += num11 * 0.25 + num14 * 0.6;
+		}
+		num6 -= 0.1;
+		num7 = num11 * 2.1;
+		if(num7 < 0.0)
+		{
+			num7 *= 5.0;
+		}
+		num7 = ((!(num7 > -1.0)) ? (-1.0) : ((num7 > 2.0) ? 2.0 : num7));
+		num7 += num15 * 0.6 * num7;
+		double num16 = -0.3 - num6;
+		if(num16 > 0.0)
+		{
+			double num17 = simplexNoise2.Noise(num3 * 0.16,num4 * 0.16,num5 * 0.16) - 1.0;
+			num16 = ((num16 > 1.0) ? 1.0 : num16);
+			num16 = (3.0 - num16 - num16) * num16 * num16;
+			num6 = -0.3 - num16 * 3.700000047683716 + num16 * num16 * num16 * num16 * num17 * 0.5;
+		}
+		heightData[index] = (unsigned short)(((double)radius + num6 + 0.2) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num);
-		SimplexNoise simplexNoise2 = SimplexNoise(num2);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num);
+		simplexNoise2 = SimplexNoise(num2);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
-
+			
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
@@ -1227,7 +1538,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1235,52 +1546,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num3 = data.vertices[i].x * planet.radius;
-				double num4 = data.vertices[i].y * planet.radius;
-				double num5 = data.vertices[i].z * planet.radius;
-				double num6 = 0.0;
-				double num7 = 0.0;
-				double num8 = Maths::Levelize(num3 * 0.007);
-				double num9 = Maths::Levelize(num4 * 0.007);
-				double num10 = Maths::Levelize(num5 * 0.007);
-				num8 += simplexNoise.Noise(num3 * 0.05,num4 * 0.05,num5 * 0.05) * 0.04;
-				num9 += simplexNoise.Noise(num4 * 0.05,num5 * 0.05,num3 * 0.05) * 0.04;
-				num10 += simplexNoise.Noise(num5 * 0.05,num3 * 0.05,num4 * 0.05) * 0.04;
-				double num11 = Math.Abs(simplexNoise2.Noise(num8,num9,num10));
-				double num12 = (0.16 - num11) * 10.0;
-				num12 = ((!(num12 > 0.0)) ? 0.0 : ((num12 > 1.0) ? 1.0 : num12));
-				num12 *= num12;
-				double num13 = (simplexNoise.Noise3DFBM(num4 * 0.005,num5 * 0.005,num3 * 0.005,4) + 0.22) * 5.0;
-				num13 = ((!(num13 > 0.0)) ? 0.0 : ((num13 > 1.0) ? 1.0 : num13));
-				double num14 = Math.Abs(simplexNoise2.Noise3DFBM(num8 * 1.5,num9 * 1.5,num10 * 1.5,2));
-				double num15 = simplexNoise.Noise3DFBM(num5 * 0.06,num4 * 0.06,num3 * 0.06,2);
-				num6 -= num12 * 1.2 * num13;
-				if(num6 >= 0.0)
-				{
-					num6 += num11 * 0.25 + num14 * 0.6;
-				}
-				num6 -= 0.1;
-				num7 = num11 * 2.1;
-				if(num7 < 0.0)
-				{
-					num7 *= 5.0;
-				}
-				num7 = ((!(num7 > -1.0)) ? (-1.0) : ((num7 > 2.0) ? 2.0 : num7));
-				num7 += num15 * 0.6 * num7;
-				double num16 = -0.3 - num6;
-				if(num16 > 0.0)
-				{
-					double num17 = simplexNoise2.Noise(num3 * 0.16,num4 * 0.16,num5 * 0.16) - 1.0;
-					num16 = ((num16 > 1.0) ? 1.0 : num16);
-					num16 = (3.0 - num16 - num16) * num16 * num16;
-					num6 = -0.3 - num16 * 3.700000047683716 + num16 * num16 * num16 * num16 * num17 * 0.5;
-				}
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num6 + 0.2) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1289,23 +1559,72 @@ public:
 class PlanetAlgorithm6: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num3 = vertices[index].x * radius;
+		double num4 = vertices[index].y * radius;
+		double num5 = vertices[index].z * radius;
+		double num6 = 0.0;
+		double num7 = 0.0;
+		double num8 = Maths::Levelize(num3 * 0.007);
+		double num9 = Maths::Levelize(num4 * 0.007);
+		double num10 = Maths::Levelize(num5 * 0.007);
+		num8 += simplexNoise.Noise(num3 * 0.05,num4 * 0.05,num5 * 0.05) * 0.04;
+		num9 += simplexNoise.Noise(num4 * 0.05,num5 * 0.05,num3 * 0.05) * 0.04;
+		num10 += simplexNoise.Noise(num5 * 0.05,num3 * 0.05,num4 * 0.05) * 0.04;
+		double num11 = Math.Abs(simplexNoise2.Noise(num8,num9,num10));
+		double num12 = (0.16 - num11) * 10.0;
+		num12 = ((!(num12 > 0.0)) ? 0.0 : ((num12 > 1.0) ? 1.0 : num12));
+		num12 *= num12;
+		double num13 = (simplexNoise.Noise3DFBM(num4 * 0.005,num5 * 0.005,num3 * 0.005,4) + 0.22) * 5.0;
+		num13 = ((!(num13 > 0.0)) ? 0.0 : ((num13 > 1.0) ? 1.0 : num13));
+		double num14 = Math.Abs(simplexNoise2.Noise3DFBM(num8 * 1.5,num9 * 1.5,num10 * 1.5,2));
+		num6 -= num12 * 1.2 * num13;
+		if(num6 >= 0.0)
+		{
+			num6 += num11 * 0.25 + num14 * 0.6;
+		}
+		num6 -= 0.1;
+		double num15 = -0.3 - num6;
+		if(num15 > 0.0)
+		{
+			num15 = ((num15 > 1.0) ? 1.0 : num15);
+			num15 = (3.0 - num15 - num15) * num15 * num15;
+			num6 = -0.3 - num15 * 3.700000047683716;
+		}
+		double f = ((num12 > 0.30000001192092896) ? num12 : 0.30000001192092896);
+		f = Maths::Levelize(f,0.7);
+		num6 = ((num6 > -0.800000011920929) ? num6 : ((0.0 - f - num11) * 0.8999999761581421));
+		num6 = ((num6 > -1.2000000476837158) ? num6 : (-1.2000000476837158));
+		num7 = num6 * num12;
+		num7 += num11 * 2.1 + 0.800000011920929;
+		if(num7 > 1.7000000476837158 && num7 < 2.0)
+		{
+			num7 = 2.0;
+		}
+		heightData[index] = (unsigned short)(((double)radius + num6 + 0.2) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num);
-		SimplexNoise simplexNoise2 = SimplexNoise(num2);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num);
+		simplexNoise2 = SimplexNoise(num2);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
@@ -1316,7 +1635,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1324,53 +1643,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num3 = data.vertices[i].x * planet.radius;
-				double num4 = data.vertices[i].y * planet.radius;
-				double num5 = data.vertices[i].z * planet.radius;
-				double num6 = 0.0;
-				double num7 = 0.0;
-				double num8 = Maths::Levelize(num3 * 0.007);
-				double num9 = Maths::Levelize(num4 * 0.007);
-				double num10 = Maths::Levelize(num5 * 0.007);
-				num8 += simplexNoise.Noise(num3 * 0.05,num4 * 0.05,num5 * 0.05) * 0.04;
-				num9 += simplexNoise.Noise(num4 * 0.05,num5 * 0.05,num3 * 0.05) * 0.04;
-				num10 += simplexNoise.Noise(num5 * 0.05,num3 * 0.05,num4 * 0.05) * 0.04;
-				double num11 = Math.Abs(simplexNoise2.Noise(num8,num9,num10));
-				double num12 = (0.16 - num11) * 10.0;
-				num12 = ((!(num12 > 0.0)) ? 0.0 : ((num12 > 1.0) ? 1.0 : num12));
-				num12 *= num12;
-				double num13 = (simplexNoise.Noise3DFBM(num4 * 0.005,num5 * 0.005,num3 * 0.005,4) + 0.22) * 5.0;
-				num13 = ((!(num13 > 0.0)) ? 0.0 : ((num13 > 1.0) ? 1.0 : num13));
-				double num14 = Math.Abs(simplexNoise2.Noise3DFBM(num8 * 1.5,num9 * 1.5,num10 * 1.5,2));
-				num6 -= num12 * 1.2 * num13;
-				if(num6 >= 0.0)
-				{
-					num6 += num11 * 0.25 + num14 * 0.6;
-				}
-				num6 -= 0.1;
-				double num15 = -0.3 - num6;
-				if(num15 > 0.0)
-				{
-					num15 = ((num15 > 1.0) ? 1.0 : num15);
-					num15 = (3.0 - num15 - num15) * num15 * num15;
-					num6 = -0.3 - num15 * 3.700000047683716;
-				}
-				double f = ((num12 > 0.30000001192092896) ? num12 : 0.30000001192092896);
-				f = Maths::Levelize(f,0.7);
-				num6 = ((num6 > -0.800000011920929) ? num6 : ((0.0 - f - num11) * 0.8999999761581421));
-				num6 = ((num6 > -1.2000000476837158) ? num6 : (-1.2000000476837158));
-				num7 = num6 * num12;
-				num7 += num11 * 2.1 + 0.800000011920929;
-				if(num7 > 1.7000000476837158 && num7 < 2.0)
-				{
-					num7 = 2.0;
-				}
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num6 + 0.2) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1379,32 +1656,57 @@ public:
 class PlanetAlgorithm7: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr double num = 0.008;
+	static constexpr double num2 = 0.01;
+	static constexpr double num3 = 0.01;
+	static constexpr double num4 = 3.0;
+	static constexpr double num5 = -2.4;
+	static constexpr double num6 = 0.9;
+	static constexpr double num7 = 0.5;
+	static constexpr double num8 = 2.5;
+	static constexpr double num9 = 0.3;
+
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num12 = vertices[index].x * radius;
+		double num13 = vertices[index].y * radius;
+		double num14 = vertices[index].z * radius;
+		double num15 = 0.0;
+		double num16 = 0.0;
+		double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
+		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
+		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
+		double num20 = num17 + num19;
+		double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
+		double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
+		double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
+		double num24 = num21 * num8 + num23 + num9;
+		double num25 = ((num24 < 1.0) ? num24 : ((num24 - 1.0) * 0.8 + 1.0));
+		num15 = num22;
+		num16 = num25;
+		heightData[index] = (unsigned short)(((double)radius + num15) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
-		double num = 0.008;
-		double num2 = 0.01;
-		double num3 = 0.01;
-		double num4 = 3.0;
-		double num5 = -2.4;
-		double num6 = 0.9;
-		double num7 = 0.5;
-		double num8 = 2.5;
-		double num9 = 0.3;
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
 		int num11 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num10);
-		SimplexNoise simplexNoise2 = SimplexNoise(num11);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num10);
+		simplexNoise2 = SimplexNoise(num11);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,sizeof(float),&planet.radius);
@@ -1415,7 +1717,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1423,28 +1725,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num12 = data.vertices[i].x * planet.radius;
-				double num13 = data.vertices[i].y * planet.radius;
-				double num14 = data.vertices[i].z * planet.radius;
-				double num15 = 0.0;
-				double num16 = 0.0;
-				double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
-				double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
-				double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
-				double num20 = num17 + num19;
-				double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
-				double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
-				double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
-				double num24 = num21 * num8 + num23 + num9;
-				double num25 = ((num24 < 1.0) ? num24 : ((num24 - 1.0) * 0.8 + 1.0));
-				num15 = num22;
-				num16 = num25;
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num15) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1458,7 +1743,6 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -1614,8 +1898,8 @@ public:
 				array[num2]++;
 			}
 		}
-		bool flag = birthPlanetId == planet.id;
 		float num8 = star.resourceCoef;
+		bool flag = birthPlanetId == planet.id;
 		if(flag)
 			num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
@@ -1623,13 +1907,25 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		veinVectorCount = 0;
+		vector<Vector3> veinVectors(512);
+		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		vector<Vector2> tmp_vecs;
+		int veinVectorCount = 0;
 		Vector3 birthPoint;
-		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.Normalize();
-		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		if(flag) {
+			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			birthPoint.Normalize();
+			birthPoint *= 0.75f;
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectorCount = 2;
+		} else {
+			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.Normalize();
+			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -1657,7 +1953,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					if(eVeinType == EVeinType::Bamboo && rawData.QueryHeight(target_pos) > planet.realRadius() - 4.0f)
+					if(eVeinType == EVeinType::Bamboo && QueryHeight(target_pos) > planet.realRadius() - 4.0f)
 					{
 						continue;
 					}
@@ -1790,25 +2086,57 @@ public:
 class PlanetAlgorithm8: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
+	double num,num2,num3,modY;
+	float radius;
+	SimplexNoise simplexNoise;
+
+	void GenerateSingleHeight(int index) override {
+		double num4 = vertices[index].x * radius;
+		double num5 = vertices[index].y * radius;
+		double num6 = vertices[index].z * radius;
+		double num7 = 0.0;
+		double num8 = 0.0;
+		float num9 = Mathf.Clamp((float)simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8) + 1.0f + (float)modY * 0.01f,0.0f,2.0f);
+		float num10 = 0.0f;
+		if((double)num9 < 1.0)
+		{
+			float f = Mathf.Cos(num9 * MATHF_PI) * 1.1f;
+			f = Mathf.Sign(f) * Mathf.Pow(f,4.0f);
+			f = Mathf.Clamp(f,-1.0f,1.0f);
+			num10 = 1.0f - (f + 1.0f) * 0.5f;
+		} else
+		{
+			float f2 = Mathf.Cos((num9 - 1.0f) * MATHF_PI) * 1.1f;
+			f2 = Mathf.Sign(f2) * Mathf.Pow(f2,4.0f);
+			f2 = Mathf.Clamp(f2,-1.0f,1.0f);
+			num10 = 2.0f - (f2 + 1.0f) * 0.5f;
+		}
+		num7 = num10;
+		num8 = num10;
+		num8 = ((num8 < 1.0) ? (Math.Max(num8 - 0.2,0.0) * 1.25) : num8);
+		num8 = ((num8 > 1.0) ? Math.Min(num8 * num8,2.0) : num8);
+		num8 = Maths::Levelize2(num8);
+		heightData[index] = (unsigned short)(((double)radius + num7 + 0.1) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
 		double modX = planet.mod_x;
-		double modY = planet.mod_y;
-		double num = 0.002 * modX;
-		double num2 = 0.002 * modX * modX * 6.66667;
-		double num3 = 0.002 * modX;
-		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		modY = planet.mod_y;
+		num = 0.002 * modX;
+		num2 = 0.002 * modX * modX * 6.66667;
+		num3 = 0.002 * modX;
+		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -1817,7 +2145,7 @@ public:
 			kernel.setArg(4,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1825,37 +2153,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num4 = data.vertices[i].x * planet.radius;
-				double num5 = data.vertices[i].y * planet.radius;
-				double num6 = data.vertices[i].z * planet.radius;
-				double num7 = 0.0;
-				double num8 = 0.0;
-				float num9 = Mathf.Clamp((float)simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8) + 1.0f + (float)modY * 0.01f,0.0f,2.0f);
-				float num10 = 0.0f;
-				if((double)num9 < 1.0)
-				{
-					float f = Mathf.Cos(num9 * MATHF_PI) * 1.1f;
-					f = Mathf.Sign(f) * Mathf.Pow(f,4.0f);
-					f = Mathf.Clamp(f,-1.0f,1.0f);
-					num10 = 1.0f - (f + 1.0f) * 0.5f;
-				} else
-				{
-					float f2 = Mathf.Cos((num9 - 1.0f) * MATHF_PI) * 1.1f;
-					f2 = Mathf.Sign(f2) * Mathf.Pow(f2,4.0f);
-					f2 = Mathf.Clamp(f2,-1.0f,1.0f);
-					num10 = 2.0f - (f2 + 1.0f) * 0.5f;
-				}
-				num7 = num10;
-				num8 = num10;
-				num8 = ((num8 < 1.0) ? (Math.Max(num8 - 0.2,0.0) * 1.25) : num8);
-				num8 = ((num8 > 1.0) ? Math.Min(num8 * num8,2.0) : num8);
-				num8 = Maths::Levelize2(num8);
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num7 + 0.1) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1864,37 +2166,78 @@ public:
 class PlanetAlgorithm9: public PlanetAlgorithm
 {
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr double num = 0.01;
+	static constexpr double num2 = 0.012;
+	static constexpr double num3 = 0.01;
+	static constexpr double num4 = 3.0;
+	static constexpr double num5 = -0.2;
+	static constexpr double num6 = 0.9;
+	static constexpr double num7 = 0.5;
+	static constexpr double num8 = 2.5;
+	static constexpr double num9 = 0.3;
+
+	double modX,modY;
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num12 = vertices[index].x * radius;
+		double num13 = vertices[index].y * radius;
+		double num14 = vertices[index].z * radius;
+		double num15 = 0.0;
+		double num16 = 0.0;
+		double num17 = simplexNoise.Noise3DFBM(num12 * num * 0.75,num13 * num2 * 0.5,num14 * num3 * 0.75,6) * num4 + num5;
+		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
+		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
+		double num20 = num17 + num19;
+		double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
+		double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
+		num22 += 0.618;
+		num22 = ((num22 > -1.0) ? (num22 * 1.5) : (num22 * 4.0));
+		double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
+		double num24 = num21 * num8 + num23 + num9;
+		double val = Maths::Levelize(num21 + 0.7);
+		double num25 = simplexNoise.Noise3DFBM(num12 * num * modX,num13 * num2 * modX,num14 * num3 * modX,6) * num4 + num5;
+		double num26 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
+		double num27 = ((num26 > 0.0) ? (num26 * 0.5) : num26);
+		double x = (num25 + num27 + 5.0) * 0.13;
+		x = Math.Pow(x,6.0) * 24.0 - 24.0;
+		double num28 = ((num22 >= 0.0 - modY) ? 0.0 : Math.Pow(Math.Min(Math.Abs(num22 + modY) / 5.0,1.0),1.0));
+		num15 = num22 * (1.0 - num28) + x * num28;
+		num15 = ((num15 > 0.0) ? (num15 * 0.5) : num15);
+		double num29 = simplexNoise2.Noise3DFBM(num12 * num * 1.5,num13 * num2 * 2.0,num14 * num3 * 1.5,6) * num4 + num5;
+		num29 = Math.Max(num29 + 1.0,-0.99);
+		num29 = ((num29 > 0.0) ? (num29 * 0.25) : num29);
+		num16 = Math.Max(val,0.0);
+		double num30 = Mathf.Clamp01((float)(num16 - 1.0));
+		num16 = ((num16 > 1.0) ? (num30 * num29 * 1.15 + 1.0) : num16);
+		num16 = Math.Min(num16,2.0);
+		heightData[index] = (unsigned short)(((double)radius + num15 + 0.2) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
-		double modX = planet.mod_x;
-		double modY = planet.mod_y;
-		double num = 0.01;
-		double num2 = 0.012;
-		double num3 = 0.01;
-		double num4 = 3.0;
-		double num5 = -0.2;
-		double num6 = 0.9;
-		double num7 = 0.5;
-		double num8 = 2.5;
-		double num9 = 0.3;
+		radius = planet.radius;
+		modX = planet.mod_x;
+		modY = planet.mod_y;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
 		int num11 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num10);
-		SimplexNoise simplexNoise2 = SimplexNoise(num11);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num10);
+		simplexNoise2 = SimplexNoise(num11);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
 			float custom[3] = {planet.radius,modX,modY};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -1905,7 +2248,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -1913,43 +2256,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num12 = data.vertices[i].x * planet.radius;
-				double num13 = data.vertices[i].y * planet.radius;
-				double num14 = data.vertices[i].z * planet.radius;
-				double num15 = 0.0;
-				double num16 = 0.0;
-				double num17 = simplexNoise.Noise3DFBM(num12 * num * 0.75,num13 * num2 * 0.5,num14 * num3 * 0.75,6) * num4 + num5;
-				double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
-				double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
-				double num20 = num17 + num19;
-				double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
-				double num22 = ((num21 > 0.0) ? Maths::Levelize3(num21,0.7) : Maths::Levelize2(num21,0.5));
-				num22 += 0.618;
-				num22 = ((num22 > -1.0) ? (num22 * 1.5) : (num22 * 4.0));
-				double num23 = simplexNoise2.Noise3DFBM(num12 * num * 2.5,num13 * num2 * 8.0,num14 * num3 * 2.5,2) * 0.6 - 0.3;
-				double num24 = num21 * num8 + num23 + num9;
-				double val = Maths::Levelize(num21 + 0.7);
-				double num25 = simplexNoise.Noise3DFBM(num12 * num * modX,num13 * num2 * modX,num14 * num3 * modX,6) * num4 + num5;
-				double num26 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
-				double num27 = ((num26 > 0.0) ? (num26 * 0.5) : num26);
-				double x = (num25 + num27 + 5.0) * 0.13;
-				x = Math.Pow(x,6.0) * 24.0 - 24.0;
-				double num28 = ((num22 >= 0.0 - modY) ? 0.0 : Math.Pow(Math.Min(Math.Abs(num22 + modY) / 5.0,1.0),1.0));
-				num15 = num22 * (1.0 - num28) + x * num28;
-				num15 = ((num15 > 0.0) ? (num15 * 0.5) : num15);
-				double num29 = simplexNoise2.Noise3DFBM(num12 * num * 1.5,num13 * num2 * 2.0,num14 * num3 * 1.5,6) * num4 + num5;
-				num29 = Math.Max(num29 + 1.0,-0.99);
-				num29 = ((num29 > 0.0) ? (num29 * 0.25) : num29);
-				num16 = Math.Max(val,0.0);
-				double num30 = Mathf.Clamp01((float)(num16 - 1.0));
-				num16 = ((num16 > 1.0) ? (num30 * num29 * 1.15 + 1.0) : num16);
-				num16 = Math.Min(num16,2.0);
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num15 + 0.2) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -1958,7 +2269,6 @@ public:
 class PlanetAlgorithm10: public PlanetAlgorithm
 {
 private:
-	static constexpr int kCircleCount = 10;
 	double Max(double a,double b)
 	{
 		if((a > b))
@@ -1972,60 +2282,158 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr int kCircleCount = 10;
+	static constexpr double num = 0.007;
+	static constexpr double num2 = 0.007;
+	static constexpr double num3 = 0.007;
+
+	Vector4 ellipses[10];
+	double eccentricities[10];
+	double heights[10];
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+	SimplexNoise simplexNoise3;
+	SimplexNoise simplexNoise4;
+
+	void GenerateSingleHeight(int index) override {
+		double num9 = vertices[index].x * radius;
+		double num10 = vertices[index].y * radius;
+		double num11 = vertices[index].z * radius;
+		double num12 = Maths::Levelize(num9 * 0.007);
+		double num13 = Maths::Levelize(num10 * 0.007);
+		double num14 = Maths::Levelize(num11 * 0.007);
+		num12 += simplexNoise3.Noise(num9 * 0.05,num10 * 0.05,num11 * 0.05) * 0.04;
+		num13 += simplexNoise3.Noise(num10 * 0.05,num11 * 0.05,num9 * 0.05) * 0.04;
+		num14 += simplexNoise3.Noise(num11 * 0.05,num9 * 0.05,num10 * 0.05) * 0.04;
+		double num15 = Math.Abs(simplexNoise4.Noise(num12,num13,num14));
+		double num16 = (0.16 - num15) * 10.0;
+		num16 = ((!(num16 > 0.0)) ? 0.0 : ((num16 > 1.0) ? 1.0 : num16));
+		num16 *= num16;
+		double num17 = (simplexNoise3.Noise3DFBM(num10 * 0.005,num11 * 0.005,num9 * 0.005,4) + 0.22) * 5.0;
+		num17 = ((!(num17 > 0.0)) ? 0.0 : ((num17 > 1.0) ? 1.0 : num17));
+		double num18 = Math.Abs(simplexNoise4.Noise3DFBM(num12 * 1.5,num13 * 1.5,num14 * 1.5,2));
+		double num19 = 0.0;
+		double num20 = 0.0;
+		double num21 = simplexNoise2.Noise3DFBM(num9 * num * 5.0,num10 * num2 * 5.0,num11 * num3 * 5.0,4);
+		double num22 = num21 * 0.2;
+		double num23 = 0.0;
+		for(int k = 0; k < 10; k++)
+		{
+			double num24 = (double)ellipses[k].x - num9;
+			double num25 = (double)ellipses[k].y - num10;
+			double num26 = (double)ellipses[k].z - num11;
+			double num27 = eccentricities[k] * num24 * num24 + num25 * num25 + num26 * num26;
+			num27 = Remap(-1.0,1.0,0.2,5.0,num21) * num27;
+			if(!(num27 >= (double)(ellipses[k].w * ellipses[k].w)))
+			{
+				double num28 = 1.0f - Mathf.Sqrt((float)(num27 / (double)(ellipses[k].w * ellipses[k].w)));
+				double num29 = 1.0 - num28;
+				double num30 = 1.0 - num29 * num29 * num29 * num29 + num22 * 2.0;
+				if(num30 < 0.0)
+				{
+					num30 = 0.0;
+				}
+				num23 = Max(num23,heights[k] * num30);
+			}
+		}
+		num9 += Math.Sin(num10 * 0.15) * 2.0;
+		num10 += Math.Sin(num11 * 0.15) * 2.0;
+		num11 += Math.Sin(num9 * 0.15) * 2.0;
+		num9 *= num;
+		num10 *= num2;
+		num11 *= num3;
+		double f = Mathf.Pow((float)((simplexNoise.Noise3DFBM(num9 * 0.6,num10 * 0.6,num11 * 0.6,4,0.5,1.8) + 1.0) * 0.5),1.3f);
+		double x = simplexNoise2.Noise3DFBM(num9 * 6.0,num10 * 6.0,num11 * 6.0,5);
+		x = Remap(-1.0,1.0,-0.1,0.15,x);
+		double num31 = simplexNoise2.Noise3DFBM(num9 * 5.0 * 3.0,num10 * 5.0,num11 * 5.0,1);
+		double num32 = simplexNoise2.Noise3DFBM(num9 * 5.0 * 3.0 + num31 * 0.3,num10 * 5.0 + num31 * 0.3,num11 * 5.0 + num31 * 0.3,5) * 0.1;
+		f = (float)Maths::Levelize(Maths::Levelize4(f));
+		f = Math.Min(1.0,f);
+		if(!(f > 0.8))
+		{
+			f = ((!(f > 0.4)) ? (f + x) : (f + num32));
+		}
+		double a = f * 2.5 - f * num23;
+		num19 = Max(a,x * 2.0);
+		double num33 = (2.0 - num19) / 2.0;
+		num19 -= num16 * 1.2 * num17 * num33;
+		if(num19 >= 0.0)
+		{
+			num19 += (num15 * 0.25 + num18 * 0.6) * num33;
+		}
+		num19 -= 0.1;
+		num20 = num19;
+		num20 = Max(num20,-1.0);
+		num20 = Math.Abs(num20);
+		double num34 = 100.0;
+		if(f < 0.4)
+		{
+			num20 += Remap(-1.0,1.0,-0.2,0.2,simplexNoise.Noise3DFBM(num9 * 2.0 + num34,num10 * 2.0 + num34,num11 * 2.0 + num34,5));
+		}
+		heightData[index] = (unsigned short)(((double)radius + num19 + 0.1) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
-		double num = 0.007;
-		double num2 = 0.007;
-		double num3 = 0.007;
+		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
 		int num6 = dotNet35Random.Next();
 		int num7 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num4);
-		SimplexNoise simplexNoise2 = SimplexNoise(num5);
-		SimplexNoise simplexNoise3 = SimplexNoise(num6);
-		SimplexNoise simplexNoise4 = SimplexNoise(num7);
+		simplexNoise = SimplexNoise(num4);
+		simplexNoise2 = SimplexNoise(num5);
+		simplexNoise3 = SimplexNoise(num6);
+		simplexNoise4 = SimplexNoise(num7);
 		int num8 = dotNet35Random.Next();
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+
+		for(int i = 0; i < 10; i++) {
+			VectorLF3 vectorLF = RandomTable::SphericNormal(num8,1.0);
+			Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
+			vector.Normalize();
+			vector *= planet.radius;
+			vector.w = (float)(dotNet35Random.NextDouble() * 10.0 + 40.0);
+			ellipses[i] = vector;
+			if(dotNet35Random.NextDouble() > 0.5)
+			{
+				eccentricities[i] = Remap(0.0,1.0,3.0,5.0,dotNet35Random.NextDouble());
+			} else
+			{
+				eccentricities[i] = Remap(0.0,1.0,0.2,1.0 / 3.0,dotNet35Random.NextDouble());
+			}
+			heights[i] = Remap(0.0,1.0,1.0,2.0,dotNet35Random.NextDouble());
+		}
+
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
 			float custom[61];
 			custom[0] = planet.radius;
 
-			for(int i = 0; i < 10; i++)
-			{
-				VectorLF3 vectorLF = RandomTable::SphericNormal(num8,1.0);
-				Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
-				vector.Normalize();
-				vector *= planet.radius;
-				vector.w = (float)(dotNet35Random.NextDouble() * 10.0 + 40.0);
-				custom[4*i+1] = vector.x;
-				custom[4*i+2] = vector.y;
-				custom[4*i+3] = vector.z;
-				custom[4*i+4] = vector.w;
-				if(dotNet35Random.NextDouble() > 0.5)
-				{
-					custom[i+41] = Remap(0.0,1.0,3.0,5.0,dotNet35Random.NextDouble());
-				} else
-				{
-					custom[i+41] = Remap(0.0,1.0,0.2,1.0 / 3.0,dotNet35Random.NextDouble());
-				}
-				custom[i+51] = Remap(0.0,1.0,1.0,2.0,dotNet35Random.NextDouble());
+			for(int i=0;i<10;i++) {
+				const Vector4& t = ellipses[i];
+				custom[4*i+1] = t.x;
+				custom[4*i+2] = t.y;
+				custom[4*i+3] = t.z;
+				custom[4*i+4] = t.w;
 			}
+			for(int i=0;i<10;i++)
+				custom[i+41] = eccentricities[i];
+			for(int i=0;i<10;i++)
+				custom[i+51] = heights[i];
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_4,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_4,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_4,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise4.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_4,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise4.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -2040,7 +2448,7 @@ public:
 			kernel.setArg(10,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -2048,106 +2456,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			Vector4 ellipses[10] = {};
-			double eccentricities[10] = {};
-			double heights[10] = {};
-			for(int i = 0; i < 10; i++)
-			{
-				VectorLF3 vectorLF = RandomTable::SphericNormal(num8,1.0);
-				Vector4 vector = Vector4((float)vectorLF.x,(float)vectorLF.y,(float)vectorLF.z);
-				vector.Normalize();
-				vector *= planet.radius;
-				vector.w = (float)(dotNet35Random.NextDouble() * 10.0 + 40.0);
-				ellipses[i] = vector;
-				if(dotNet35Random.NextDouble() > 0.5)
-				{
-					eccentricities[i] = Remap(0.0,1.0,3.0,5.0,dotNet35Random.NextDouble());
-				} else
-				{
-					eccentricities[i] = Remap(0.0,1.0,0.2,1.0 / 3.0,dotNet35Random.NextDouble());
-				}
-				heights[i] = Remap(0.0,1.0,1.0,2.0,dotNet35Random.NextDouble());
-			}
-			for(int j = 0; j < DATALENGTH; j++)
-			{
-				double num9 = data.vertices[j].x * planet.radius;
-				double num10 = data.vertices[j].y * planet.radius;
-				double num11 = data.vertices[j].z * planet.radius;
-				double num12 = Maths::Levelize(num9 * 0.007);
-				double num13 = Maths::Levelize(num10 * 0.007);
-				double num14 = Maths::Levelize(num11 * 0.007);
-				num12 += simplexNoise3.Noise(num9 * 0.05,num10 * 0.05,num11 * 0.05) * 0.04;
-				num13 += simplexNoise3.Noise(num10 * 0.05,num11 * 0.05,num9 * 0.05) * 0.04;
-				num14 += simplexNoise3.Noise(num11 * 0.05,num9 * 0.05,num10 * 0.05) * 0.04;
-				double num15 = Math.Abs(simplexNoise4.Noise(num12,num13,num14));
-				double num16 = (0.16 - num15) * 10.0;
-				num16 = ((!(num16 > 0.0)) ? 0.0 : ((num16 > 1.0) ? 1.0 : num16));
-				num16 *= num16;
-				double num17 = (simplexNoise3.Noise3DFBM(num10 * 0.005,num11 * 0.005,num9 * 0.005,4) + 0.22) * 5.0;
-				num17 = ((!(num17 > 0.0)) ? 0.0 : ((num17 > 1.0) ? 1.0 : num17));
-				double num18 = Math.Abs(simplexNoise4.Noise3DFBM(num12 * 1.5,num13 * 1.5,num14 * 1.5,2));
-				double num19 = 0.0;
-				double num20 = 0.0;
-				double num21 = simplexNoise2.Noise3DFBM(num9 * num * 5.0,num10 * num2 * 5.0,num11 * num3 * 5.0,4);
-				double num22 = num21 * 0.2;
-				double num23 = 0.0;
-				for(int k = 0; k < 10; k++)
-				{
-					double num24 = (double)ellipses[k].x - num9;
-					double num25 = (double)ellipses[k].y - num10;
-					double num26 = (double)ellipses[k].z - num11;
-					double num27 = eccentricities[k] * num24 * num24 + num25 * num25 + num26 * num26;
-					num27 = Remap(-1.0,1.0,0.2,5.0,num21) * num27;
-					if(!(num27 >= (double)(ellipses[k].w * ellipses[k].w)))
-					{
-						double num28 = 1.0f - Mathf.Sqrt((float)(num27 / (double)(ellipses[k].w * ellipses[k].w)));
-						double num29 = 1.0 - num28;
-						double num30 = 1.0 - num29 * num29 * num29 * num29 + num22 * 2.0;
-						if(num30 < 0.0)
-						{
-							num30 = 0.0;
-						}
-						num23 = Max(num23,heights[k] * num30);
-					}
-				}
-				num9 += Math.Sin(num10 * 0.15) * 2.0;
-				num10 += Math.Sin(num11 * 0.15) * 2.0;
-				num11 += Math.Sin(num9 * 0.15) * 2.0;
-				num9 *= num;
-				num10 *= num2;
-				num11 *= num3;
-				double f = Mathf.Pow((float)((simplexNoise.Noise3DFBM(num9 * 0.6,num10 * 0.6,num11 * 0.6,4,0.5,1.8) + 1.0) * 0.5),1.3f);
-				double x = simplexNoise2.Noise3DFBM(num9 * 6.0,num10 * 6.0,num11 * 6.0,5);
-				x = Remap(-1.0,1.0,-0.1,0.15,x);
-				double num31 = simplexNoise2.Noise3DFBM(num9 * 5.0 * 3.0,num10 * 5.0,num11 * 5.0,1);
-				double num32 = simplexNoise2.Noise3DFBM(num9 * 5.0 * 3.0 + num31 * 0.3,num10 * 5.0 + num31 * 0.3,num11 * 5.0 + num31 * 0.3,5) * 0.1;
-				f = (float)Maths::Levelize(Maths::Levelize4(f));
-				f = Math.Min(1.0,f);
-				if(!(f > 0.8))
-				{
-					f = ((!(f > 0.4)) ? (f + x) : (f + num32));
-				}
-				double a = f * 2.5 - f * num23;
-				num19 = Max(a,x * 2.0);
-				double num33 = (2.0 - num19) / 2.0;
-				num19 -= num16 * 1.2 * num17 * num33;
-				if(num19 >= 0.0)
-				{
-					num19 += (num15 * 0.25 + num18 * 0.6) * num33;
-				}
-				num19 -= 0.1;
-				num20 = num19;
-				num20 = Max(num20,-1.0);
-				num20 = Math.Abs(num20);
-				double num34 = 100.0;
-				if(f < 0.4)
-				{
-					num20 += Remap(-1.0,1.0,-0.2,0.2,simplexNoise.Noise3DFBM(num9 * 2.0 + num34,num10 * 2.0 + num34,num11 * 2.0 + num34,5));
-				}
-				data.heightData[j] = (unsigned short)(((double)planet.radius + num19 + 0.1) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -2161,38 +2474,67 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
+	static constexpr double num = 0.007;
+	static constexpr double num2 = 0.007;
+	static constexpr double num3 = 0.007;
+
+	double modY,num4,num5,num6;
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+	SimplexNoise simplexNoise3;
+
+	void GenerateSingleHeight(int index) override {
+		double num10 = vertices[index].x * radius;
+		double num11 = vertices[index].y * radius;
+		double num12 = vertices[index].z * radius;
+		double num13 = 0.0;
+		double num14 = 0.0;
+		double num15 = simplexNoise2.Noise3DFBM(num10 * num * 4.0,num11 * num2 * 8.0,num12 * num3 * 4.0,3);
+		double num16 = 0.6;
+		double x = simplexNoise.Noise3DFBM(num10 * num * num16,num11 * num * 1.5 * 2.5,num12 * num * num16,6,0.45,1.8) * 0.95 + num15 * 0.05;
+		x = Remap(-1.0,1.0,0.0,1.0,x);
+		x = Math.Pow(x,modY);
+		x += 1.0;
+		x = Maths::Levelize2(x);
+		double x2 = simplexNoise3.Noise3DFBM(num10 * num4,num11 * num5,num12 * num6,5,0.55);
+		x2 = Remap(-1.0,1.0,0.0,1.0,x2);
+		x2 = Math.Pow(x2,0.65);
+		num14 = Maths::Levelize3(x2) * x;
+		num13 = (num14 - 0.4) * 0.9;
+		num13 = Math.Max(-0.3,num13);
+		heightData[index] = (unsigned short)(((double)radius + num13) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
 	{
+		radius = planet.radius;
 		double modX = planet.mod_x;
-		double modY = planet.mod_y;
-		double num = 0.007;
-		double num2 = 0.007;
-		double num3 = 0.007;
-		double num4 = 0.002 * modX;
-		double num5 = 0.002 * modX * 4.0;
-		double num6 = 0.002 * modX;
+		modY = planet.mod_y;
+		num4 = 0.002 * modX;
+		num5 = 0.002 * modX * 4.0;
+		num6 = 0.002 * modX;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num7 = dotNet35Random.Next();
 		int num8 = dotNet35Random.Next();
 		int num9 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num7);
-		SimplexNoise simplexNoise2 = SimplexNoise(num8);
-		SimplexNoise simplexNoise3 = SimplexNoise(num9);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num7);
+		simplexNoise2 = SimplexNoise(num8);
+		simplexNoise3 = SimplexNoise(num9);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
 			float custom[5] = {planet.radius,num4,num5,num6,modY};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -2205,7 +2547,7 @@ public:
 			kernel.setArg(8,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -2213,30 +2555,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num10 = data.vertices[i].x * planet.radius;
-				double num11 = data.vertices[i].y * planet.radius;
-				double num12 = data.vertices[i].z * planet.radius;
-				double num13 = 0.0;
-				double num14 = 0.0;
-				double num15 = simplexNoise2.Noise3DFBM(num10 * num * 4.0,num11 * num2 * 8.0,num12 * num3 * 4.0,3);
-				double num16 = 0.6;
-				double x = simplexNoise.Noise3DFBM(num10 * num * num16,num11 * num * 1.5 * 2.5,num12 * num * num16,6,0.45,1.8) * 0.95 + num15 * 0.05;
-				x = Remap(-1.0,1.0,0.0,1.0,x);
-				x = Math.Pow(x,modY);
-				x += 1.0;
-				x = Maths::Levelize2(x);
-				double x2 = simplexNoise3.Noise3DFBM(num10 * num4,num11 * num5,num12 * num6,5,0.55);
-				x2 = Remap(-1.0,1.0,0.0,1.0,x2);
-				x2 = Math.Pow(x2,0.65);
-				num14 = Maths::Levelize3(x2) * x;
-				num13 = (num14 - 0.4) * 0.9;
-				num13 = Math.Max(-0.3,num13);
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num13) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -2250,7 +2573,6 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -2406,8 +2728,8 @@ public:
 				array[num2]++;
 			}
 		}
-		bool flag = birthPlanetId == planet.id;
 		float num8 = star.resourceCoef;
+		bool flag = birthPlanetId == planet.id;
 		if(flag)
 			num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
@@ -2415,13 +2737,25 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		veinVectorCount = 0;
+		vector<Vector3> veinVectors(512);
+		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		vector<Vector2> tmp_vecs;
+		int veinVectorCount = 0;
 		Vector3 birthPoint;
-		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.Normalize();
-		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		if(flag) {
+			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			birthPoint.Normalize();
+			birthPoint *= 0.75f;
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectorCount = 2;
+		} else {
+			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.Normalize();
+			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -2449,7 +2783,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = rawData.QueryHeight(target_pos);
+					float target_height = QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || ((int)eVeinType <= 2 && target_height > planet.radius + 0.7f) || ((eVeinType == EVeinType::Silicium || eVeinType == EVeinType::Titanium) && target_height <= planet.radius + 0.7f))
 					{
 						continue;
@@ -2571,7 +2905,7 @@ public:
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = rawData.QueryHeight(vein_pos);
+				float num29 = QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
@@ -2601,31 +2935,62 @@ private:
 		return Math.Pow(1.0 - t,3.0) + Math.Pow(1.0 - t,2.0) * 3.0 * t;
 	}
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
+	static constexpr double num2 = 0.2;
+	static constexpr double num3 = 8.0;
+
+	double num,modY;
+	float radius;
+	SimplexNoise simplexNoise;
+	SimplexNoise simplexNoise2;
+
+	void GenerateSingleHeight(int index) override {
+		double num6 = Math.Abs(Math.Asin(vertices[index].y)) * 2.0 / Math.PI;
+		double num7 = 0.0;
+		double num8 = 0.0;
+		double num9 = 0.0;
+		double num10 = 0.0;
+		double num11 = vertices[index].x;
+		double num12 = (double)vertices[index].y * 2.5 * modY;
+		double num13 = vertices[index].z;
+		double num14 = simplexNoise2.Noise3DFBM(num11 * num,num12 * num,num13 * num,3,0.4) * 0.2;
+		num9 = simplexNoise.RidgedNoise(num11 * num,num12 * num - num14,num13 * num,6,0.7,2.0,0.8);
+		num10 = simplexNoise.Noise3DFBM(num11 * num,num12 * num - num14,num13 * num,6,0.6,2.0,0.7);
+		num10 *= num9 + num10;
+		num10 = num2 + num3 * num10 * num9;
+		double x = num10 + 0.5;
+		x = Remap(-8.0,8.0,0.0,1.0,x);
+		x = Maths::Clamp01(x);
+		x += 0.5;
+		x = Math.Pow(x,1.5);
+		x -= CurveEvaluate((float)(num6 * 0.9));
+		num8 = x * 2.0;
+		num7 = Maths::Clamp(num8,0.0,2.0);
+		num7 = num7 * 1.1 - 0.2;
+		heightData[index] = (unsigned short)(((double)radius + num7) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
 		double modX = planet.mod_x;
-		double modY = planet.mod_y;
-		double num = 1.1 * modX;
-		double num2 = 0.2;
-		double num3 = 8.0;
+		modY = planet.mod_y;
+		num = 1.1 * modX;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
-		SimplexNoise simplexNoise = SimplexNoise(num4);
-		SimplexNoise simplexNoise2 = SimplexNoise(num5);
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		simplexNoise = SimplexNoise(num4);
+		simplexNoise2 = SimplexNoise(num5);
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
 			float custom[3] = {planet.radius,num,modY};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -2636,7 +3001,7 @@ public:
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -2644,34 +3009,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num6 = Math.Abs(Math.Asin(data.vertices[i].y)) * 2.0 / Math.PI;
-				double num7 = 0.0;
-				double num8 = 0.0;
-				double num9 = 0.0;
-				double num10 = 0.0;
-				double num11 = data.vertices[i].x;
-				double num12 = (double)data.vertices[i].y * 2.5 * modY;
-				double num13 = data.vertices[i].z;
-				double num14 = simplexNoise2.Noise3DFBM(num11 * num,num12 * num,num13 * num,3,0.4) * 0.2;
-				num9 = simplexNoise.RidgedNoise(num11 * num,num12 * num - num14,num13 * num,6,0.7,2.0,0.8);
-				num10 = simplexNoise.Noise3DFBMInitialAmp(num11 * num,num12 * num - num14,num13 * num,6,0.6,2.0,0.7);
-				num10 *= num9 + num10;
-				num10 = num2 + num3 * num10 * num9;
-				double x = num10 + 0.5;
-				x = Remap(-8.0,8.0,0.0,1.0,x);
-				x = Maths::Clamp01(x);
-				x += 0.5;
-				x = Math.Pow(x,1.5);
-				x -= CurveEvaluate((float)(num6 * 0.9));
-				num8 = x * 2.0;
-				num7 = Maths::Clamp(num8,0.0,2.0);
-				num7 = num7 * 1.1 - 0.2;
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num7) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -2685,7 +3027,6 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -2841,8 +3182,8 @@ public:
 				array[num2]++;
 			}
 		}
-		bool flag = birthPlanetId == planet.id;
 		float num8 = star.resourceCoef;
+		bool flag = birthPlanetId == planet.id;
 		if(flag)
 			num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
@@ -2850,13 +3191,25 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		veinVectorCount = 0;
+		vector<Vector3> veinVectors(512);
+		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		vector<Vector2> tmp_vecs;
+		int veinVectorCount = 0;
 		Vector3 birthPoint;
-		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.Normalize();
-		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		if(flag) {
+			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			birthPoint.Normalize();
+			birthPoint *= 0.75f;
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectorCount = 2;
+		} else {
+			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.Normalize();
+			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -2884,7 +3237,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = rawData.QueryHeight(target_pos);
+					float target_height = QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || (eVeinType == EVeinType::Fireice && target_height < planet.radius + 1.2f))
 					{
 						continue;
@@ -3006,7 +3359,7 @@ public:
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = rawData.QueryHeight(vein_pos);
+				float num29 = QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
@@ -3026,25 +3379,52 @@ private:
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
 public:
-	void GenerateTerrain(PlanetClassSimple& planet) override
-	{
+	double num,num2,num3,modY;
+	float radius;
+	SimplexNoise simplexNoise;
+
+	void GenerateSingleHeight(int index) override {
+		double num4 = vertices[index].x * radius;
+		double num5 = vertices[index].y * radius;
+		double num6 = vertices[index].z * radius;
+		double num7 = 0.0;
+		double num8 = 0.0;
+		double x = Remap(-1.0,1.0,0.0,1.0,simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6));
+		x = Math.Pow(x,modY) * 3.0625;
+		x = Remap(0.0,2.0,0.0,4.0,x);
+		if(x < 1.0)
+		{
+			x = Math.Pow(x,2.0);
+		}
+		x -= 0.2;
+		num8 = Math.Min(x,4.0);
+		Math.Max(1.0 - Math.Abs(1.0 - num8),0.0);
+		if(num8 > 2.0)
+		{
+			num8 = ((!(num8 > 3.0)) ? (2.0 - 1.0 * (num8 - 2.0)) : ((!(num8 > 3.5)) ? 1.0 : (1.0 + 2.0 * (num8 - 3.5))));
+		}
+		num7 = num8;
+		heightData[index] = (unsigned short)(((double)radius + num7 + 0.1) * 100.0);
+	}
+
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+		radius = planet.radius;
 		double modX = planet.mod_x;
-		double modY = planet.mod_y;
-		double num = 0.007 * modX;
-		double num2 = 0.007 * modX;
-		double num3 = 0.007 * modX;
-		SimplexNoise simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
-		PlanetRawData& data = planet.data;
-		data.heightData.resize(DATALENGTH);
-		if(OpenCLManager::get_worker(false)) {
+		modY = planet.mod_y;
+		num = 0.007 * modX;
+		num2 = 0.007 * modX;
+		num3 = 0.007 * modX;
+		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
+		heightData.resize(VERTICES_DATALENGTH);
+		if(gen_terr && OpenCLManager::get_worker(false)) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
 			float custom[5] = {planet.radius,num,num2,num3,modY};
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
 			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
+			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
 			kernel.setArg(1,tls.custom_buffer);
@@ -3053,7 +3433,7 @@ public:
 			kernel.setArg(4,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil(161604.0/local_size) * local_size;
+			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 			if(err != CL_SUCCESS){
 				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
@@ -3061,32 +3441,11 @@ public:
 			}
 
 			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * data.heightData.size(),data.heightData.data());
+						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
 			OpenCLManager::return_worker();
-		} else {
-			for(int i = 0; i < DATALENGTH; i++)
-			{
-				double num4 = data.vertices[i].x * planet.radius;
-				double num5 = data.vertices[i].y * planet.radius;
-				double num6 = data.vertices[i].z * planet.radius;
-				double num7 = 0.0;
-				double num8 = 0.0;
-				double x = Remap(-1.0,1.0,0.0,1.0,simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6));
-				x = Math.Pow(x,modY) * 3.0625;
-				x = Remap(0.0,2.0,0.0,4.0,x);
-				if(x < 1.0)
-				{
-					x = Math.Pow(x,2.0);
-				}
-				x -= 0.2;
-				num8 = Math.Min(x,4.0);
-				Math.Max(1.0 - Math.Abs(1.0 - num8),0.0);
-				if(num8 > 2.0)
-				{
-					num8 = ((!(num8 > 3.0)) ? (2.0 - 1.0 * (num8 - 2.0)) : ((!(num8 > 3.5)) ? 1.0 : (1.0 + 2.0 * (num8 - 3.5))));
-				}
-				num7 = num8;
-				data.heightData[i] = (unsigned short)(((double)planet.radius + num7 + 0.1) * 100.0);
+			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+				heightData[landIndex[i]] = heightData[i];
+				heightData[i] = 0;
 			}
 		}
 	}
@@ -3100,7 +3459,6 @@ public:
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
-		PlanetRawData& rawData = planet.data;
 		float num = 2.1f / planet.radius;
 		int array[15] = {0};
 		float array2[15] = {0};
@@ -3256,8 +3614,8 @@ public:
 				array[num2]++;
 			}
 		}
-		bool flag = birthPlanetId == planet.id;
 		float num8 = star.resourceCoef;
+		bool flag = birthPlanetId == planet.id;
 		if(flag)
 			num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
@@ -3265,13 +3623,25 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		veinVectorCount = 0;
+		vector<Vector3> veinVectors(512);
+		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		vector<Vector2> tmp_vecs;
+		int veinVectorCount = 0;
 		Vector3 birthPoint;
-		birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-		birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-		birthPoint.Normalize();
-		birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		if(flag) {
+			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			birthPoint.Normalize();
+			birthPoint *= 0.75f;
+			veinVectorTypes[0] = EVeinType::Iron;
+			veinVectorTypes[1] = EVeinType::Copper;
+			veinVectorCount = 2;
+		} else {
+			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
+			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			birthPoint.Normalize();
+			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+		}
 		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
 		{
 			if(veinVectorCount >= veinVectors.size())
@@ -3299,7 +3669,7 @@ public:
 						target_pos += birthPoint;
 					}
 					target_pos.Normalize();
-					float target_height = rawData.QueryHeight(target_pos);
+					float target_height = QueryHeight(target_pos);
 					if(target_height < planet.radius || (eVeinType == EVeinType::Oil && target_height < planet.radius + 0.5f) || ((int)eVeinType <= 4 && target_height > planet.radius + 0.7f))
 					{
 						continue;
@@ -3421,7 +3791,7 @@ public:
 				//{
 				//	vein.pos = planet.aux.RawSnap(vein.pos);
 				//}
-				float num29 = rawData.QueryHeight(vein_pos);
+				float num29 = QueryHeight(vein_pos);
 				if(planet.waterItemId == 0 || num29 >= planet.radius)
 				{
 					planet.veins_point[vein_point_type-1]++;
@@ -3455,14 +3825,14 @@ public:
 //		if(OpenCLManager::SUPPORT_GPU && OpenCLManager::SUPPORT_DOUBLE) {
 //			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain14");
 //
-//			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.perm);
-//			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.perm);
-//			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.perm);
-//			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.perm);
-//			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise.permMod12);
-//			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise2.permMod12);
-//			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise3.permMod12);
-//			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(short) * PERM_LENGTH,simplexNoise4.permMod12);
+//			cl::Buffer perm_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
+//			cl::Buffer perm_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
+//			cl::Buffer perm_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise3.perm);
+//			cl::Buffer perm_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise4.perm);
+//			cl::Buffer permMod12_buffer_1(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+//			cl::Buffer permMod12_buffer_2(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+//			cl::Buffer permMod12_buffer_3(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise3.permMod12);
+//			cl::Buffer permMod12_buffer_4(OpenCLManager::context,CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,sizeof(int) * PERM_LENGTH,simplexNoise4.permMod12);
 //			cl::Buffer heightData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * DATALENGTH);
 //
 //			kernel.setArg(0,OpenCLManager::vertices_buffer);
@@ -3479,7 +3849,7 @@ public:
 //			//kernel.setArg(11,OpenCLManager::debugData_buffer);
 //
 //			int local_size = OpenCLManager::local_size;
-//			int global_size = (int)ceil(161604.0/local_size) * local_size;
+//			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 //			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 //			OpenCLManager::queue.finish();
 //			if(err != CL_SUCCESS){
@@ -3569,4 +3939,38 @@ public:
 //	}
 //};
 
-std::unique_ptr<PlanetAlgorithm> PlanetAlgorithmManager(int algoId);
+inline unique_ptr<PlanetAlgorithm> GetPlanetAlgorithm(int algoId)
+{
+	switch(algoId) {
+	case 1:
+	return make_unique<PlanetAlgorithm1>();
+	case 2:
+	return make_unique<PlanetAlgorithm2>();
+	case 3:
+	return make_unique<PlanetAlgorithm3>();
+	case 4:
+	return make_unique<PlanetAlgorithm4>();
+	case 5:
+	return make_unique<PlanetAlgorithm5>();
+	case 6:
+	return make_unique<PlanetAlgorithm6>();
+	case 7:
+	return make_unique<PlanetAlgorithm7>();
+	case 8:
+	return make_unique<PlanetAlgorithm8>();
+	case 9:
+	return make_unique<PlanetAlgorithm9>();
+	case 10:
+	return make_unique<PlanetAlgorithm10>();
+	case 11:
+	return make_unique<PlanetAlgorithm11>();
+	case 12:
+	return make_unique<PlanetAlgorithm12>();
+	case 13:
+	return make_unique<PlanetAlgorithm13>();
+	//case 14:
+	//	return make_unique<PlanetAlgorithm14>();
+	default:
+	return make_unique<PlanetAlgorithm0>();
+	}
+}

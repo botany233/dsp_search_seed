@@ -5,7 +5,7 @@ test.py
 *.json
 !assets/language/*.json
 
-
+.venv/
 logs/
 build/
 dist/

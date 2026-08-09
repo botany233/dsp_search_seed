@@ -11,7 +11,6 @@
 #include "check_batch.hpp"
 #include "check_seed.hpp"
 #include "data_struct.hpp"
-#include "PlanetRawData.hpp"
 #include "RandomTable.hpp"
 #include "PlanetAlgorithm.hpp"
 #include "condition_to_struct.hpp"
@@ -26,25 +25,10 @@ void do_init()
 	if(is_init)
 		return;
 	is_init = true;
-	PlanetRawData::ReadData();
+	PlanetAlgorithm::do_init();
 	OpenCLManager::do_init();
 	RandomTable::GenerateSphericNormal();
 };
-
-vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
-	const GalaxyCondition& galaxy_condition,int check_level)
-{
-	vector<string> result;
-	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
-	{
-		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
-		{
-			if(check_seed(SeedStruct(seed_id,star_num,resource_index),galaxy_condition,check_level))
-				result.push_back(to_string(seed_id) + "," + to_string(star_num));
-		}
-	}
-	return result;
-}
 
 static bool is_planet_need_veins(const PlanetCondition& planet_condition) {
 	if(planet_condition.need_veins)
@@ -120,6 +104,21 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 		else
 			return 1;
 	}
+}
+
+vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
+	const GalaxyCondition& galaxy_condition,int check_level)
+{
+	vector<string> result;
+	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
+	{
+		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
+		{
+			if(check_seed(SeedStruct(seed_id,star_num,resource_index),galaxy_condition,check_level))
+				result.push_back(to_string(seed_id) + "," + to_string(star_num));
+		}
+	}
+	return result;
 }
 
 vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
@@ -234,6 +233,11 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("reset_index",&SeedManager::reset_index)
 		.def("get_seeds",&SeedManager::get_seeds)
 		.def("get_seeds_count",&SeedManager::get_seeds_count);
+	py::class_<GetDataQueue>(m,"GetDataQueue")
+		.def(py::init<int>())
+		.def("add_task",&GetDataQueue::add_task)
+		.def("shutdown",&GetDataQueue::shutdown)
+		.def("get_results",&GetDataQueue::get_results);
 	py::class_<GetDataManager>(m,"GetDataManager")
 		.def(py::init<int,bool,int>())
 		.def("add_task",&GetDataManager::add_task)
@@ -264,7 +268,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("get_last_result", &CheckBatchManager::get_last_result)
 		.def("get_results", &CheckBatchManager::get_results);
 	py::class_<GPUBenchmark>(m,"GPUBenchmark")
-		.def(py::init<int>())
+		.def(py::init<int,bool>())
 		.def("run",&GPUBenchmark::run)
 		.def("shutdown",&GPUBenchmark::shutdown)
 		.def("reset",&GPUBenchmark::reset)

@@ -163,7 +163,6 @@
     <ClCompile Include="condition_to_struct.cpp" />
     <ClCompile Include="PlanetAlgorithm.cpp" />
     <ClCompile Include="PlanetAlgorithm.hpp" />
-    <ClCompile Include="PlanetRawData.hpp" />
     <ClCompile Include="python_api.cpp" />
     <ClCompile Include="check_batch.hpp" />
     <ClCompile Include="static_value.cpp" />

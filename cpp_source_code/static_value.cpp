@@ -30,9 +30,10 @@ std::string ReplaceString(std::string subject,const std::string& search,
 	return subject;
 }
 
-#include "PlanetRawData.hpp"
-Vector3 PlanetRawData::vertices[161604];
-int PlanetRawData::indexMap[60000];
+#include "PlanetAlgorithm.hpp"
+Vector3 PlanetAlgorithm::vertices[VERTICES_DATALENGTH];
+int PlanetAlgorithm::indexMap[INDEXMAP_DATALENGTH];
+int PlanetAlgorithm::landIndex[LAND_DATALENGTH];
 
 #include <CL/opencl.hpp>
 #include "PlanetAlgorithm.hpp"

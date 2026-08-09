@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <cstdint>
+#include <string_view>
 
 #include "Maths.hpp"
 #include "Vector2.hpp"
@@ -140,11 +141,6 @@ const uint16_t star_veins_mask[] = {
 	0x0000,
 	0x0000
 };
-const uint8_t planet_theme_to_type[25] = {
-	1,23,23,2,2,3,4,5,6,7,
-	8,9,10,11,12,13,14,15,16,17,
-	22,18,19,20,21
-};
 const float resource_rates[] = {
 	0.1f,0.3f,0.5f,0.8f,1.0f,1.5f,2.0f,3.0f,5.0f,8.0f,100.0f
 };
@@ -215,23 +211,21 @@ public:
 	Vector3 birthPoint;
 	Vector3 birthResourcePoint0;
 	Vector3 birthResourcePoint1;
+	int veins_point[14];
+	uint64_t veins_amount[14];
+	int type_id;
 
-	inline float realRadius() {
+	inline float realRadius() const {
 		return radius * scale;
 	}
 
-	int typeId() {
-		return planet_theme_to_type[theme-1];
-	}
-
-	inline float get_ion_enhance() {
+	inline float get_ion_enhance() const {
 		float real_radius = realRadius();
 		float temp = real_radius + ionHeight * 0.6f;
 		return sqrt(temp*temp-real_radius*real_radius)/temp;
 	}
 
-	std::vector<std::string> GetPlanetSingularityVector()
-	{
+	std::vector<std::string> GetPlanetSingularityVector() const {
 		std::vector<std::string> singularityVector;
 		if((singularity & EPlanetSingularity::TidalLocked) != EPlanetSingularity::None)
 			singularityVector.push_back("潮汐锁定永昼永夜");
@@ -253,6 +247,8 @@ public:
 
 class StarClass {
 public:
+	static constexpr std::string_view type_names[15] = {"红巨星","黄巨星","蓝巨星","白巨星","白矮星","中子星","黑洞","A型恒星","B型恒星","F型恒星","G型恒星","K型恒星","M型恒星","O型恒星","未知恒星类型"};
+
 	int seed;
 	int index;
 	int id;
@@ -285,88 +281,54 @@ public:
 
 	std::vector<PlanetClass> planets;
 
-	inline float physicsRadius() {
+	float physicsRadius() const {
 		return radius * 1200;
 	}
 
-	inline float dysonLumino() {
+	float dysonLumino() const {
 		return Mathf.Round((float)Math.Pow(luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
 	}
 
-	inline std::string typeString()
-	{
-		std::string text = "";
-		if(type == EStarType::GiantStar)
-		{
-			text = ((spectr <= ESpectrType::K) ? (text + "红巨星") : ((spectr <= ESpectrType::F) ? (text + "黄巨星") : ((spectr != ESpectrType::A) ? (text + "蓝巨星") : (text + "白巨星"))));
-		} else if(type == EStarType::WhiteDwarf)
-		{
-			text += "白矮星";
-		} else if(type == EStarType::NeutronStar)
-		{
-			text += "中子星";
-		} else if(type == EStarType::BlackHole)
-		{
-			text += "黑洞";
-		} else if(type == EStarType::MainSeqStar)
-		{
-			if(spectr == ESpectrType::A)
-				text = text + "A型恒星";
-			else if(spectr == ESpectrType::B)
-				text = text + "B型恒星";
-			else if(spectr == ESpectrType::F)
-				text = text + "F型恒星";
-			else if(spectr == ESpectrType::G)
-				text = text + "G型恒星";
-			else if(spectr == ESpectrType::K)
-				text = text + "K型恒星";
-			else if(spectr == ESpectrType::M)
-				text = text + "M型恒星";
-			else if(spectr == ESpectrType::O)
-				text = text + "O型恒星";
-			else
-				text = text + "X型恒星";
-		}
-		return text;
+	std::string typeString() const {
+		return std::string(type_names[typeId()]);
 	}
 
-	inline int typeId()
-	{
+	int typeId() const {
 		if(type == EStarType::GiantStar)
 		{
 			if(spectr <= ESpectrType::K)
-				return 1; //红巨星
+				return 0; //红巨星
 			else if(spectr <= ESpectrType::F)
-				return 2; //黄巨星
+				return 1; //黄巨星
 			else if((spectr != ESpectrType::A))
-				return 3; //蓝巨星
+				return 2; //蓝巨星
 			else
-				return 4; //白巨星
+				return 3; //白巨星
 		} else if(type == EStarType::WhiteDwarf)
-			return 5; //白矮星
+			return 4; //白矮星
 		else if(type == EStarType::NeutronStar)
-			return 6; //中子星
+			return 5; //中子星
 		else if(type == EStarType::BlackHole)
-			return 7; //黑洞
+			return 6; //黑洞
 		else if(type == EStarType::MainSeqStar)
 		{
 			if(spectr == ESpectrType::A)
-				return 8; //A型恒星
+				return 7; //A型恒星
 			else if(spectr == ESpectrType::B)
-				return 9; //B型恒星
+				return 8; //B型恒星
 			else if(spectr == ESpectrType::F)
-				return 10; //F型恒星
+				return 9; //F型恒星
 			else if(spectr == ESpectrType::G)
-				return 11; //G型恒星
+				return 10; //G型恒星
 			else if(spectr == ESpectrType::K)
-				return 12; //K型恒星
+				return 11; //K型恒星
 			else if(spectr == ESpectrType::M)
-				return 13; //M型恒星
+				return 12; //M型恒星
 			else if(spectr == ESpectrType::O)
-				return 14; //O型恒星
+				return 13; //O型恒星
 			else
-				return 15;
+				return 14; //未知恒星
 		} else
-			return 16;
+			return 14; //未知恒星
 	}
 };

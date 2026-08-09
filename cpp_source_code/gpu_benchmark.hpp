@@ -5,8 +5,7 @@
 #include <atomic>
 #include <chrono>
 
-#include "astro_class.hpp"
-#include "PlanetAlgorithm.hpp"
+#include "check_seed.hpp"
 #include "DotNet35Random.hpp"
 
 using namespace std;
@@ -17,29 +16,35 @@ protected:
 	vector<thread> threads{};
 	atomic<bool> stop = false;
 	atomic<int> num = 0;
+
 	chrono::steady_clock::time_point tag;
 
 	int max_thread;
+	bool heavy;
 
 	void main_func(int seed) {
 		DotNet35Random rand_gen = DotNet35Random(seed);
 		while(true) {
 			if(stop.load()) break;
-			
-			PlanetClassSimple planet;
-			planet.seed = rand_gen.Next();
-			planet.mod_x = rand_gen.NextDouble();
-			planet.mod_y = rand_gen.NextDouble();
 
-			auto planet_algo = PlanetAlgorithmManager(rand_gen.Next(1,14));
-			planet_algo->GenerateTerrain(planet);
-			num.fetch_add(1);
+			SeedStruct seed = SeedStruct(rand_gen.Next(0,100000000),32,rand_gen.Next(0,11));
+			GalaxyData galaxy;
+			if(heavy)
+				galaxy = get_galaxy_data(seed,false);
+			else
+				galaxy = get_galaxy_data_fast(seed,false);
+			int planet_num = 0;
+			for(const StarData& star: galaxy.stars)
+				for(const PlanetData& planet: star.planets)
+					if(!planet.is_gas)
+						planet_num++;
+			num.fetch_add(planet_num);
 		}
 	}
 public:
-	GPUBenchmark(int max_thread)
-	{
+	GPUBenchmark(int max_thread,bool heavy) {
 		this->max_thread = max_thread;
+		this->heavy = heavy;
 	}
 
 	~GPUBenchmark() {

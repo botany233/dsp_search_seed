@@ -35,7 +35,7 @@ protected:
 		int length1 = (int)themeIds.size();
 		for(int index1 = 0; index1 < length1; ++index1)
 		{
-			ThemeProto& themeProto = LDB.Select(themeIds[index1]);
+			const ThemeProto& themeProto = LDB.Select(themeIds[index1]);
 			bool flag1 = false;
 			if(star.index == 0 && planet.type == EPlanetType::Ocean)
 			{
@@ -74,7 +74,7 @@ protected:
 		{
 			for(int index3 = 0; index3 < length1; ++index3)
 			{
-				ThemeProto& themeProto = LDB.Select(themeIds[index3]);
+				const ThemeProto& themeProto = LDB.Select(themeIds[index3]);
 				bool flag = false;
 				if(themeProto.PlanetType == EPlanetType::Desert)
 					flag = true;
@@ -97,13 +97,14 @@ protected:
 		{
 			for(int index = 0; index < length1; ++index)
 			{
-				ThemeProto& themeProto = LDB.Select(themeIds[index]);
+				const ThemeProto& themeProto = LDB.Select(themeIds[index]);
 				if(themeProto.PlanetType == EPlanetType::Desert)
 					tmp_theme.push_back(themeProto.ID);
 			}
 		}
 		planet.theme = tmp_theme[(int)(rand1 * (double)tmp_theme.size()) % tmp_theme.size()];
-		ThemeProto& themeProto1 = LDB.Select(planet.theme);
+		const ThemeProto& themeProto1 = LDB.Select(planet.theme);
+		planet.type_id = themeProto1.TypeId;
 		planet.algoId = themeProto1.Algos[(int)(rand2 * (double)themeProto1.Algos.size()) % themeProto1.Algos.size()];
 		planet.mod_x = (double)themeProto1.ModX.x + rand3 * ((double)themeProto1.ModX.y - (double)themeProto1.ModX.x);
 		planet.mod_y = (double)themeProto1.ModY.x + rand4 * ((double)themeProto1.ModY.y - (double)themeProto1.ModY.x);
@@ -1075,7 +1076,7 @@ public:
 			CreateStarPlanets(star);
 	}
 	
-    void MyGenerateVeins(StarClass& star, PlanetClass& planet,int* veins_point,uint64_t* veins_amount)
+    void MyGenerateVeins(const StarClass& star, PlanetClass& planet)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
         DotNet35Random dotNet35Random1(planet.seed);
@@ -1190,9 +1191,9 @@ public:
 		{
 			if(veins_group[i]>1)
 				veins_group[i] += 1;
-			veins_point[i] = Mathf.RoundToInt(veins_count_percent[i]*24.0f) * veins_group[i];
+			planet.veins_point[i] = Mathf.RoundToInt(veins_count_percent[i]*24.0f) * veins_group[i];
 		}
-		veins_point[6] = veins_group[6]; //油井单独处理
+		planet.veins_point[6] = veins_group[6]; //油井单独处理
 
 
 		bool flag = birthPlanetId == planet.id;
@@ -1207,11 +1208,11 @@ public:
 		}
 		for(int i=0;i<14;i++)
 		{
-			veins_amount[i] = Mathf.RoundToInt(veins_amount_percent[i]*100000.0f*num8);
-			if(veins_amount[i]<20)
-				veins_amount[i] = 20;
-			veins_amount[i] += (veins_amount[i]<16000)?Mathf.FloorToInt((float)veins_amount[i]*0.9375f):15000;
-			veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * 1.1f);
+			planet.veins_amount[i] = Mathf.RoundToInt(veins_amount_percent[i]*100000.0f*num8);
+			if(planet.veins_amount[i]<20)
+				planet.veins_amount[i] = 20;
+			planet.veins_amount[i] += (planet.veins_amount[i]<16000)?Mathf.FloorToInt((float)planet.veins_amount[i]*0.9375f):15000;
+			planet.veins_amount[i] = Mathf.RoundToInt((float)planet.veins_amount[i] * 1.1f);
 			if(i==6)
 			{
 				float oil_resource_multiplier;
@@ -1219,21 +1220,21 @@ public:
 					oil_resource_multiplier = 0.5f;
 				else
 					oil_resource_multiplier = 1.0f;
-				veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * oil_resource_multiplier);
-				if(veins_amount[i]<2500)
-					veins_amount[i] = 2500;
+				planet.veins_amount[i] = Mathf.RoundToInt((float)planet.veins_amount[i] * oil_resource_multiplier);
+				if(planet.veins_amount[i]<2500)
+					planet.veins_amount[i] = 2500;
 			}
 			else
-				veins_amount[i] = Mathf.RoundToInt((float)veins_amount[i] * resource_multiplier);
-			if(veins_amount[i]<1)
-				veins_amount[i] = 1;
-			veins_amount[i] *= veins_point[i];
+				planet.veins_amount[i] = Mathf.RoundToInt((float)planet.veins_amount[i] * resource_multiplier);
+			if(planet.veins_amount[i]<1)
+				planet.veins_amount[i] = 1;
+			planet.veins_amount[i] *= planet.veins_point[i];
 		}
 		if(resource_multiplier >= 100.0f) {
 			for(int i=0;i<14;i++)
 			{
 				if(i==6) continue;
-				veins_amount[i] = (uint64_t)veins_point[i] * 1000000000;
+				planet.veins_amount[i] = (uint64_t)planet.veins_point[i] * 1000000000;
 			}
 		}
     }

@@ -11,8 +11,8 @@ namespace py = pybind11;
 
 const uint32_t liquid_mask[] = {
 	0xFFFFFFFF,
-	0x0022E281,
-	0x00001000
+	0x00025c51,
+	0x00000200
 };
 
 static uint16_t get_need_veins(const array<uint16_t,14>& veins_point,const array<uint64_t,14>& veins_amount) {

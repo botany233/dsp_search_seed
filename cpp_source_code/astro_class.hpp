@@ -8,6 +8,9 @@
 #ifdef SUPPORT_AVX2
 #include <immintrin.h>
 #endif
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include "LDB.hpp"
 #include "util.hpp"
@@ -15,7 +18,6 @@
 #include "Vector3.hpp"
 #include "VectorLF3.hpp"
 #include "DotNet35Random.hpp"
-#include "PlanetRawData.hpp"
 
 using namespace std;
 
@@ -23,6 +25,7 @@ uint16_t get_has_veins(const uint16_t *veins_point);
 
 class StarClassSimple;
 class GalaxyClassSimple;
+class PlanetAlgorithm;
 
 class PlanetClassSimple
 {
@@ -36,19 +39,13 @@ public:
 	float maxorbitRadius;
 	float radius = 200.0f;
 	float scale = 1.0f;
-	//float sunDistance;
-	//float ionHeight;
-	//float landPercent;
-	//float waterHeight;
 	uint8_t waterItemId;
-	//uint8_t type_id;
 	uint8_t singularity;
 	uint8_t dsp_level;
 	//bool is_upper_veins = false;
 	bool is_real_veins = false;
 	uint32_t type_mask;
 
-	//bool levelized;
 	EPlanetType type;
 	int theme;
 	int algoId;
@@ -62,7 +59,6 @@ public:
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
 	span<PlanetClassSimple> moons;
-	PlanetRawData data = PlanetRawData();
 	float orbitRadius = 1.0f;
 	float rotationPhase;
 	float orbitInclination;
@@ -72,109 +68,19 @@ public:
 	StarClassSimple* star = nullptr;
 	Quaternion runtimeOrbitRotation;
 	Quaternion runtimeSystemRotation;
+
 	Vector3 birthPoint;
 	Vector3 birthResourcePoint0;
 	Vector3 birthResourcePoint1;
 
-	uint8_t typeId() const {
-		return planet_theme_to_type[theme-1];
-	}
-
-	void set_type_mask() {
-		type_mask = 1 << (typeId()-1);
-	}
-
-	float realRadius() {
+	float realRadius() const {
 		return radius * scale;
 	}
 
-	float get_ion_enhance(const float ionHeight) {
+	float get_ion_enhance(const float ionHeight) const {
 		float real_radius = realRadius();
 		float temp = real_radius + ionHeight * 0.6f;
 		return sqrt(temp*temp-real_radius*real_radius)/temp;
-	}
-
-	Pose PredictPose(double time)
-	{
-		double num = time / orbitalPeriod + (double)orbitPhase / 360.0;
-		int num2 = (int)(num + 0.1);
-		num -= (double)num2;
-		num *= Math.PI * 2.0;
-		double num3 = time / rotationPeriod + (double)rotationPhase / 360.0;
-		int num4 = (int)(num3 + 0.1);
-		num3 = (num3 - (double)num4) * 360.0;
-		Vector3 position = Maths::QRotate(runtimeOrbitRotation,Vector3((float)Math.Cos(num) * orbitRadius,0.0f,(float)Math.Sin(num) * orbitRadius));
-		if(orbitAroundPlanet != nullptr)
-		{
-			Pose pose = orbitAroundPlanet->PredictPose(time);
-			position.x += pose.position.x;
-			position.y += pose.position.y;
-			position.z += pose.position.z;
-		}
-		return Pose(position,runtimeSystemRotation * Quaternion::AngleAxis((float)num3,Vector3::down()));
-	}
-
-	void GenBirthPoints(int _birthSeed,const VectorLF3& star_uPosition)
-	{
-		DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
-		Pose pose = PredictPose(85.0);
-		Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - pose.position * 40000.0);
-		vector.Normalize();
-		Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
-		Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
-		int i = 0;
-		int num;
-		for(num = 256; i < num; i++)
-		{
-			float num2 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-			float num3 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.5f;
-			Vector3 vector2 = vector + normalized * num2 + normalized2 * num3;
-			vector2.Normalize();
-			birthPoint = vector2 * (realRadius() + 0.2f + 1.45f);
-			normalized = Vector3::Normalize(Vector3::Cross(vector2,Vector3::up()));
-			normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector2));
-			bool flag = false;
-			for(int j = 0; j < 10; j++)
-			{
-				float x = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-				float y = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0);
-				Vector2 vector3 = Vector2::Normalize(Vector2(x,y)) * 0.1f;
-				Vector2 vector4 = -vector3;
-				float num4 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-				float num5 = (float)(dotNet35Random.NextDouble() * 2.0 - 1.0) * 0.06f;
-				vector4.x += num4;
-				vector4.y += num5;
-				Vector3 normalized3 = Vector3::Normalize((vector2 + normalized * vector3.x + normalized2 * vector3.y));
-				Vector3 normalized4 = Vector3::Normalize((vector2 + normalized * vector4.x + normalized2 * vector4.y));
-				birthResourcePoint0 = Vector3::Normalize(normalized3);
-				birthResourcePoint1 = Vector3::Normalize(normalized4);
-				float num6 = realRadius() + 0.2f;
-				if(data.QueryHeight(vector2) > num6 && data.QueryHeight(normalized3) > num6 && data.QueryHeight(normalized4) > num6)
-				{
-					Vector3 vpos = normalized3 + normalized * 0.03f;
-					Vector3 vpos2 = normalized3 - normalized * 0.03f;
-					Vector3 vpos3 = normalized3 + normalized2 * 0.03f;
-					Vector3 vpos4 = normalized3 - normalized2 * 0.03f;
-					Vector3 vpos5 = normalized4 + normalized * 0.03f;
-					Vector3 vpos6 = normalized4 - normalized * 0.03f;
-					Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
-					Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
-					if(data.QueryHeight(vpos) > num6 && data.QueryHeight(vpos2) > num6 && data.QueryHeight(vpos3) > num6 && data.QueryHeight(vpos4) > num6 && data.QueryHeight(vpos5) > num6 && data.QueryHeight(vpos6) > num6 && data.QueryHeight(vpos7) > num6 && data.QueryHeight(vpos8) > num6)
-					{
-						flag = true;
-						break;
-					}
-				}
-			}
-			if(flag)
-			{
-				break;
-			}
-		}
-		if(i >= num)
-		{
-			birthPoint = Vector3(0.0f,realRadius() + 5.0f,0.0f);
-		}
 	}
 
 	void MyGenerateVeins();
@@ -212,7 +118,6 @@ public:
 	//uint16_t real_veins_group[14]{0};
 	uint16_t real_veins_point[14]{0};
 	uint64_t real_veins_amount[14]{0};
-	//std::vector<PlanetClassSimple> planets;
 	GalaxyClassSimple* galaxy = nullptr;
 
 	uint8_t typeId() const {
@@ -249,9 +154,9 @@ public:
 			else if(spectr == ESpectrType::O)
 				return 13; //O型恒星
 			else
-				return 14;
+				return 14; //未知恒星
 		} else
-			return 15;
+			return 14; //未知恒星
 	}
 
 	void set_type_mask() {
@@ -365,8 +270,7 @@ protected:
 			planet.dsp_level = 1;
 		else
 			planet.dsp_level = 0;
-		//planet.type_id = planet.typeId();
-		planet.set_type_mask();
+		planet.type_mask = 1 << themeProto1.TypeId;
 		planet.has_veins = planet_veins_mask[themeProto1.ID - 1] | star_veins_mask[star.typeId()];
 		star.has_veins |= planet.has_veins;
 	}
@@ -705,7 +609,7 @@ protected:
 		if((double)star.dysonRadius * 40000.0 < (double)star.physicsRadius() * 1.5)
 			star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
 		star.dysonRadius = round(star.dysonRadius * 800) * 100;
-		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
+		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f; //必须在设置完age之后再修正
 		//star.type_id = star.typeId();
 		star.set_type_mask();
 		star.galaxy = this;
@@ -757,6 +661,7 @@ protected:
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
 		birthStar.dysonRadius = round(birthStar.dysonRadius * 800) * 100;
+		birthStar.luminosity = Mathf.Round((float)Math.Pow(birthStar.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
 		birthStar.galaxy = this;
 		birthStar.set_type_mask();
 		birthStar.distance = (birthStar.position - stars[0].position).magnitude();
@@ -860,12 +765,12 @@ protected:
 		poses.reserve(targetCount);
 		for(int i = 0; i < targetCount; i++)
 			poses.emplace_back(x1[i*4],y1[i*4],z1[i*4]);
-			//poses[i] = tmp_poses[i * 4];
+		//poses[i] = tmp_poses[i * 4];
 	}
 
 	bool CheckCollision(int cur_num,double* x1,double* y1,double* z1,double x,double y,double z,double min_dist_square) const
 	{
-#ifdef SUPPORT_AVX2
+		#ifdef SUPPORT_AVX2
 		const __m256d vx = _mm256_set1_pd(x);
 		const __m256d vy = _mm256_set1_pd(y);
 		const __m256d vz = _mm256_set1_pd(z);
@@ -888,7 +793,7 @@ protected:
 			if(_mm256_movemask_pd(cmp) != 0)
 				return true;
 		}
-#else
+		#else
 		for(int i=0;i<cur_num;i++) {
 			double dx = x - x1[i];
 			double dy = y - y1[i];
@@ -897,7 +802,7 @@ protected:
 			if(dist_square < min_dist_square)
 				return true;
 		}
-#endif
+		#endif
 		return false;
 	}
 

@@ -22,6 +22,82 @@
 using namespace std;
 namespace py = pybind11;
 
+class GetDataQueue {
+protected:
+	struct Task {
+		SeedStruct seed;
+		int thread_num;
+	};
+
+	int max_cache;
+	thread worker_thread;
+	mutex task_mtx;
+	queue<Task> tasks;
+	condition_variable on_task_generated;
+	atomic<bool> stop = false;
+
+	mutex result_mtx;
+	condition_variable on_result_clear;
+	vector<GalaxyData> result;
+
+	void worker_func() {
+		while(true) {
+			Task task;
+			{
+				unique_lock<mutex> lck(task_mtx);
+				on_task_generated.wait(lck,[this]() { return !tasks.empty() || stop.load(); });
+				if(stop.load())
+					break;
+				task = tasks.front();
+				tasks.pop();
+			}
+
+			GalaxyData galaxy_data = get_galaxy_data_para(task.seed,task.thread_num);
+			unique_lock<mutex> lck(result_mtx);
+			on_result_clear.wait(lck,[this]() { return result.size() < max_cache || stop.load(); });
+			result.push_back(move(galaxy_data));
+		}
+	}
+public:
+	GetDataQueue(int max_cache=1024) {
+		this->max_cache = max(max_cache,1);
+		worker_thread = thread(&GetDataQueue::worker_func,this);
+	}
+
+	~GetDataQueue() {
+		shutdown();
+	}
+
+	void add_task(const SeedStruct& seed,int thread_num) {
+		{
+			lock_guard<mutex> lck(task_mtx);
+			if(stop.load())
+				return;
+			tasks.push({seed,thread_num});
+		}
+		on_task_generated.notify_one();
+	}
+
+	void shutdown() {
+		stop.store(true);
+		on_task_generated.notify_all();
+		on_result_clear.notify_all();
+		if(worker_thread.joinable())
+			worker_thread.join();
+	}
+
+	vector<GalaxyData> get_results() {
+		vector<GalaxyData> return_result;
+		{
+			lock_guard<mutex> lck(result_mtx);
+			return_result = move(result);
+			result.clear();
+		}
+		on_result_clear.notify_one();
+		return return_result;
+	}
+};
+
 class GetDataManager {
 protected:
 	vector<thread> search_threads{};
@@ -57,11 +133,10 @@ protected:
 		}
 	}
 public:
-	GetDataManager(int max_thread,bool quick,int max_cache=1024)
-	{
-		this->max_thread = max_thread;
+	GetDataManager(int max_thread,bool quick,int max_cache=1024) {
+		this->max_thread = clamp(max_thread,1,128);
 		this->quick = quick;
-		this->max_cache = max_cache;
+		this->max_cache = max(max_cache,1);
 		for(int i=0;i<max_thread;i++) {
 			search_threads.push_back(thread(&GetDataManager::search_func,this));
 		}
@@ -71,10 +146,10 @@ public:
 		shutdown();
 	}
 
-	void add_task(int seed_id,uint8_t star_num,uint8_t resource_index) {
+	void add_task(const SeedStruct& seed) {
 		{
 			lock_guard<mutex> lck(task_mtx);
-			tasks.emplace(seed_id,star_num,resource_index);
+			tasks.push(seed);
 		}
 		on_task_generated.notify_one();
 	}
