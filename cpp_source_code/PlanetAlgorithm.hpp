@@ -30,15 +30,14 @@
 
 using namespace std;
 
-//#pragma warning(disable:4267)
-//#pragma warning(disable:4244)
-//#pragma warning(disable:4838)
+#pragma warning(disable:4267)
+#pragma warning(disable:4244)
+#pragma warning(disable:4838)
 
 class OpenCLManager
 {
 public:
 	static bool SUPPORT_GPU;
-	static bool SUPPORT_DOUBLE;
 	static int local_size;
 	static int device_id;
 	static std::vector<cl::Device> devices;
@@ -52,8 +51,7 @@ public:
 	static int max_worker;
 	static int cur_worker;
 
-	static void do_init()
-	{
+	static void do_init() {
 		static bool is_init = false;
 		if(is_init)
 			return;
@@ -89,11 +87,6 @@ public:
 		return devices_info;
 	}
 
-	static bool get_support_double() {
-		lock_guard<mutex> lck(lock);
-		return SUPPORT_GPU && SUPPORT_DOUBLE;
-	}
-
 	static void AddSources(cl::Program::Sources& sources,const string& file_name) {
 		ifstream file(file_name);
 		string* source_code = new string(istreambuf_iterator<char>(file),(istreambuf_iterator<char>()));
@@ -110,11 +103,9 @@ public:
 		return max_worker;
 	}
 
-	static bool get_worker(bool need_double) {
+	static bool get_worker() {
 		lock_guard<mutex> lck(lock);
 		if(!SUPPORT_GPU)
-			return false;
-		if(need_double && !SUPPORT_DOUBLE)
 			return false;
 		if(cur_worker>=max_worker)
 			return false;
@@ -130,37 +121,56 @@ public:
 
 class ThreadLocalBuffers {
 public:
+	static constexpr size_t PERM_BUF_SIZE = sizeof(int) * PERM_LENGTH;
+	static constexpr size_t DOUBLE_BUF_SIZE = sizeof(double) * 80;
+	static constexpr size_t FLOAT_BUF_SIZE = sizeof(float) * 320;
+	
+	static constexpr size_t ALIGN = alignof(std::max_align_t);
+
+	static constexpr size_t OFF_DOUBLE = PERM_BUF_SIZE * 8;
+	static constexpr size_t OFF_FLOAT = OFF_DOUBLE + DOUBLE_BUF_SIZE;
+	static constexpr size_t CACHE_SIZE = OFF_FLOAT + FLOAT_BUF_SIZE;
+
+	static constexpr size_t RESULT_SIZE = sizeof(unsigned short) * LAND_DATALENGTH;
+
+	alignas(std::max_align_t) std::byte cache[CACHE_SIZE];
+
+	int* perm_buffer_1() { return reinterpret_cast<int*>(cache); }
+	int* perm_buffer_2() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 2); }
+	int* perm_buffer_3() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 4); }
+	int* perm_buffer_4() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 6); }
+	int* permMod12_buffer_1() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE); }
+	int* permMod12_buffer_2() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 3); }
+	int* permMod12_buffer_3() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 5); }
+	int* permMod12_buffer_4() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 7); }
+
+	double* double_buffer() { return reinterpret_cast<double*>(cache + OFF_DOUBLE); }
+	float* float_buffer() { return reinterpret_cast<float*>(cache + OFF_FLOAT); }
+
 	cl::CommandQueue queue;
-	cl::Buffer custom_buffer;
-	cl::Buffer perm_buffer_1;
-	cl::Buffer perm_buffer_2;
-	cl::Buffer perm_buffer_3;
-	cl::Buffer perm_buffer_4;
-	cl::Buffer permMod12_buffer_1;
-	cl::Buffer permMod12_buffer_2;
-	cl::Buffer permMod12_buffer_3;
-	cl::Buffer permMod12_buffer_4;
+	cl::Buffer buffer;
 	cl::Buffer heightData_buffer;
 	//cl::Buffer debugData_buffer;
-	size_t local_cfg_version = 0;
 
+	size_t local_cfg_version = 0;
+	
 	void check_init() {
 		lock_guard<mutex> lck(OpenCLManager::lock);
 		if(local_cfg_version != OpenCLManager::cfg_version) {
 			queue = cl::CommandQueue(OpenCLManager::context,OpenCLManager::device);
-			custom_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(float) * 512);
-			perm_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			perm_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			perm_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			perm_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			permMod12_buffer_1 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			permMod12_buffer_2 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			permMod12_buffer_3 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			permMod12_buffer_4 = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,sizeof(int) * PERM_LENGTH);
-			heightData_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(unsigned short) * LAND_DATALENGTH);
+			buffer = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,CACHE_SIZE);
+			heightData_buffer = cl::Buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,RESULT_SIZE);
 			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
 			local_cfg_version = OpenCLManager::cfg_version;
 		}
+	}
+
+	void upload_buffer() {
+		queue.enqueueWriteBuffer(buffer,CL_FALSE,0,CACHE_SIZE,cache);
+	}
+
+	void download_buffer(unsigned short *dst) {
+		queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,RESULT_SIZE,dst);
 	}
 };
 
@@ -215,55 +225,36 @@ static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
 class PlanetAlgorithm
 {
 protected:
-	vector<unsigned short> heightData;
-
-	static int trans(float x,int pr)
-	{
+	static int trans(float x,int pr) {
 		int num = (int)((Mathf.Sqrt(x + 0.23f) - 0.4795832f) / 0.6294705f * (float)pr);
 		if(num >= pr)
-		{
 			num = pr - 1;
-		}
 		return num;
 	}
 
-	static int PositionHash(Vector3 v,int corner = 0)
-	{
+	static int PositionHash(Vector3 v,int corner = 0) {
 		if(corner == 0)
-		{
 			corner = ((v.x > 0.0f) ? 1 : 0) + ((v.y > 0.0f) ? 2 : 0) + ((v.z > 0.0f) ? 4 : 0);
-		}
 		if(v.x < 0.0f)
-		{
 			v.x = 0.0f - v.x;
-		}
 		if(v.y < 0.0f)
-		{
 			v.y = 0.0f - v.y;
-		}
 		if(v.z < 0.0f)
-		{
 			v.z = 0.0f - v.z;
-		}
 		if((double)v.x < 1E-06 && (double)v.y < 1E-06 && (double)v.z < 1E-06)
-		{
 			return 0;
-		}
 		int num = 0;
 		int num2 = 0;
 		int num3 = 0;
-		if(v.x >= v.y && v.x >= v.z)
-		{
+		if(v.x >= v.y && v.x >= v.z) {
 			num = 0;
 			num2 = trans(v.z / v.x,INDEXMAP_PRECISION);
 			num3 = trans(v.y / v.x,INDEXMAP_PRECISION);
-		} else if(v.y >= v.x && v.y >= v.z)
-		{
+		} else if(v.y >= v.x && v.y >= v.z) {
 			num = 1;
 			num2 = trans(v.x / v.y,INDEXMAP_PRECISION);
 			num3 = trans(v.z / v.y,INDEXMAP_PRECISION);
-		} else
-		{
+		} else {
 			num = 2;
 			num2 = trans(v.x / v.z,INDEXMAP_PRECISION);
 			num3 = trans(v.y / v.z,INDEXMAP_PRECISION);
@@ -271,160 +262,105 @@ protected:
 		return num2 + num3 * INDEXMAP_PRECISION + num * INDEXMAP_FACE_STRIDE + corner * INDEXMAP_CORNER_STRIDE;
 	};
 
-	static void ReadVerts()
-	{
-		std::ifstream file("assets/vertices.data");  // 打开txt文件
-		if(!file.is_open()) {
-			throw std::runtime_error("无法打开vertices.data文件");
-		}
-
-		std::string line;
-
-		int line_index = 0;
-		while(std::getline(file,line)) {
-			std::stringstream ss(line);
-			std::string item;
-			std::vector<float> values;
-
-			// 按逗号分割每行
-			while(std::getline(ss,item,',')) {
-				values.push_back(std::stof(item));
+	static void CalcVerts() {
+		static bool is_init = false;
+		if(is_init)
+			return;
+		is_init = true;
+		int num = (PRECISION + 1) * 2;
+		int num2 = PRECISION + 1;
+		Vector3 poles[] = {
+			Vector3::right(),
+			Vector3::left(),
+			Vector3::up(),
+			Vector3::down(),
+			Vector3::forward(),
+			Vector3::back()
+		};
+		for(int i=0;i<INDEXMAP_DATALENGTH;i++)
+			indexMap[i] = -1;
+		for(int j = 0; j < VERTICES_DATALENGTH; j++) {
+			int num3 = j % num;
+			int num4 = j / num;
+			int num5 = num3 % num2;
+			int num6 = num4 % num2;
+			int num7 = (((num3 >= num2) ? 1 : 0) + ((num4 >= num2) ? 1 : 0) * 2) * 2 + ((num5 < num6) ? 1 : 0);
+			float num8 = ((num5 >= num6) ? (PRECISION - num5) : num5);
+			float num9 = ((num5 >= num6) ? num6 : (PRECISION - num6));
+			float num10 = (float)PRECISION - num9;
+			num9 /= (float)PRECISION;
+			num8 = ((num10 > 0.0f) ? (num8 / num10) : 0.0f);
+			int num11 = 0;
+			Vector3 a;
+			Vector3 a2;
+			Vector3 b;
+			switch(num7)
+			{
+			case 0:
+			a = poles[2];
+			a2 = poles[0];
+			b = poles[4];
+			num11 = 7;
+			break;
+			case 1:
+			a = poles[3];
+			a2 = poles[4];
+			b = poles[0];
+			num11 = 5;
+			break;
+			case 2:
+			a = poles[2];
+			a2 = poles[4];
+			b = poles[1];
+			num11 = 6;
+			break;
+			case 3:
+			a = poles[3];
+			a2 = poles[1];
+			b = poles[4];
+			num11 = 4;
+			break;
+			case 4:
+			a = poles[2];
+			a2 = poles[1];
+			b = poles[5];
+			num11 = 2;
+			break;
+			case 5:
+			a = poles[3];
+			a2 = poles[5];
+			b = poles[1];
+			num11 = 0;
+			break;
+			case 6:
+			a = poles[2];
+			a2 = poles[5];
+			b = poles[0];
+			num11 = 3;
+			break;
+			case 7:
+			a = poles[3];
+			a2 = poles[0];
+			b = poles[5];
+			num11 = 1;
+			break;
+			default:
+			a = poles[2];
+			a2 = poles[0];
+			b = poles[4];
+			num11 = 7;
+			break;
 			}
-			vertices[line_index] = Vector3(values[0],values[1],values[2]);
-			line_index++;
+			vertices[j] = Vector3::Slerp(Vector3::Slerp(a,b,num9),Vector3::Slerp(a2,b,num9),num8);
+			int num12 = PositionHash(vertices[j],num11);
+			if(indexMap[num12] == -1)
+				indexMap[num12] = j;
 		}
-		if(line_index != 161604) {
-			throw std::runtime_error("vertices.data数据异常");
+		for(int k = 1; k < INDEXMAP_DATALENGTH; k++) {
+			if(indexMap[k] == -1)
+				indexMap[k] = indexMap[k - 1];
 		}
-		file.close();
 	};
-
-	static void ReadIndex()
-	{
-		std::ifstream file("assets/indexMap.data");  // 打开txt文件
-		if(!file.is_open()) {
-			throw std::runtime_error("无法打开indexMap.data文件");
-		}
-
-		std::string line;
-
-		int line_index = 0;
-		while(std::getline(file,line)) {
-			indexMap[line_index] = std::stoi(line);
-			line_index++;
-		}
-		if(line_index != 60000) {
-			throw std::runtime_error("indexMap.data数据异常");
-		}
-		file.close();
-	};
-
-	//static void CalcVerts()
-	//{
-	//	static bool is_init = false;
-	//	if(is_init)
-	//		return;
-	//	is_init = true;
-	//	int num = (PRECISION + 1) * 2;
-	//	int num2 = PRECISION + 1;
-	//	std::vector<Vector3> poles = {
-	//		Vector3::right(),
-	//		Vector3::left(),
-	//		Vector3::up(),
-	//		Vector3::down(),
-	//		Vector3::forward(),
-	//		Vector3::back()
-	//	};
-	//	for(int j = 0; j < DATALENGTH; j++)
-	//	{
-	//		int num3 = j % num;
-	//		int num4 = j / num;
-	//		int num5 = num3 % num2;
-	//		int num6 = num4 % num2;
-	//		int num7 = (((num3 >= num2) ? 1 : 0) + ((num4 >= num2) ? 1 : 0) * 2) * 2 + ((num5 < num6) ? 1 : 0);
-	//		float num8 = ((num5 >= num6) ? (PRECISION - num5) : num5);
-	//		float num9 = ((num5 >= num6) ? num6 : (PRECISION - num6));
-	//		float num10 = (float)PRECISION - num9;
-	//		num9 /= (float)PRECISION;
-	//		num8 = ((num10 > 0.0f) ? (num8 / num10) : 0.0f);
-	//		int num11 = 0;
-	//		Vector3 a;
-	//		Vector3 a2;
-	//		Vector3 b;
-	//		switch(num7)
-	//		{
-	//			case 0:
-	//				a = poles[2];
-	//				a2 = poles[0];
-	//				b = poles[4];
-	//				num11 = 7;
-	//				break;
-	//			case 1:
-	//				a = poles[3];
-	//				a2 = poles[4];
-	//				b = poles[0];
-	//				num11 = 5;
-	//				break;
-	//			case 2:
-	//				a = poles[2];
-	//				a2 = poles[4];
-	//				b = poles[1];
-	//				num11 = 6;
-	//				break;
-	//			case 3:
-	//				a = poles[3];
-	//				a2 = poles[1];
-	//				b = poles[4];
-	//				num11 = 4;
-	//				break;
-	//			case 4:
-	//				a = poles[2];
-	//				a2 = poles[1];
-	//				b = poles[5];
-	//				num11 = 2;
-	//				break;
-	//			case 5:
-	//				a = poles[3];
-	//				a2 = poles[5];
-	//				b = poles[1];
-	//				num11 = 0;
-	//				break;
-	//			case 6:
-	//				a = poles[2];
-	//				a2 = poles[5];
-	//				b = poles[0];
-	//				num11 = 3;
-	//				break;
-	//			case 7:
-	//				a = poles[3];
-	//				a2 = poles[0];
-	//				b = poles[5];
-	//				num11 = 1;
-	//				break;
-	//			default:
-	//				a = poles[2];
-	//				a2 = poles[0];
-	//				b = poles[4];
-	//				num11 = 7;
-	//				break;
-	//		}
-	//		vertices[j] = Vector3::Slerp(Vector3::Slerp(a,b,num9),Vector3::Slerp(a2,b,num9),num8);
-	//		//int num12 = PositionHash(vertices[j],num11);
-	//		//if(indexMap[num12] == -1)
-	//		//{
-	//		//	indexMap[num12] = j;
-	//		//}
-	//	}
-	//	//int num13 = 0;
-	//	//for(int k = 1; k < INDEXMAP_DATA_LENGTH; k++)
-	//	//{
-	//	//	if(indexMap[k] == -1)
-	//	//	{
-	//	//		indexMap[k] = indexMap[k - 1];
-	//	//		num13++;
-	//	//	}
-	//	//}
-	//};
 
 	unsigned short GetHeight(int index) {
 		if(heightData[index] == 0)
@@ -436,16 +372,15 @@ public:
 	static Vector3 vertices[VERTICES_DATALENGTH];
 	static int indexMap[INDEXMAP_DATALENGTH];
 	static int landIndex[LAND_DATALENGTH];
+	vector<unsigned short> heightData;
 	//vector<float> debugData;
-	
-	static void do_init()
-	{
+
+	static void do_init() {
 		static bool is_init = false;
 		if(is_init)
 			return;
 		is_init = true;
-		ReadVerts();
-		ReadIndex();
+		CalcVerts();
 		int index = 0;
 		for(int i = 0; i < VERTICES_DATALENGTH; i++) {
 			int num5 = i % STRIDE;
@@ -459,13 +394,11 @@ public:
 		}
 	}
 	
-	glm::vec3 vector3_to_glm(const Vector3& vec)
-	{
+	glm::vec3 vector3_to_glm(const Vector3& vec) {
 		return glm::vec3(vec.x,vec.y,vec.z);
 	}
 
-	Vector3 glm_to_vector3(const glm::vec3& vec)
-	{
+	Vector3 glm_to_vector3(const glm::vec3& vec) {
 		return Vector3(vec.x,vec.y,vec.z);
 	}
 
@@ -584,7 +517,7 @@ public:
 		}
 		return num6 / num5 * 0.01f;
 	};
-	
+
 	void get_veins(const GalaxyClass& galaxy,const StarClass& star,PlanetClass& planet) {
 		PlanetClassSimple planet_simple = planet_to_simple(planet);
 		StarClassSimple star_simple = star_to_simple(star);
@@ -634,7 +567,7 @@ public:
 	virtual void GenerateSingleHeight(int index) = 0;
 
 	virtual void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) = 0;
-	
+
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
 		const ThemeProto& themeProto = LDB.Select(planet.theme);
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
@@ -1081,8 +1014,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num15 + 0.2) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
@@ -1091,24 +1023,20 @@ public:
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.resize(VERTICES_DATALENGTH);
 		//debugData.resize(DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(true)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
-			//cl::Buffer debugData_buffer(OpenCLManager::context,CL_MEM_WRITE_ONLY,sizeof(float) * DATALENGTH);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
-			//kernel.setArg(7,debugData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,tls.buffer);
+			kernel.setArg(3,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -1118,10 +1046,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
-			//OpenCLManager::queue.enqueueReadBuffer(debugData_buffer,CL_TRUE,0,
-			//			  sizeof(float) * data.debugData.size(),data.debugData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1158,9 +1083,8 @@ public:
 		num13 = num17 * 1.5 + num19 * 1.0 + num20;
 		heightData[index] = (unsigned short)(((double)radius + num12 + 0.1) * 100.0);
 	}
-
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		double modX = planet.mod_x;
 		double modY = planet.mod_y;
@@ -1179,24 +1103,22 @@ public:
 		simplexNoise = SimplexNoise(num6);
 		simplexNoise2 = SimplexNoise(num7);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
-			float custom[4] = {planet.radius,num,num2,num3};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
-
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
+			
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,num);
+			kernel.setArg(3,num2);
+			kernel.setArg(4,num3);
+			kernel.setArg(5,tls.buffer);
 			kernel.setArg(6,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
@@ -1207,8 +1129,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1241,8 +1162,6 @@ public:
 		num6 += Math.Sin(num7 * 0.15) * 3.0;
 		num7 += Math.Sin(num8 * 0.15) * 3.0;
 		num8 += Math.Sin(num6 * 0.15) * 3.0;
-		double num9 = 0.0;
-		double num10 = 0.0;
 		double num11 = simplexNoise.Noise3DFBM(num6 * num * 1.0,num7 * num2 * 1.1,num8 * num3 * 1.0,6,0.5,1.8);
 		double num12 = simplexNoise2.Noise3DFBM(num6 * num * 1.3 + 0.5,num7 * num2 * 2.8 + 0.2,num8 * num3 * 1.3 + 0.7,3) * 2.0;
 		double num13 = simplexNoise2.Noise3DFBM(num6 * num * 6.0,num7 * num2 * 12.0,num8 * num3 * 6.0,2) * 2.0;
@@ -1265,19 +1184,7 @@ public:
 		double b = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
 		double a = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num17 - 1.0f) + num13 * 0.12))));
 		double num18 = Lerp(a,b,modX);
-		if(num15 < 0.0)
-		{
-			num15 *= 2.0;
-		}
-		if(num15 < 1.0)
-		{
-			num15 = Maths::Levelize(num15);
-		}
-		num9 = num18;
-		num10 = Mathf.Abs((float)num15);
-		num10 = ((num10 > 0.0) ? ((num10 > 2.0) ? 2.0 : num10) : 0.0);
-		num10 += ((num10 > 1.8) ? ((0.0 - num13) * 0.8) : (num13 * 0.2));
-		heightData[index] = (unsigned short)(((double)radius + num9 + 0.2) * 100.0);
+		heightData[index] = (unsigned short)(((double)radius + num18 + 0.2) * 100.0);
 		//data.debugData[i] = num18;
 	}
 
@@ -1291,26 +1198,21 @@ public:
 		simplexNoise2 = SimplexNoise(num5);
 		heightData.resize(VERTICES_DATALENGTH);
 		//data.debugData.resize(DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(true)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
-			float custom[2] = {planet.radius,modX};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
-			//kernel.setArg(7,OpenCLManager::debugData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,modX);
+			kernel.setArg(3,tls.buffer);
+			kernel.setArg(4,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -1320,8 +1222,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1390,8 +1291,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num10 + 0.1) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
@@ -1411,36 +1311,22 @@ public:
 		}
 
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
-			float custom[401];
-			custom[0] = planet.radius;
-
-			for(int i = 0; i < 80; i++)
-				custom[i+1] = heights[i];
-			for(int i = 0; i < 80; i++) {
-				const Vector4& t = circles[i];
-				custom[4*i+81] = t.x;
-				custom[4*i+82] = t.y;
-				custom[4*i+83] = t.z;
-				custom[4*i+84] = t.w;
-			}
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.double_buffer(),heights,sizeof(heights));
+			memcpy(tls.float_buffer(),circles,sizeof(circles));
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,tls.buffer);
+			kernel.setArg(3,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -1450,8 +1336,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1520,22 +1405,20 @@ public:
 		simplexNoise = SimplexNoise(num);
 		simplexNoise2 = SimplexNoise(num2);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
 			
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,tls.buffer);
+			kernel.setArg(3,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -1545,8 +1428,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1608,8 +1490,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num6 + 0.2) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
@@ -1617,22 +1498,20 @@ public:
 		simplexNoise = SimplexNoise(num);
 		simplexNoise2 = SimplexNoise(num2);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,tls.buffer);
+			kernel.setArg(3,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -1642,8 +1521,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -1690,8 +1568,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num15) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
@@ -1699,39 +1576,37 @@ public:
 		simplexNoise = SimplexNoise(num10);
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
+		//水世界不需要生成地形
+		//if(gen_terr && OpenCLManager::get_worker()) {
+		//	cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+		//	ThreadLocalBuffers& tls = get_tls_buffers();
+		//	memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		//	memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		//	memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		//	memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		//	tls.upload_buffer();
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,sizeof(float),&planet.radius);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+		//	kernel.setArg(0,OpenCLManager::vertices_buffer);
+		//	kernel.setArg(1,planet.radius);
+		//	kernel.setArg(2,tls.buffer);
+		//	kernel.setArg(3,tls.heightData_buffer);
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		//	int local_size = OpenCLManager::local_size;
+		//	int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		//	cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		//	if(err != CL_SUCCESS){
+		//		std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+		//		throw std::runtime_error("Kernel execution failed");
+		//	}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
-		}
+		//	tls.download_buffer(heightData.data());
+		//	OpenCLManager::return_worker();
+		//	for(int i=LAND_DATALENGTH-1;i>=0;i--) {
+		//		heightData[landIndex[i]] = heightData[i];
+		//		heightData[i] = 0;
+		//	}
+		//}
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -2128,21 +2003,22 @@ public:
 		num3 = 0.002 * modX;
 		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
-			float custom[5] = {planet.radius,num,num2,num3,modY};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.permMod12_buffer_1);
-			kernel.setArg(4,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,num);
+			kernel.setArg(3,num2);
+			kernel.setArg(4,num3);
+			kernel.setArg(5,modY);
+			kernel.setArg(6,tls.buffer);
+			kernel.setArg(7,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -2152,8 +2028,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -2216,8 +2091,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num15 + 0.2) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		modX = planet.mod_x;
 		modY = planet.mod_y;
@@ -2227,25 +2101,22 @@ public:
 		simplexNoise = SimplexNoise(num10);
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
-			float custom[3] = {planet.radius,modX,modY};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,modX);
+			kernel.setArg(3,modY);
+			kernel.setArg(4,tls.buffer);
+			kernel.setArg(5,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -2255,8 +2126,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -2374,8 +2244,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num19 + 0.1) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
@@ -2406,46 +2275,43 @@ public:
 		}
 
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
-			float custom[61];
-			custom[0] = planet.radius;
+			float float_buffer[40];
+			double double_buffer[20];
 
 			for(int i=0;i<10;i++) {
 				const Vector4& t = ellipses[i];
-				custom[4*i+1] = t.x;
-				custom[4*i+2] = t.y;
-				custom[4*i+3] = t.z;
-				custom[4*i+4] = t.w;
+				float_buffer[4*i] = t.x;
+				float_buffer[4*i+1] = t.y;
+				float_buffer[4*i+2] = t.z;
+				float_buffer[4*i+3] = t.w;
 			}
 			for(int i=0;i<10;i++)
-				custom[i+41] = eccentricities[i];
+				double_buffer[i] = eccentricities[i];
 			for(int i=0;i<10;i++)
-				custom[i+51] = heights[i];
+				double_buffer[i+10] = heights[i];
 
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_4,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise4.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_4,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise4.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_4(),simplexNoise4.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_4(),simplexNoise4.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.float_buffer(),ellipses,sizeof(ellipses));
+			double* ptr = tls.double_buffer();
+			memcpy(ptr,eccentricities,sizeof(eccentricities));
+			memcpy(ptr+10,heights,sizeof(heights));
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.perm_buffer_3);
-			kernel.setArg(5,tls.perm_buffer_4);
-			kernel.setArg(6,tls.permMod12_buffer_1);
-			kernel.setArg(7,tls.permMod12_buffer_2);
-			kernel.setArg(8,tls.permMod12_buffer_3);
-			kernel.setArg(9,tls.permMod12_buffer_4);
-			kernel.setArg(10,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,tls.buffer);
+			kernel.setArg(3,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -2455,8 +2321,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -2506,8 +2371,7 @@ public:
 		heightData[index] = (unsigned short)(((double)radius + num13) * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override
-	{
+	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
 		radius = planet.radius;
 		double modX = planet.mod_x;
 		modY = planet.mod_y;
@@ -2522,29 +2386,26 @@ public:
 		simplexNoise2 = SimplexNoise(num8);
 		simplexNoise3 = SimplexNoise(num9);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
-			float custom[5] = {planet.radius,num4,num5,num6,modY};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_3,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise3.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.perm_buffer_3);
-			kernel.setArg(5,tls.permMod12_buffer_1);
-			kernel.setArg(6,tls.permMod12_buffer_2);
-			kernel.setArg(7,tls.permMod12_buffer_3);
-			kernel.setArg(8,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,num4);
+			kernel.setArg(3,num5);
+			kernel.setArg(4,num6);
+			kernel.setArg(5,modY);
+			kernel.setArg(6,tls.buffer);
+			kernel.setArg(7,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -2554,8 +2415,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -2980,25 +2840,22 @@ public:
 		simplexNoise = SimplexNoise(num4);
 		simplexNoise2 = SimplexNoise(num5);
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
-			float custom[3] = {planet.radius,num,modY};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_2,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise2.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.perm_buffer_2);
-			kernel.setArg(4,tls.permMod12_buffer_1);
-			kernel.setArg(5,tls.permMod12_buffer_2);
-			kernel.setArg(6,tls.heightData_buffer);
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,num);
+			kernel.setArg(3,modY);
+			kernel.setArg(4,tls.buffer);
+			kernel.setArg(5,tls.heightData_buffer);
 
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
@@ -3008,8 +2865,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];
@@ -3416,22 +3272,23 @@ public:
 		num3 = 0.007 * modX;
 		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		heightData.resize(VERTICES_DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker(false)) {
+		if(gen_terr && OpenCLManager::get_worker()) {
 			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
-			float custom[5] = {planet.radius,num,num2,num3,modY};
-
 			ThreadLocalBuffers& tls = get_tls_buffers();
-			tls.queue.enqueueWriteBuffer(tls.custom_buffer,CL_FALSE,0,sizeof(custom),custom);
-			tls.queue.enqueueWriteBuffer(tls.perm_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.perm);
-			tls.queue.enqueueWriteBuffer(tls.permMod12_buffer_1,CL_FALSE,0,sizeof(int) * PERM_LENGTH,simplexNoise.permMod12);
+			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+			tls.upload_buffer();
 
 			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,tls.custom_buffer);
-			kernel.setArg(2,tls.perm_buffer_1);
-			kernel.setArg(3,tls.permMod12_buffer_1);
-			kernel.setArg(4,tls.heightData_buffer);
-
+			kernel.setArg(1,planet.radius);
+			kernel.setArg(2,num);
+			kernel.setArg(3,num2);
+			kernel.setArg(4,num3);
+			kernel.setArg(5,modY);
+			kernel.setArg(6,tls.buffer);
+			kernel.setArg(7,tls.heightData_buffer);
+			
 			int local_size = OpenCLManager::local_size;
 			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
 			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
@@ -3440,8 +3297,7 @@ public:
 				throw std::runtime_error("Kernel execution failed");
 			}
 
-			tls.queue.enqueueReadBuffer(tls.heightData_buffer,CL_TRUE,0,
-						  sizeof(unsigned short) * LAND_DATALENGTH,heightData.data());
+			tls.download_buffer(heightData.data());
 			OpenCLManager::return_worker();
 			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
 				heightData[landIndex[i]] = heightData[i];

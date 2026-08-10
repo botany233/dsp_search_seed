@@ -279,7 +279,6 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("set_local_size_c",&OpenCLManager::set_local_size,py::arg("local_size"));
 	m.def("get_local_size_c",&OpenCLManager::get_local_size);
 	m.def("get_device_info_c",&OpenCLManager::get_devices_info);
-	m.def("get_support_double_c",&OpenCLManager::get_support_double);
 	m.def("set_gpu_max_worker_c",&OpenCLManager::set_max_worker,py::arg("max_worker"));
 	m.def("get_gpu_max_worker_c",&OpenCLManager::get_max_worker);
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));

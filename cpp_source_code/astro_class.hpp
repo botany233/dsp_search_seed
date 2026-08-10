@@ -21,6 +21,10 @@
 
 using namespace std;
 
+#pragma warning(disable:4267)
+#pragma warning(disable:4244)
+#pragma warning(disable:4838)
+
 uint16_t get_has_veins(const uint16_t *veins_point);
 
 class StarClassSimple;

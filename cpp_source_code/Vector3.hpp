@@ -1,6 +1,9 @@
 #pragma once
 
+#include <bit>
 #include <cmath>
+#include <cstdint>
+#include <algorithm>
 
 #include "util.hpp"
 #include "VectorLF3.hpp"
@@ -10,11 +13,7 @@ public:
 	float x,y,z;
 
 	// 构造函数
-	Vector3() {
-		x = 0.0f;
-		y = 0.0f;
-		z = 0.0f;
-	};
+	Vector3(): x(0.0f),y(0.0f),z(0.0f) {};
 
 	Vector3(float x,float y,float z): x(x),y(y),z(z) {};
 
@@ -58,6 +57,10 @@ public:
 	};
 
 	// 静态方法
+	static float dot(const Vector3& a,const Vector3& b) {
+		return a.x * b.x + a.y * b.y + a.z * b.z;
+	}
+
 	static Vector3 Cross(const Vector3& a,const Vector3& b) {
 		return Vector3(
 			a.y * b.z - a.z * b.y,
@@ -66,18 +69,9 @@ public:
 		);
 	};
 
-	static Vector3 Slerp(const Vector3& a,const Vector3& b,float t) {
-		Vector3 startNormal = Normalize(a);
-		Vector3 endNormal = Normalize(b);
-		float dot = Vector3::Dot(startNormal,endNormal);
-		dot = Mathf.Clamp(dot,-1.0f,1.0f);
-		float theta = Mathf.Acos(dot) * t;
-		Vector3 RelativeVec = endNormal - startNormal * dot;
-		RelativeVec.Normalize();
-		Vector3 result = (startNormal * Mathf.Cos(theta) + RelativeVec * Mathf.Sin(theta));
-		float length = a.magnitude() * (1 - t) + b.magnitude() * t;
-		return result * length;
-	};
+	static Vector3 lerp(const Vector3& a,const Vector3& b,float t) {
+		return a + (b - a) * t;
+	}
 
 	static float Magnitude(const Vector3& vector) {
 		return (float)std::sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
@@ -94,7 +88,13 @@ public:
 		}
 		return zero();
 	};
-	
+
+	static Vector3 nativeLerp(const Vector3& a,const Vector3& b,float t) {
+		return b * t + a * (1 - t);
+	};
+
+	static Vector3 Slerp(const Vector3& a,const Vector3& b,float t);
+
 	static Vector3 zero() {
 		return Vector3{0.0f,0.0f,0.0f};
 	};
@@ -181,4 +181,4 @@ public:
 	};
 };
 
-inline VectorLF3::VectorLF3(const Vector3& other) : x((double)other.x), y((double)other.y), z((double)other.z) {};
+inline VectorLF3::VectorLF3(const Vector3& other): x((double)other.x),y((double)other.y),z((double)other.z) {};

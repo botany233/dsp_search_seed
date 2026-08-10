@@ -1,3 +1,16 @@
+enum BufferOffsets {
+    OFF_PERM_1 = 0,
+    OFF_PERMMOD12_1 = sizeof(int) * 512,
+    OFF_PERM_2 = sizeof(int) * 512 * 2,
+    OFF_PERMMOD12_2 = sizeof(int) * 512 * 3,
+	OFF_PERM_3 = sizeof(int) * 512 * 4,
+	OFF_PERMMOD12_3 = sizeof(int) * 512 * 5,
+	OFF_PERM_4 = sizeof(int) * 512 * 6,
+	OFF_PERMMOD12_4 = sizeof(int) * 512 * 7,
+	OFF_DOUBLE = sizeof(int) * 512 * 8,
+	OFF_FLOAT = sizeof(int) * 512 * 8 + sizeof(double) * 80
+};
+
 __constant double F3 = 1.0 / 3.0;
 __constant double G3 = 1.0 / 6.0;
 __constant float MATHF_PI = 3.1415927f;
@@ -253,32 +266,30 @@ double CurveEvaluate(double t)
 
 kernel void GenerateTerrain1(
 	global const float* vertices,
-	float planet_radius,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
-	// global float* debugData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_planet_radius;
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid == 0) {
-		local_planet_radius = planet_radius;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -286,46 +297,47 @@ kernel void GenerateTerrain1(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * local_planet_radius;
-	double num13 = vertices[index+1] * local_planet_radius;
-	double num14 = vertices[index+2] * local_planet_radius;
+	double num12 = vertices[index] * planet_radius;
+	double num13 = vertices[index+1] * planet_radius;
+	double num14 = vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.01,num13 * 0.012,num14 * 0.01,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
 	double num20 = num17 + num19;
 	double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
 	double num22 = ((num21 > 0.0) ? Levelize3_2arg(num21,0.7) : Levelize2_2arg(num21,0.5));
-	heightData[gid] = (unsigned short)((local_planet_radius + num22 + 0.2) * 100.0);
-	// debugData[gid] = (float)Noise(num12 * 0.01,num13 * 0.012,num14 * 0.01,localPerm_1,localPermMod12_1);
+	heightData[gid] = (unsigned short)((planet_radius + num22 + 0.2) * 100.0);
 }
 
 kernel void GenerateTerrain2(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	const double num,
+	const double num2,
+	const double num3,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_custom[4];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid < 4) {
-		local_custom[lid] = custom[lid];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -333,63 +345,62 @@ kernel void GenerateTerrain2(
 		return;
 	}
 	int index = gid * 3;
-	double num8 = vertices[index] * local_custom[0];
-	double num9 = vertices[index+1] * local_custom[0];
-	double num10 = vertices[index+2] * local_custom[0];
-	double num14 = Noise3DFBM_6arg(num8 * local_custom[1],num9 * local_custom[2],num10 * local_custom[3],6,0.45,1.8,localPerm_1,localPermMod12_1);
-	double num15 = Noise3DFBM_4arg(num8 * local_custom[1] * 2.0,num9 * local_custom[2] * 2.0,num10 * local_custom[3] * 2.0,3,localPerm_2,localPermMod12_2);
+	double num8 = vertices[index] * planet_radius;
+	double num9 = vertices[index+1] * planet_radius;
+	double num10 = vertices[index+2] * planet_radius;
+	double num14 = Noise3DFBM_6arg(num8 * num,num9 * num2,num10 * num3,6,0.45,1.8,localPerm_1,localPermMod12_1);
+	double num15 = Noise3DFBM_4arg(num8 * num * 2.0,num9 * num2 * 2.0,num10 * num3 * 2.0,3,localPerm_2,localPermMod12_2);
 	double value = num14 * 3.0 + 3.0 * 0.4;
 	double num16 = 0.6 / (fabs(value) + 0.6) - 0.25;
 	double num17 = ((num16 < 0.0) ? (num16 * 0.3) : num16);
-	heightData[gid] = (unsigned short)((local_custom[0] + num17 + 0.1) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num17 + 0.1) * 100.0);
 }
 
 kernel void GenerateTerrain3(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	const double modX,
+	global const char* buffer,
 	global unsigned short* heightData
-	//global float* debugData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_custom[2];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
 	}
-	if(lid < 2) {
-		local_custom[lid] = custom[lid];
-	}
 	barrier(CLK_LOCAL_MEM_FENCE);
-	
+
 	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
-	double num6 = vertices[index] * local_custom[0];
-	double num7 = vertices[index+1] * local_custom[0];
-	double num8 = vertices[index+2] * local_custom[0];
+	double num6 = vertices[index] * planet_radius;
+	double num7 = vertices[index+1] * planet_radius;
+	double num8 = vertices[index+2] * planet_radius;
 	num6 += sin(num7 * 0.15) * 3.0;
 	num7 += sin(num8 * 0.15) * 3.0;
 	num8 += sin(num6 * 0.15) * 3.0;
 	double num11 = Noise3DFBM_6arg(num6 * 0.007,num7 * 0.007 * 1.1,num8 * 0.007,6,0.5,1.8,localPerm_1,localPermMod12_1);
 	double num12 = Noise3DFBM_4arg(num6 * 0.007 * 1.3 + 0.5,num7 * 0.007 * 2.8 + 0.2,num8 * 0.007 * 1.3 + 0.7,3,localPerm_2,localPermMod12_2) * 2.0;
 	double num13 = Noise3DFBM_4arg(num6 * 0.007 * 6.0,num7 * 0.007 * 12.0,num8 * 0.007 * 6.0,2,localPerm_2,localPermMod12_2) * 2.0;
-	
-	num13 = Lerp(num13,num13 * 0.1,local_custom[1]);
+
+	num13 = Lerp(num13,num13 * 0.1,modX);
 	double num14 = Noise3DFBM_4arg(num6 * 0.007 * 0.8,num7 * 0.007 * 0.8,num8 * 0.007 * 0.8,2,localPerm_2,localPermMod12_2) * 2.0;
 	double num15 = num11 * 2.0 + 0.92;
 	double num16 = num12 * fabs(num14 + 0.5);
@@ -402,42 +413,50 @@ kernel void GenerateTerrain3(
 	if(num17 > 0.0)
 	{
 		num17 = Levelize2_1arg(num15);
-		num17 = Lerp(Levelize4_1arg(num17),num17,local_custom[1]);
+		num17 = Lerp(Levelize4_1arg(num17),num17,modX);
 	}
 	double b = ((num17 <= 0.0) ? (lerp(-1.0,0.0,num17 + 1.0)) : ((num17 <= 1.0) ? (lerp(0.0,0.3,num17) + num13 * 0.1) : ((num17 > 2.0) ? (lerp(1.2,2.0,num17 - 2.0) + num13 * 0.12) : (lerp(0.3,1.2,num17 - 1.0) + num13 * 0.12))));
 	double a = ((num17 <= 0.0) ? (lerp(-4.0,0.0,num17 + 1.0)) : ((num17 <= 1.0) ? (lerp(0.0,0.3,num17) + num13 * 0.1) : ((num17 > 2.0) ? (lerp(1.4,2.7,num17 - 2.0) + num13 * 0.12) : (lerp(0.3,1.4,num17 - 1.0) + num13 * 0.12))));
-	double num18 = Lerp(a,b,local_custom[1]);
-	heightData[gid] = (unsigned short)((local_custom[0] + num18 + 0.2) * 100.0);
-	//debugData[gid] = num17;
+	double num18 = Lerp(a,b,modX);
+	heightData[gid] = (unsigned short)((planet_radius + num18 + 0.2) * 100.0);
 }
 
 kernel void GenerateTerrain4(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
+	global const double* double_buffer = (global const double*)(buffer + OFF_DOUBLE);
+	global const float* float_buffer = (global const float*)(buffer + OFF_FLOAT);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_custom[401];
+	local float local_float_buffer[400];
+	local double local_double_buffer[80];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
 	}
-	for(int i = lid; i < 401; i += get_local_size(0)) {
-		local_custom[i] = custom[i];
+	for(int i = lid; i < 400; i += lsize) {
+		local_float_buffer[i] = float_buffer[i];
+	}
+	for(int i = lid; i < 80; i += lsize) {
+		local_double_buffer[i] = double_buffer[i];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -445,9 +464,9 @@ kernel void GenerateTerrain4(
 		return;
 	}
 	int index = gid * 3;
-	double num7 = vertices[index] * local_custom[0];
-	double num8 = vertices[index+1] * local_custom[0];
-	double num9 = vertices[index+2] * local_custom[0];
+	double num7 = vertices[index] * planet_radius;
+	double num8 = vertices[index+1] * planet_radius;
+	double num9 = vertices[index+2] * planet_radius;
 	double num12 = Noise3DFBM_6arg(num7 * 0.007,num8 * 0.007,num9 * 0.007,4,0.45,1.8,localPerm_1,localPermMod12_1);
 	double num13 = Noise3DFBM_4arg(num7 * 0.007 * 5.0,num8 * 0.007 * 5.0,num9 * 0.007 * 5.0,4,localPerm_2,localPermMod12_2);
 	double num14 = num12 * 1.5;
@@ -456,13 +475,13 @@ kernel void GenerateTerrain4(
 	double num17 = 0.0;
 	for(int k = 0; k < 80; k++)
 	{
-		double num18 = local_custom[k*4+81] - num7;
-		double num19 = local_custom[k*4+82] - num8;
-		double num20 = local_custom[k*4+83] - num9;
+		double num18 = local_float_buffer[k*4] - num7;
+		double num19 = local_float_buffer[k*4+1] - num8;
+		double num20 = local_float_buffer[k*4+2] - num9;
 		double num21 = num18 * num18 + num19 * num19 + num20 * num20;
-		if(num21 <= local_custom[k*4+84])
+		if(num21 <= local_float_buffer[k*4+3])
 		{
-			double num22 = num21 / local_custom[k*4+84] + num15 * 1.2;
+			double num22 = num21 / local_float_buffer[k*4+3] + num15 * 1.2;
 			if(num22 < 0.0)
 			{
 				num22 = 0.0;
@@ -475,41 +494,40 @@ kernel void GenerateTerrain4(
 				num25 = 0.0;
 			}
 			num25 *= num25;
-			num25 *= local_custom[k+1];
+			num25 *= local_double_buffer[k];
 			num17 = ((num17 > num25) ? num17 : num25);
 		}
 	}
 	double num10 = num17 + num16 + 0.2;
-	heightData[gid] = (unsigned short)((local_custom[0] + num10 + 0.1) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num10 + 0.1) * 100.0);
 }
 
 kernel void GenerateTerrain5(
 	global const float* vertices,
-	float planet_radius,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_planet_radius;
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid == 0) {
-		local_planet_radius = planet_radius;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -517,9 +535,9 @@ kernel void GenerateTerrain5(
 		return;
 	}
 	int index = gid * 3;
-	double num3 = vertices[index] * local_planet_radius;
-	double num4 = vertices[index+1] * local_planet_radius;
-	double num5 = vertices[index+2] * local_planet_radius;
+	double num3 = vertices[index] * planet_radius;
+	double num4 = vertices[index+1] * planet_radius;
+	double num5 = vertices[index+2] * planet_radius;
 	double num6 = 0.0;
 	double num8 = Levelize_1arg(num3 * 0.007);
 	double num9 = Levelize_1arg(num4 * 0.007);
@@ -548,36 +566,35 @@ kernel void GenerateTerrain5(
 		num16 = (3.0 - num16 - num16) * num16 * num16;
 		num6 = -0.3 - num16 * 3.700000047683716 + num16 * num16 * num16 * num16 * num17 * 0.5;
 	}
-	heightData[gid] = (unsigned short)((local_planet_radius + num6 + 0.2) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num6 + 0.2) * 100.0);
 }
 
 kernel void GenerateTerrain6(
 	global const float* vertices,
-	float planet_radius,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_planet_radius;
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid == 0) {
-		local_planet_radius = planet_radius;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -585,9 +602,9 @@ kernel void GenerateTerrain6(
 		return;
 	}
 	int index = gid * 3;
-	double num3 = vertices[index] * local_planet_radius;
-	double num4 = vertices[index+1] * local_planet_radius;
-	double num5 = vertices[index+2] * local_planet_radius;
+	double num3 = vertices[index] * planet_radius;
+	double num4 = vertices[index+1] * planet_radius;
+	double num5 = vertices[index+2] * planet_radius;
 	double num6 = 0.0;
 	double num8 = Levelize_1arg(num3 * 0.007);
 	double num9 = Levelize_1arg(num4 * 0.007);
@@ -619,36 +636,35 @@ kernel void GenerateTerrain6(
 	f = Levelize_2arg(f,0.7);
 	num6 = ((num6 > -0.800000011920929) ? num6 : ((0.0 - f - num11) * 0.8999999761581421));
 	num6 = ((num6 > -1.2000000476837158) ? num6 : (-1.2000000476837158));
-	heightData[gid] = (unsigned short)((local_planet_radius + num6 + 0.2) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num6 + 0.2) * 100.0);
 }
 
 kernel void GenerateTerrain7(
 	global const float* vertices,
-	float planet_radius,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_planet_radius;
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid == 0) {
-		local_planet_radius = planet_radius;
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -656,39 +672,42 @@ kernel void GenerateTerrain7(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * local_planet_radius;
-	double num13 = vertices[index+1] * local_planet_radius;
-	double num14 = vertices[index+2] * local_planet_radius;
+	double num12 = vertices[index] * planet_radius;
+	double num13 = vertices[index+1] * planet_radius;
+	double num14 = vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.008,num13 * 0.01,num14 * 0.01,6,localPerm_1,localPermMod12_1) * 3.0 - 2.4;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
 	double num20 = num17 + num19;
 	double num21 = ((num20 > 0.0) ? (num20 * 0.5) : (num20 * 1.6));
 	double num22 = ((num21 > 0.0) ? Levelize3_2arg(num21,0.7) : Levelize2_2arg(num21,0.5));
-	heightData[gid] = (unsigned short)((local_planet_radius + num22) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num22) * 100.0);
 }
 
 kernel void GenerateTerrain8(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* permMod12_1,
+	const float planet_radius,
+	const double num,
+	const double num2,
+	const double num3,
+	const double modY,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
 
 	local int localPerm_1[512];
 	local int localPermMod12_1[512];
-	local float local_custom[5];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPermMod12_1[i] = permMod12_1[i];
-	}
-	if(lid < 5) {
-		local_custom[lid] = custom[lid];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -696,10 +715,10 @@ kernel void GenerateTerrain8(
 		return;
 	}
 	int index = gid * 3;
-	double num4 = vertices[index] * local_custom[0];
-	double num5 = vertices[index+1] * local_custom[0];
-	double num6 = vertices[index+2] * local_custom[0];
-	float num9 = clamp(Noise3DFBM_6arg(num4 * local_custom[1],num5 * local_custom[2],num6 * local_custom[3],6,0.45,1.8,localPerm_1,localPermMod12_1) + 1.0 + local_custom[4] * 0.01,0.0,2.0);
+	double num4 = vertices[index] * planet_radius;
+	double num5 = vertices[index+1] * planet_radius;
+	double num6 = vertices[index+2] * planet_radius;
+	float num9 = clamp(Noise3DFBM_6arg(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8,localPerm_1,localPermMod12_1) + 1.0 + modY * 0.01,0.0,2.0);
 	float num10 = 0.0;
 	if(num9 < 1.0)
 	{
@@ -714,36 +733,37 @@ kernel void GenerateTerrain8(
 		f2 = clamp(f2,-1.0f,1.0f);
 		num10 = 2.0f - (f2 + 1.0f) * 0.5f;
 	}
-	heightData[gid] = (unsigned short)((local_custom[0] + (double)num10 + 0.1) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + (double)num10 + 0.1) * 100.0);
 }
 
 kernel void GenerateTerrain9(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	const double modX,
+	const double modY,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_custom[3];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid < 3) {
-		local_custom[lid] = custom[lid];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -751,9 +771,9 @@ kernel void GenerateTerrain9(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * local_custom[0];
-	double num13 = vertices[index+1] * local_custom[0];
-	double num14 = vertices[index+2] * local_custom[0];
+	double num12 = vertices[index] * planet_radius;
+	double num13 = vertices[index+1] * planet_radius;
+	double num14 = vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.01 * 0.75,num13 * 0.012 * 0.5,num14 * 0.01 * 0.75,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -765,32 +785,37 @@ kernel void GenerateTerrain9(
 	double num23 = Noise3DFBM_4arg(num12 * 0.01 * 2.5,num13 * 0.012 * 8.0,num14 * 0.01 * 2.5,2,localPerm_2,localPermMod12_2) * 0.6 - 0.3;
 	double num24 = num21 * 2.5 + num23 + 0.3;
 	double val = Levelize_1arg(num21 + 0.7);
-	double num25 = Noise3DFBM_4arg(num12 * 0.01 * local_custom[1],num13 * 0.012 * local_custom[1],num14 * 0.01 * local_custom[1],6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
+	double num25 = Noise3DFBM_4arg(num12 * 0.01 * modX,num13 * 0.012 * modX,num14 * 0.01 * modX,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
 	double num26 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num27 = ((num26 > 0.0) ? (num26 * 0.5) : num26);
 	double x = (num25 + num27 + 5.0) * 0.13;
 	x = pow(x,6.0) * 24.0 - 24.0;
-	double num28 = ((num22 >= 0.0 - local_custom[2]) ? 0.0 : pow(fmin(fabs(num22 + local_custom[2]) / 5.0,1.0),1.0));
+	double num28 = ((num22 >= 0.0 - modY) ? 0.0 : pow(fmin(fabs(num22 + modY) / 5.0,1.0),1.0));
 	double num15 = num22 * (1.0 - num28) + x * num28;
 	num15 = ((num15 > 0.0) ? (num15 * 0.5) : num15);
-	heightData[gid] = (unsigned short)((local_custom[0] + num15 + 0.2) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num15 + 0.2) * 100.0);
 }
 
 kernel void GenerateTerrain10(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* perm_3,
-	global const int* perm_4,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
-	global const int* permMod12_3,
-	global const int* permMod12_4,
+	const float planet_radius,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* perm_3 = (global const int*)(buffer + OFF_PERM_3);
+	global const int* perm_4 = (global const int*)(buffer + OFF_PERM_4);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
+	global const int* permMod12_3 = (global const int*)(buffer + OFF_PERMMOD12_3);
+	global const int* permMod12_4 = (global const int*)(buffer + OFF_PERMMOD12_4);
+	global const double* double_buffer = (global const double*)(buffer + OFF_DOUBLE);
+	global const float* float_buffer = (global const float*)(buffer + OFF_FLOAT);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
@@ -800,10 +825,11 @@ kernel void GenerateTerrain10(
 	local int localPermMod12_2[512];
 	local int localPermMod12_3[512];
 	local int localPermMod12_4[512];
-	local float local_custom[61];
+	local float local_float_buffer[40];
+	local double local_double_buffer[20];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPerm_3[i] = perm_3[i];
@@ -813,8 +839,11 @@ kernel void GenerateTerrain10(
 		localPermMod12_3[i] = permMod12_3[i];
 		localPermMod12_4[i] = permMod12_4[i];
 	}
-	for(int i = lid; i < 61; i += get_local_size(0)) {
-		local_custom[i] = custom[i];
+	for(int i = lid; i < 40; i += lsize) {
+		local_float_buffer[i] = float_buffer[i];
+	}
+	for(int i = lid; i < 20; i += lsize) {
+		local_double_buffer[i] = double_buffer[i];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -822,9 +851,9 @@ kernel void GenerateTerrain10(
 		return;
 	}
 	int index = gid * 3;
-	double num9 = vertices[index] * local_custom[0];
-	double num10 = vertices[index+1] * local_custom[0];
-	double num11 = vertices[index+2] * local_custom[0];
+	double num9 = vertices[index] * planet_radius;
+	double num10 = vertices[index+1] * planet_radius;
+	double num11 = vertices[index+2] * planet_radius;
 	double num12 = Levelize_1arg(num9 * 0.007);
 	double num13 = Levelize_1arg(num10 * 0.007);
 	double num14 = Levelize_1arg(num11 * 0.007);
@@ -843,21 +872,21 @@ kernel void GenerateTerrain10(
 	double num23 = 0.0;
 	for(int k = 0; k < 10; k++)
 	{
-		double num24 = local_custom[4*k+1] - num9;
-		double num25 = local_custom[4*k+2] - num10;
-		double num26 = local_custom[4*k+3] - num11;
-		double num27 = local_custom[k+41] * num24 * num24 + num25 * num25 + num26 * num26;
+		double num24 = local_float_buffer[4*k] - num9;
+		double num25 = local_float_buffer[4*k+1] - num10;
+		double num26 = local_float_buffer[4*k+2] - num11;
+		double num27 = local_double_buffer[k] * num24 * num24 + num25 * num25 + num26 * num26;
 		num27 = Remap(-1.0,1.0,0.2,5.0,num21) * num27;
-		if(num27 < (local_custom[4*k+4] * local_custom[4*k+4]))
+		if(num27 < (local_float_buffer[4*k+3] * local_float_buffer[4*k+3]))
 		{
-			double num28 = 1.0f - sqrt((float)(num27 / (double)(local_custom[4*k+4] * local_custom[4*k+4])));
+			double num28 = 1.0f - sqrt((float)(num27 / (double)(local_float_buffer[4*k+3] * local_float_buffer[4*k+3])));
 			double num29 = 1.0 - num28;
 			double num30 = 1.0 - num29 * num29 * num29 * num29 + num22 * 2.0;
 			if(num30 < 0.0)
 			{
 				num30 = 0.0;
 			}
-			num23 = fmax(num23,local_custom[k+51] * num30);
+			num23 = fmax(num23,local_double_buffer[k+10] * num30);
 		}
 	}
 	num9 += sin(num10 * 0.15) * 2.0;
@@ -885,22 +914,29 @@ kernel void GenerateTerrain10(
 	{
 		num19 += (num15 * 0.25 + num18 * 0.6) * num33;
 	}
-	heightData[gid] = (unsigned short)((local_custom[0] + num19) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num19) * 100.0);
 }
 
 kernel void GenerateTerrain11(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* perm_3,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
-	global const int* permMod12_3,
+	const float planet_radius,
+	const double num4,
+	const double num5,
+	const double num6,
+	const double modY,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* perm_3 = (global const int*)(buffer + OFF_PERM_3);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
+	global const int* permMod12_3 = (global const int*)(buffer + OFF_PERMMOD12_3);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
@@ -908,10 +944,9 @@ kernel void GenerateTerrain11(
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
 	local int localPermMod12_3[512];
-	local float local_custom[5];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPerm_3[i] = perm_3[i];
@@ -919,60 +954,58 @@ kernel void GenerateTerrain11(
 		localPermMod12_2[i] = permMod12_2[i];
 		localPermMod12_3[i] = permMod12_3[i];
 	}
-	if(lid < 5) {
-		local_custom[lid] = custom[lid];
-	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
 	if(gid >= 40401) {
 		return;
 	}
 	int index = gid * 3;
-	double num10 = vertices[index] * local_custom[0];
-	double num11 = vertices[index+1] * local_custom[0];
-	double num12 = vertices[index+2] * local_custom[0];
+	double num10 = vertices[index] * planet_radius;
+	double num11 = vertices[index+1] * planet_radius;
+	double num12 = vertices[index+2] * planet_radius;
 	double num15 = Noise3DFBM_4arg(num10 * 0.007 * 4.0,num11 * 0.007 * 8.0,num12 * 0.007 * 4.0,3,localPerm_2,localPermMod12_2);
 	double x = Noise3DFBM_6arg(num10 * 0.007 * 0.6,num11 * 0.007 * 1.5 * 2.5,num12 * 0.007 * 0.6,6,0.45,1.8,localPerm_1,localPermMod12_1) * 0.95 + num15 * 0.05;
 	x = Remap(-1.0,1.0,0.0,1.0,x);
-	x = pow(x,(double)local_custom[4]);
+	x = pow(x,modY);
 	x += 1.0;
 	x = Levelize2_1arg(x);
-	double x2 = Noise3DFBM_5arg(num10 * local_custom[1],num11 * local_custom[2],num12 * local_custom[3],5,0.55,localPerm_3,localPermMod12_3);
+	double x2 = Noise3DFBM_5arg(num10 * num4,num11 * num5,num12 * num6,5,0.55,localPerm_3,localPermMod12_3);
 	x2 = Remap(-1.0,1.0,0.0,1.0,x2);
 	x2 = pow(x2,0.65);
 	double num14 = Levelize3_1arg(x2) * x;
 	double num13 = (num14 - 0.4) * 0.9;
 	num13 = fmax(-0.3,num13);
-	heightData[gid] = (unsigned short)((local_custom[0] + num13) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num13) * 100.0);
 }
 
 kernel void GenerateTerrain12(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* perm_2,
-	global const int* permMod12_1,
-	global const int* permMod12_2,
+	const float planet_radius,
+	const double num,
+	const double modY,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* perm_2 = (global const int*)(buffer + OFF_PERM_2);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
+	global const int* permMod12_2 = (global const int*)(buffer + OFF_PERMMOD12_2);
 
 	local int localPerm_1[512];
 	local int localPerm_2[512];
 	local int localPermMod12_1[512];
 	local int localPermMod12_2[512];
-	local float local_custom[3];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPerm_2[i] = perm_2[i];
 		localPermMod12_1[i] = permMod12_1[i];
 		localPermMod12_2[i] = permMod12_2[i];
-	}
-	if(lid < 3) {
-		local_custom[lid] = custom[lid];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -983,11 +1016,11 @@ kernel void GenerateTerrain12(
 	double temp = vertices[index+1];
 	double num6 = fabs(asin(temp)) * 2.0 / MATHF_PI;
 	double num11 = vertices[index];
-	double num12 = temp * 2.5 * local_custom[2];
+	double num12 = temp * 2.5 * modY;
 	double num13 = vertices[index+2];
-	double num14 = Noise3DFBM_5arg(num11 * local_custom[1],num12 * local_custom[1],num13 * local_custom[1],3,0.4,localPerm_2,localPermMod12_2) * 0.2;
-	double num9 = RidgedNoise_7arg(num11 * local_custom[1],num12 * local_custom[1] - num14,num13 * local_custom[1],6,0.7,2.0,0.8,localPerm_1,localPermMod12_1);
-	double num10 = Noise3DFBMInitialAmp_7arg(num11 * local_custom[1],num12 * local_custom[1] - num14,num13 * local_custom[1],6,0.6,2.0,0.7,localPerm_1,localPermMod12_1);
+	double num14 = Noise3DFBM_5arg(num11 * num,num12 * num,num13 * num,3,0.4,localPerm_2,localPermMod12_2) * 0.2;
+	double num9 = RidgedNoise_7arg(num11 * num,num12 * num - num14,num13 * num,6,0.7,2.0,0.8,localPerm_1,localPermMod12_1);
+	double num10 = Noise3DFBMInitialAmp_7arg(num11 * num,num12 * num - num14,num13 * num,6,0.6,2.0,0.7,localPerm_1,localPermMod12_1);
 	num10 *= num9 + num10;
 	num10 = 0.2 + 8.0 * num10 * num9;
 	double x = num10 + 0.5;
@@ -998,30 +1031,33 @@ kernel void GenerateTerrain12(
 	x -= CurveEvaluate(num6 * 0.9);
 	double num7 = clamp(x * 2.0,0.0,2.0);
 	num7 = num7 * 1.1 - 0.2;
-	heightData[gid] = (unsigned short)((local_custom[0] + num7) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num7) * 100.0);
 }
 
 kernel void GenerateTerrain13(
 	global const float* vertices,
-	global const float* custom,
-	global const int* perm_1,
-	global const int* permMod12_1,
+	const float planet_radius,
+	const double num,
+	const double num2,
+	const double num3,
+	const double modY,
+	global const char* buffer,
 	global unsigned short* heightData
 ) {
 	int gid = get_global_id(0);
 	int lid = get_local_id(0);
+	int lsize = get_local_size(0);
+
+	global const int* perm_1 = (global const int*)(buffer + OFF_PERM_1);
+	global const int* permMod12_1 = (global const int*)(buffer + OFF_PERMMOD12_1);
 
 	local int localPerm_1[512];
 	local int localPermMod12_1[512];
-	local float local_custom[5];
 
 	// Load permutation tables into local memory
-	for(int i = lid; i < 512; i += get_local_size(0)) {
+	for(int i = lid; i < 512; i += lsize) {
 		localPerm_1[i] = perm_1[i];
 		localPermMod12_1[i] = permMod12_1[i];
-	}
-	if(lid < 5) {
-		local_custom[lid] = custom[lid];
 	}
 	barrier(CLK_LOCAL_MEM_FENCE);
 	
@@ -1029,11 +1065,11 @@ kernel void GenerateTerrain13(
 		return;
 	}
 	int index = gid * 3;
-	double num4 = vertices[index] * local_custom[0];
-	double num5 = vertices[index+1] * local_custom[0];
-	double num6 = vertices[index+2] * local_custom[0];
-	double x = Remap(-1.0,1.0,0.0,1.0,Noise3DFBM_4arg(num4 * local_custom[1],num5 * local_custom[2],num6 * local_custom[3],6,localPerm_1,localPermMod12_1));
-	x = pow(x,(double)local_custom[4]) * 3.0625;
+	double num4 = vertices[index] * planet_radius;
+	double num5 = vertices[index+1] * planet_radius;
+	double num6 = vertices[index+2] * planet_radius;
+	double x = Remap(-1.0,1.0,0.0,1.0,Noise3DFBM_4arg(num4 * num,num5 * num2,num6 * num3,6,localPerm_1,localPermMod12_1));
+	x = pow(x,modY) * 3.0625;
 	x = Remap(0.0,2.0,0.0,4.0,x);
 	if(x < 1.0)
 	{
@@ -1046,5 +1082,5 @@ kernel void GenerateTerrain13(
 	{
 		num8 = ((num8 <= 3.0) ? (2.0 - 1.0 * (num8 - 2.0)) : ((num8 <= 3.5) ? 1.0 : (1.0 + 2.0 * (num8 - 3.5))));
 	}
-	heightData[gid] = (unsigned short)((local_custom[0] + num8 + 0.1) * 100.0);
+	heightData[gid] = (unsigned short)((planet_radius + num8 + 0.1) * 100.0);
 }
