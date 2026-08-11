@@ -75,4 +75,5 @@
 - [dspseedsearch](https://github.com/crazyyao0/dspseedsearch)
 - [DspFindSeed](https://github.com/Xinyuell/DspFindSeed)
 - [PyQt-Fluent-Widgets](https://github.com/zhiyiYo/PyQt-Fluent-Widgets)
+- [DSPSeedCalc](https://github.com/soarqin/DSPSeedCalc)
 - [AhabAssistantLimbusCompany](https://github.com/KIYI671/AhabAssistantLimbusCompany)

@@ -53,6 +53,7 @@ int OpenCLManager::max_worker = 8;
 int OpenCLManager::cur_worker = 0;
 
 #include "Vector3.hpp"
+// Original 2026 Copyright https://github.com/soarqin/DSPSeedCalc.
 
 constexpr double PiOver4 = 0.7853981633974483;
 constexpr double SmallCut = 0.0078125;
