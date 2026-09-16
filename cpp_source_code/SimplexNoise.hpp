@@ -8,15 +8,7 @@
 
 using namespace std;
 
-#ifndef SUPPORT_AVX2
-class Grad
-{
-public:
-	double x,y,z;
-	constexpr Grad(double x,double y,double z): x(x),y(y),z(z) {}
-};
-#endif
-
+#ifdef SUPPORT_AVX2
 class SimplexNoise
 {
 public:
@@ -25,19 +17,6 @@ public:
 protected:
 	static constexpr double F3 = 1.0 / 3.0;
 	static constexpr double G3 = 1.0 / 6.0;
-
-	#ifndef SUPPORT_AVX2
-	static constexpr Grad grad3[12] = {
-		Grad(1,1,0),Grad(-1,1,0),Grad(1,-1,0),Grad(-1,-1,0),
-		Grad(1,0,1),Grad(-1,0,1),Grad(1,0,-1),Grad(-1,0,-1),
-		Grad(0,1,1),Grad(0,-1,1),Grad(0,1,-1),Grad(0,-1,-1)
-	};
-
-	inline double dot(const Grad& g,const double& x,const double& y,const double& z) const
-	{
-		return g.x * x + g.y * y + g.z * z;
-	}
-	#endif
 
 	void Init(int seed) {
 		short p[256] = {0};
@@ -60,12 +39,11 @@ protected:
 		}
 	};
 
-	static int fastfloor(double x){
+	static int fastfloor(double x) {
 		return (int)std::floor(x);
 	}
 
-	#ifdef SUPPORT_AVX2
-	static __m256d Contribution(__m256d x,__m256d y,__m256d z,__m128i gradientIndices32) {
+	static __forceinline __m256d Contribution(__m256d x,__m256d y,__m256d z,__m128i gradientIndices32) {
 		__m256d squaredLength = _mm256_mul_pd(z,z);
 		squaredLength = _mm256_fmadd_pd(y,y,squaredLength);
 		squaredLength = _mm256_fmadd_pd(x,x,squaredLength);
@@ -90,91 +68,6 @@ protected:
 		return _mm256_mul_pd(attenuation,gradientDot);
 	}
 
-	__m256d Noise4(__m256d xin,__m256d yin,__m256d zin) const {
-		__m256d skew = _mm256_mul_pd(
-			_mm256_add_pd(_mm256_add_pd(xin,yin),zin),
-			_mm256_set1_pd(F3));
-		__m256d iFloor = _mm256_floor_pd(_mm256_add_pd(xin,skew));
-		__m256d jFloor = _mm256_floor_pd(_mm256_add_pd(yin,skew));
-		__m256d kFloor = _mm256_floor_pd(_mm256_add_pd(zin,skew));
-		__m128i i = _mm256_cvttpd_epi32(iFloor);
-		__m128i j = _mm256_cvttpd_epi32(jFloor);
-		__m128i k = _mm256_cvttpd_epi32(kFloor);
-
-		__m128i latticeSum = _mm_add_epi32(_mm_add_epi32(i,j),k);
-		__m256d unskew = _mm256_mul_pd(
-			_mm256_cvtepi32_pd(latticeSum),
-			_mm256_set1_pd(G3));
-		__m256d x0 = _mm256_sub_pd(xin,_mm256_sub_pd(_mm256_cvtepi32_pd(i),unskew));
-		__m256d y0 = _mm256_sub_pd(yin,_mm256_sub_pd(_mm256_cvtepi32_pd(j),unskew));
-		__m256d z0 = _mm256_sub_pd(zin,_mm256_sub_pd(_mm256_cvtepi32_pd(k),unskew));
-
-		__m256d xGeY = _mm256_cmp_pd(x0,y0,_CMP_GE_OQ);
-		__m256d xGeZ = _mm256_cmp_pd(x0,z0,_CMP_GE_OQ);
-		__m256d yGtX = _mm256_cmp_pd(y0,x0,_CMP_GT_OQ);
-		__m256d yGeZ = _mm256_cmp_pd(y0,z0,_CMP_GE_OQ);
-		__m256d one = _mm256_set1_pd(1.0);
-		__m128i i1 = _mm256_cvttpd_epi32(
-			_mm256_and_pd(_mm256_and_pd(xGeY,xGeZ),one));
-		__m128i j1 = _mm256_cvttpd_epi32(
-			_mm256_and_pd(_mm256_and_pd(yGtX,yGeZ),one));
-		__m128i i2 = _mm256_cvttpd_epi32(
-			_mm256_and_pd(_mm256_or_pd(xGeY,xGeZ),one));
-		__m128i j2 = _mm256_cvttpd_epi32(
-			_mm256_and_pd(_mm256_or_pd(yGtX,yGeZ),one));
-		__m128i oneInt = _mm_set1_epi32(1);
-		__m128i k1 = _mm_sub_epi32(oneInt,_mm_add_epi32(i1,j1));
-		__m128i k2 = _mm_sub_epi32(_mm_set1_epi32(2),_mm_add_epi32(i2,j2));
-
-		__m128i mask255 = _mm_set1_epi32(0xFF);
-		__m128i ii = _mm_and_si128(i,mask255);
-		__m128i jj = _mm_and_si128(j,mask255);
-		__m128i kk = _mm_and_si128(k,mask255);
-
-		// Process the same hash stage for all four corners before advancing.
-		__m128i hash0 = _mm_i32gather_epi32(perm,kk,4);
-		__m128i hash1 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,k1),4);
-		__m128i hash2 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,k2),4);
-		__m128i hash3 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,oneInt),4);
-
-		hash0 = _mm_i32gather_epi32(perm,_mm_add_epi32(jj,hash0),4);
-		hash1 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,j1),hash1),4);
-		hash2 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,j2),hash2),4);
-		hash3 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,oneInt),hash3),4);
-
-		__m128i gradient0 = _mm_i32gather_epi32(
-			permMod12,_mm_add_epi32(ii,hash0),4);
-		__m128i gradient1 = _mm_i32gather_epi32(
-			permMod12,_mm_add_epi32(_mm_add_epi32(ii,i1),hash1),4);
-		__m128i gradient2 = _mm_i32gather_epi32(
-			permMod12,_mm_add_epi32(_mm_add_epi32(ii,i2),hash2),4);
-		__m128i gradient3 = _mm_i32gather_epi32(
-			permMod12,_mm_add_epi32(_mm_add_epi32(ii,oneInt),hash3),4);
-
-		__m256d result = Contribution(x0,y0,z0,gradient0);
-		__m256d g1 = _mm256_set1_pd(G3);
-		__m256d x1 = _mm256_add_pd(_mm256_sub_pd(x0,_mm256_cvtepi32_pd(i1)),g1);
-		__m256d y1 = _mm256_add_pd(_mm256_sub_pd(y0,_mm256_cvtepi32_pd(j1)),g1);
-		__m256d z1 = _mm256_add_pd(_mm256_sub_pd(z0,_mm256_cvtepi32_pd(k1)),g1);
-		result = _mm256_add_pd(result,Contribution(x1,y1,z1,gradient1));
-
-		__m256d g2 = _mm256_set1_pd(2.0 * G3);
-		__m256d x2 = _mm256_add_pd(_mm256_sub_pd(x0,_mm256_cvtepi32_pd(i2)),g2);
-		__m256d y2 = _mm256_add_pd(_mm256_sub_pd(y0,_mm256_cvtepi32_pd(j2)),g2);
-		__m256d z2 = _mm256_add_pd(_mm256_sub_pd(z0,_mm256_cvtepi32_pd(k2)),g2);
-		result = _mm256_add_pd(result,Contribution(x2,y2,z2,gradient2));
-
-		__m256d half = _mm256_set1_pd(0.5);
-		result = _mm256_add_pd(result,Contribution(
-			_mm256_sub_pd(x0,half),
-			_mm256_sub_pd(y0,half),
-			_mm256_sub_pd(z0,half),
-			gradient3));
-
-		return _mm256_mul_pd(result,_mm256_set1_pd(32.696434));
-	}
-	#endif
-
 public:
 	SimplexNoise() {};
 
@@ -182,18 +75,17 @@ public:
 		Init(seed);
 	};
 
-	#ifdef SUPPORT_AVX2
-	double Noise(double xin,double yin,double zin) const
+	double Noise(double x,double y,double z) const
 	{
-		double skew = (xin + yin + zin) * F3;
-		int i = fastfloor(xin + skew);
-		int j = fastfloor(yin + skew);
-		int k = fastfloor(zin + skew);
+		double skew = (x + y + z) * F3;
+		int i = fastfloor(x + skew);
+		int j = fastfloor(y + skew);
+		int k = fastfloor(z + skew);
 
 		double unskew = (double)(i + j + k) * G3;
-		double x0 = xin - ((double)i - unskew);
-		double y0 = yin - ((double)j - unskew);
-		double z0 = zin - ((double)k - unskew);
+		double x0 = x - ((double)i - unskew);
+		double y0 = y - ((double)j - unskew);
+		double z0 = z - ((double)k - unskew);
 
 		// Rank comparisons preserve the original tie ordering without branches.
 		int rankX = (int)(x0 >= y0) + (int)(x0 >= z0);
@@ -232,27 +124,27 @@ public:
 		__m128i kOffsets = _mm_setr_epi32(0,k1,k2,1);
 		__m256d cornerUnskew = _mm256_setr_pd(0.0,G3,2.0 * G3,3.0 * G3);
 
-		__m256d x = _mm256_add_pd(
+		__m256d x_ = _mm256_add_pd(
 			_mm256_sub_pd(_mm256_set1_pd(x0),_mm256_cvtepi32_pd(iOffsets)),
 			cornerUnskew);
-		__m256d y = _mm256_add_pd(
+		__m256d y_ = _mm256_add_pd(
 			_mm256_sub_pd(_mm256_set1_pd(y0),_mm256_cvtepi32_pd(jOffsets)),
 			cornerUnskew);
-		__m256d z = _mm256_add_pd(
+		__m256d z_ = _mm256_add_pd(
 			_mm256_sub_pd(_mm256_set1_pd(z0),_mm256_cvtepi32_pd(kOffsets)),
 			cornerUnskew);
 
-		__m256d squaredLength = _mm256_mul_pd(z,z);
-		squaredLength = _mm256_fmadd_pd(y,y,squaredLength);
-		squaredLength = _mm256_fmadd_pd(x,x,squaredLength);
+		__m256d squaredLength = _mm256_mul_pd(z_,z_);
+		squaredLength = _mm256_fmadd_pd(y_,y_,squaredLength);
+		squaredLength = _mm256_fmadd_pd(x_,x_,squaredLength);
 		__m256d attenuation = _mm256_sub_pd(_mm256_set1_pd(0.6),squaredLength);
 
 		// grad3[gi] always selects two coordinates; gi bits encode their signs.
 		__m256i gradientIndices = _mm256_cvtepi32_epi64(gradientIndices32);
 		__m256i useX = _mm256_cmpgt_epi64(_mm256_set1_epi64x(8),gradientIndices);
 		__m256i useY = _mm256_cmpgt_epi64(_mm256_set1_epi64x(4),gradientIndices);
-		__m256d gradientA = _mm256_blendv_pd(y,x,_mm256_castsi256_pd(useX));
-		__m256d gradientB = _mm256_blendv_pd(z,y,_mm256_castsi256_pd(useY));
+		__m256d gradientA = _mm256_blendv_pd(y_,x_,_mm256_castsi256_pd(useX));
+		__m256d gradientB = _mm256_blendv_pd(z_,y_,_mm256_castsi256_pd(useY));
 
 		__m256i signA = _mm256_slli_epi64(gradientIndices,63);
 		__m256i signB = _mm256_slli_epi64(
@@ -302,7 +194,7 @@ public:
 			double y3 = y2 * deltaWLen;
 			double z3 = z2 * deltaWLen;
 
-			__m256d values = Noise4(
+			__m256d values = Noise_batch4(
 				_mm256_setr_pd(x,x1,x2,x3),
 				_mm256_setr_pd(y,y1,y2,y3),
 				_mm256_setr_pd(z,z1,z2,z3));
@@ -336,8 +228,7 @@ public:
 		return total;
 	}
 
-	double RidgedNoise(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const
-	{
+	double RidgedNoise(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
 		double total = 0.0;
 		int octave = 0;
 
@@ -361,7 +252,7 @@ public:
 			double y3 = y2 * deltaWLen;
 			double z3 = z2 * deltaWLen;
 
-			__m256d values = Noise4(
+			__m256d values = Noise_batch4(
 				_mm256_setr_pd(x,x1,x2,x3),
 				_mm256_setr_pd(y,y1,y2,y3),
 				_mm256_setr_pd(z,z1,z2,z3));
@@ -395,19 +286,322 @@ public:
 
 		return total;
 	}
-	#else
-	double Noise(double xin,double yin,double zin) const {
-		double num = (xin + yin + zin) * F3;
-		int num2 = fastfloor(xin + num);
-		int num3 = fastfloor(yin + num);
-		int num4 = fastfloor(zin + num);
+
+	__m128d __vectorcall Noise_batch2(const __m128d x,const __m128d y,const __m128d z) const {
+		__m128d skew = _mm_mul_pd(_mm_add_pd(_mm_add_pd(x,y),z),_mm_set1_pd(F3));
+		__m128d iFloor = _mm_floor_pd(_mm_add_pd(x,skew));
+		__m128d jFloor = _mm_floor_pd(_mm_add_pd(y,skew));
+		__m128d kFloor = _mm_floor_pd(_mm_add_pd(z,skew));
+		__m128i i = _mm_cvttpd_epi32(iFloor);
+		__m128i j = _mm_cvttpd_epi32(jFloor);
+		__m128i k = _mm_cvttpd_epi32(kFloor);
+
+		__m128i latticeSum = _mm_add_epi32(_mm_add_epi32(i,j),k);
+		__m128d unskew = _mm_mul_pd(_mm_cvtepi32_pd(latticeSum),_mm_set1_pd(G3));
+		__m128d x0 = _mm_sub_pd(x,_mm_sub_pd(_mm_cvtepi32_pd(i),unskew));
+		__m128d y0 = _mm_sub_pd(y,_mm_sub_pd(_mm_cvtepi32_pd(j),unskew));
+		__m128d z0 = _mm_sub_pd(z,_mm_sub_pd(_mm_cvtepi32_pd(k),unskew));
+
+		__m128d xGeY = _mm_cmp_pd(x0,y0,_CMP_GE_OQ);
+		__m128d xGeZ = _mm_cmp_pd(x0,z0,_CMP_GE_OQ);
+		__m128d yGtX = _mm_cmp_pd(y0,x0,_CMP_GT_OQ);
+		__m128d yGeZ = _mm_cmp_pd(y0,z0,_CMP_GE_OQ);
+		__m128d one = _mm_set1_pd(1.0);
+		__m128i i1 = _mm_cvttpd_epi32(_mm_and_pd(_mm_and_pd(xGeY,xGeZ),one));
+		__m128i j1 = _mm_cvttpd_epi32(_mm_and_pd(_mm_and_pd(yGtX,yGeZ),one));
+		__m128i i2 = _mm_cvttpd_epi32(_mm_and_pd(_mm_or_pd(xGeY,xGeZ),one));
+		__m128i j2 = _mm_cvttpd_epi32(_mm_and_pd(_mm_or_pd(yGtX,yGeZ),one));
+		__m128i oneInt = _mm_set1_epi32(1);
+		__m128i k1 = _mm_sub_epi32(oneInt,_mm_add_epi32(i1,j1));
+		__m128i k2 = _mm_sub_epi32(_mm_set1_epi32(2),_mm_add_epi32(i2,j2));
+
+		__m128i mask255 = _mm_set1_epi32(0xFF);
+		__m128i ii = _mm_and_si128(i,mask255);
+		__m128i jj = _mm_and_si128(j,mask255);
+		__m128i kk = _mm_and_si128(k,mask255);
+
+		// Pack [point0/cornerA, point1/cornerA, point0/cornerB, point1/cornerB].
+		// Every AVX2 lane is useful; the two independent hash chains cover all corners.
+		const __m128i zero = _mm_setzero_si128();
+		const __m128i iiPair = _mm_unpacklo_epi64(ii,ii);
+		const __m128i jjPair = _mm_unpacklo_epi64(jj,jj);
+		const __m128i kkPair = _mm_unpacklo_epi64(kk,kk);
+		const __m128i i01 = _mm_unpacklo_epi64(zero,i1);
+		const __m128i j01 = _mm_unpacklo_epi64(zero,j1);
+		const __m128i k01 = _mm_unpacklo_epi64(zero,k1);
+		const __m128i i23 = _mm_unpacklo_epi64(i2,oneInt);
+		const __m128i j23 = _mm_unpacklo_epi64(j2,oneInt);
+		const __m128i k23 = _mm_unpacklo_epi64(k2,oneInt);
+
+		__m128i hash01 = _mm_i32gather_epi32(perm,_mm_add_epi32(kkPair,k01),4);
+		__m128i hash23 = _mm_i32gather_epi32(perm,_mm_add_epi32(kkPair,k23),4);
+		hash01 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jjPair,j01),hash01),4);
+		hash23 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jjPair,j23),hash23),4);
+		const __m128i gradient01 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(_mm_add_epi32(iiPair,i01),hash01),4);
+		const __m128i gradient23 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(_mm_add_epi32(iiPair,i23),hash23),4);
+
+		const __m256d xx = _mm256_insertf128_pd(_mm256_castpd128_pd256(x0),x0,1);
+		const __m256d yy = _mm256_insertf128_pd(_mm256_castpd128_pd256(y0),y0,1);
+		const __m256d zz = _mm256_insertf128_pd(_mm256_castpd128_pd256(z0),z0,1);
+		const __m256d unskew01 = _mm256_setr_pd(0.0,0.0,G3,G3);
+		const __m256d unskew23 = _mm256_setr_pd(2.0 * G3,2.0 * G3,3.0 * G3,3.0 * G3);
+		const __m256d result01 = Contribution(
+			_mm256_add_pd(_mm256_sub_pd(xx,_mm256_cvtepi32_pd(i01)),unskew01),
+			_mm256_add_pd(_mm256_sub_pd(yy,_mm256_cvtepi32_pd(j01)),unskew01),
+			_mm256_add_pd(_mm256_sub_pd(zz,_mm256_cvtepi32_pd(k01)),unskew01),gradient01);
+		const __m256d result23 = Contribution(
+			_mm256_add_pd(_mm256_sub_pd(xx,_mm256_cvtepi32_pd(i23)),unskew23),
+			_mm256_add_pd(_mm256_sub_pd(yy,_mm256_cvtepi32_pd(j23)),unskew23),
+			_mm256_add_pd(_mm256_sub_pd(zz,_mm256_cvtepi32_pd(k23)),unskew23),gradient23);
+
+		// Preserve ((corner0 + corner1) + corner2) + corner3 in each point's lane.
+		__m128d total = _mm_add_pd(_mm256_castpd256_pd128(result01),_mm256_extractf128_pd(result01,1));
+		total = _mm_add_pd(total,_mm256_castpd256_pd128(result23));
+		total = _mm_add_pd(total,_mm256_extractf128_pd(result23,1));
+		return _mm_mul_pd(total,_mm_set1_pd(32.696434));
+	}
+
+	__m128d __vectorcall Noise3DFBM_batch2(const __m128d x,const __m128d y,const __m128d z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
+		__m128d total = _mm_setzero_pd();
+		const __m128d wavelengthStep = _mm_set1_pd(deltaWLen);
+		__m128d fx = x,fy = y,fz = z;
+		int octave = 0;
+		// Four lanes evaluate two points at two consecutive octaves.
+		// Advance frequencies/amplitudes one multiplication at a time to retain rounding.
+		while(nOctaves - octave >= 2) {
+			const __m128d x1 = _mm_mul_pd(fx,wavelengthStep);
+			const __m128d y1 = _mm_mul_pd(fy,wavelengthStep);
+			const __m128d z1 = _mm_mul_pd(fz,wavelengthStep);
+			const double amplitude1 = initialAmp * deltaAmp;
+			__m256d value = Noise_batch4(
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fx),x1,1),
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fy),y1,1),
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fz),z1,1));
+			value = _mm256_mul_pd(value,_mm256_setr_pd(initialAmp,initialAmp,amplitude1,amplitude1));
+			total = _mm_add_pd(total,_mm256_castpd256_pd128(value));
+			total = _mm_add_pd(total,_mm256_extractf128_pd(value,1));
+			fx = _mm_mul_pd(x1,wavelengthStep);
+			fy = _mm_mul_pd(y1,wavelengthStep);
+			fz = _mm_mul_pd(z1,wavelengthStep);
+			initialAmp = amplitude1 * deltaAmp;
+			octave += 2;
+		}
+		if(octave < nOctaves) {
+			__m128d value = _mm_mul_pd(Noise_batch2(fx,fy,fz),_mm_set1_pd(initialAmp));
+			total = _mm_add_pd(total,value);
+		}
+		return total;
+	}
+
+	__m128d __vectorcall RidgedNoise_batch2(const __m128d x,const __m128d y,const __m128d z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
+		__m128d total = _mm_setzero_pd();
+		const __m128d wavelengthStep = _mm_set1_pd(deltaWLen);
+		__m128d fx = x,fy = y,fz = z;
+		int octave = 0;
+		// Four lanes evaluate two points at two consecutive octaves.
+		// Advance frequencies/amplitudes one multiplication at a time to retain rounding.
+		while(nOctaves - octave >= 2) {
+			const __m128d x1 = _mm_mul_pd(fx,wavelengthStep);
+			const __m128d y1 = _mm_mul_pd(fy,wavelengthStep);
+			const __m128d z1 = _mm_mul_pd(fz,wavelengthStep);
+			const double amplitude1 = initialAmp * deltaAmp;
+			__m256d value = Noise_batch4(
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fx),x1,1),
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fy),y1,1),
+				_mm256_insertf128_pd(_mm256_castpd128_pd256(fz),z1,1));
+			value = _mm256_mul_pd(value,_mm256_setr_pd(initialAmp,initialAmp,amplitude1,amplitude1));
+			value = _mm256_andnot_pd(_mm256_set1_pd(-0.0),value);
+			total = _mm_add_pd(total,_mm256_castpd256_pd128(value));
+			total = _mm_add_pd(total,_mm256_extractf128_pd(value,1));
+			fx = _mm_mul_pd(x1,wavelengthStep);
+			fy = _mm_mul_pd(y1,wavelengthStep);
+			fz = _mm_mul_pd(z1,wavelengthStep);
+			initialAmp = amplitude1 * deltaAmp;
+			octave += 2;
+		}
+		if(octave < nOctaves) {
+			__m128d value = _mm_mul_pd(Noise_batch2(fx,fy,fz),_mm_set1_pd(initialAmp));
+			value = _mm_andnot_pd(_mm_set1_pd(-0.0),value);
+			total = _mm_add_pd(total,value);
+		}
+		return total;
+	}
+
+	__m256d __vectorcall Noise_batch4(const __m256d x,const __m256d y,const __m256d z) const {
+		__m256d skew = _mm256_mul_pd(_mm256_add_pd(_mm256_add_pd(x,y),z),_mm256_set1_pd(F3));
+		__m256d iFloor = _mm256_floor_pd(_mm256_add_pd(x,skew));
+		__m256d jFloor = _mm256_floor_pd(_mm256_add_pd(y,skew));
+		__m256d kFloor = _mm256_floor_pd(_mm256_add_pd(z,skew));
+		__m128i i = _mm256_cvttpd_epi32(iFloor);
+		__m128i j = _mm256_cvttpd_epi32(jFloor);
+		__m128i k = _mm256_cvttpd_epi32(kFloor);
+
+		__m128i latticeSum = _mm_add_epi32(_mm_add_epi32(i,j),k);
+		__m256d unskew = _mm256_mul_pd(_mm256_cvtepi32_pd(latticeSum),_mm256_set1_pd(G3));
+		__m256d x0 = _mm256_sub_pd(x,_mm256_sub_pd(_mm256_cvtepi32_pd(i),unskew));
+		__m256d y0 = _mm256_sub_pd(y,_mm256_sub_pd(_mm256_cvtepi32_pd(j),unskew));
+		__m256d z0 = _mm256_sub_pd(z,_mm256_sub_pd(_mm256_cvtepi32_pd(k),unskew));
+
+		__m256d xGeY = _mm256_cmp_pd(x0,y0,_CMP_GE_OQ);
+		__m256d xGeZ = _mm256_cmp_pd(x0,z0,_CMP_GE_OQ);
+		__m256d yGtX = _mm256_cmp_pd(y0,x0,_CMP_GT_OQ);
+		__m256d yGeZ = _mm256_cmp_pd(y0,z0,_CMP_GE_OQ);
+		__m256d one = _mm256_set1_pd(1.0);
+		__m128i i1 = _mm256_cvttpd_epi32(_mm256_and_pd(_mm256_and_pd(xGeY,xGeZ),one));
+		__m128i j1 = _mm256_cvttpd_epi32(_mm256_and_pd(_mm256_and_pd(yGtX,yGeZ),one));
+		__m128i i2 = _mm256_cvttpd_epi32(_mm256_and_pd(_mm256_or_pd(xGeY,xGeZ),one));
+		__m128i j2 = _mm256_cvttpd_epi32(_mm256_and_pd(_mm256_or_pd(yGtX,yGeZ),one));
+		__m128i oneInt = _mm_set1_epi32(1);
+		__m128i k1 = _mm_sub_epi32(oneInt,_mm_add_epi32(i1,j1));
+		__m128i k2 = _mm_sub_epi32(_mm_set1_epi32(2),_mm_add_epi32(i2,j2));
+
+		__m128i mask255 = _mm_set1_epi32(0xFF);
+		__m128i ii = _mm_and_si128(i,mask255);
+		__m128i jj = _mm_and_si128(j,mask255);
+		__m128i kk = _mm_and_si128(k,mask255);
+
+		// Process the same hash stage for all four corners before advancing.
+		__m128i hash0 = _mm_i32gather_epi32(perm,kk,4);
+		__m128i hash1 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,k1),4);
+		__m128i hash2 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,k2),4);
+		__m128i hash3 = _mm_i32gather_epi32(perm,_mm_add_epi32(kk,oneInt),4);
+
+		hash0 = _mm_i32gather_epi32(perm,_mm_add_epi32(jj,hash0),4);
+		hash1 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,j1),hash1),4);
+		hash2 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,j2),hash2),4);
+		hash3 = _mm_i32gather_epi32(perm,_mm_add_epi32(_mm_add_epi32(jj,oneInt),hash3),4);
+
+		__m128i gradient0 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(ii,hash0),4);
+		__m128i gradient1 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(_mm_add_epi32(ii,i1),hash1),4);
+		__m128i gradient2 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(_mm_add_epi32(ii,i2),hash2),4);
+		__m128i gradient3 = _mm_i32gather_epi32(permMod12,_mm_add_epi32(_mm_add_epi32(ii,oneInt),hash3),4);
+
+		__m256d result = Contribution(x0,y0,z0,gradient0);
+		__m256d g1 = _mm256_set1_pd(G3);
+		__m256d x1 = _mm256_add_pd(_mm256_sub_pd(x0,_mm256_cvtepi32_pd(i1)),g1);
+		__m256d y1 = _mm256_add_pd(_mm256_sub_pd(y0,_mm256_cvtepi32_pd(j1)),g1);
+		__m256d z1 = _mm256_add_pd(_mm256_sub_pd(z0,_mm256_cvtepi32_pd(k1)),g1);
+		result = _mm256_add_pd(result,Contribution(x1,y1,z1,gradient1));
+
+		__m256d g2 = _mm256_set1_pd(2.0 * G3);
+		__m256d x2 = _mm256_add_pd(_mm256_sub_pd(x0,_mm256_cvtepi32_pd(i2)),g2);
+		__m256d y2 = _mm256_add_pd(_mm256_sub_pd(y0,_mm256_cvtepi32_pd(j2)),g2);
+		__m256d z2 = _mm256_add_pd(_mm256_sub_pd(z0,_mm256_cvtepi32_pd(k2)),g2);
+		result = _mm256_add_pd(result,Contribution(x2,y2,z2,gradient2));
+
+		__m256d half = _mm256_set1_pd(0.5);
+		result = _mm256_add_pd(result,Contribution(_mm256_sub_pd(x0,half),_mm256_sub_pd(y0,half),_mm256_sub_pd(z0,half),gradient3));
+
+		return _mm256_mul_pd(result,_mm256_set1_pd(32.696434));
+	}
+
+	__m256d __vectorcall Noise3DFBM_batch4(const __m256d x,const __m256d y,const __m256d z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
+		__m256d total = _mm256_setzero_pd();
+		__m256d amplitude = _mm256_set1_pd(initialAmp);
+		const __m256d amplitudeStep = _mm256_set1_pd(deltaAmp);
+		const __m256d wavelengthStep = _mm256_set1_pd(deltaWLen);
+		__m256d fx = x,fy = y,fz = z;
+		for(int octave = 0; octave < nOctaves; ++octave) {
+			__m256d value = _mm256_mul_pd(Noise_batch4(fx,fy,fz),amplitude);
+			total = _mm256_add_pd(total,value);
+			amplitude = _mm256_mul_pd(amplitude,amplitudeStep);
+			fx = _mm256_mul_pd(fx,wavelengthStep);
+			fy = _mm256_mul_pd(fy,wavelengthStep);
+			fz = _mm256_mul_pd(fz,wavelengthStep);
+		}
+		return total;
+	}
+
+	__m256d __vectorcall RidgedNoise_batch4(const __m256d x,const __m256d y,const __m256d z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
+		__m256d total = _mm256_setzero_pd();
+		__m256d amplitude = _mm256_set1_pd(initialAmp);
+		const __m256d amplitudeStep = _mm256_set1_pd(deltaAmp);
+		const __m256d wavelengthStep = _mm256_set1_pd(deltaWLen);
+		const __m256d signMask = _mm256_set1_pd(-0.0);
+		__m256d fx = x,fy = y,fz = z;
+		for(int octave = 0; octave < nOctaves; ++octave) {
+			__m256d value = _mm256_mul_pd(Noise_batch4(fx,fy,fz),amplitude);
+			total = _mm256_add_pd(total,_mm256_andnot_pd(signMask,value));
+			amplitude = _mm256_mul_pd(amplitude,amplitudeStep);
+			fx = _mm256_mul_pd(fx,wavelengthStep);
+			fy = _mm256_mul_pd(fy,wavelengthStep);
+			fz = _mm256_mul_pd(fz,wavelengthStep);
+		}
+		return total;
+	}
+};
+#else
+class Grad
+{
+public:
+	double x,y,z;
+	constexpr Grad(double x,double y,double z): x(x),y(y),z(z) {}
+};
+
+class SimplexNoise
+{
+public:
+	int perm[512] = {0};
+	int permMod12[512] = {0};
+protected:
+	static constexpr double F3 = 1.0 / 3.0;
+	static constexpr double G3 = 1.0 / 6.0;
+
+	static constexpr Grad grad3[12] = {
+		Grad(1,1,0),Grad(-1,1,0),Grad(1,-1,0),Grad(-1,-1,0),
+		Grad(1,0,1),Grad(-1,0,1),Grad(1,0,-1),Grad(-1,0,-1),
+		Grad(0,1,1),Grad(0,-1,1),Grad(0,1,-1),Grad(0,-1,-1)
+	};
+
+	inline double dot(const Grad& g,const double& x,const double& y,const double& z) const
+	{
+		return g.x * x + g.y * y + g.z * z;
+	}
+
+	void Init(int seed) {
+		short p[256] = {0};
+		for(int i = 0; i < 256; i++)
+		{
+			p[i] = (short)i;
+		}
+		DotNet35Random dotNet35Random = DotNet35Random(seed);
+		for(int j = 0; j < 256; j++)
+		{
+			int num = dotNet35Random.Next(0,256);
+			int num2 = p[j];
+			p[j] = p[num];
+			p[num] = (short)num2;
+		}
+		for(int k = 0; k < 512; k++)
+		{
+			perm[k] = p[k & 0xFF];
+			permMod12[k] = (short)(perm[k] % 12);
+		}
+	};
+
+	static int fastfloor(double x) {
+		return (int)std::floor(x);
+	}
+
+public:
+	SimplexNoise() {};
+
+	SimplexNoise(int seed) {
+		Init(seed);
+	};
+
+	double Noise(double x,double y,double z) const {
+		double num = (x + y + z) * F3;
+		int num2 = fastfloor(x + num);
+		int num3 = fastfloor(y + num);
+		int num4 = fastfloor(z + num);
 		double num5 = (double)(num2 + num3 + num4) * G3;
 		double num6 = (double)num2 - num5;
 		double num7 = (double)num3 - num5;
 		double num8 = (double)num4 - num5;
-		double num9 = xin - num6;
-		double num10 = yin - num7;
-		double num11 = zin - num8;
+		double num9 = x - num6;
+		double num10 = y - num7;
+		double num11 = z - num8;
 
 		int num12,num13,num14,num15,num16,num17;
 		if(num9 >= num10) {
@@ -488,8 +682,7 @@ public:
 		return 32.696434 * total;
 	}
 
-	double Noise3DFBM(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const
-	{
+	double Noise3DFBM(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
 		double num = 0.0;
 		double num2 = initialAmp;
 		for(int i = 0; i < nOctaves; i++)
@@ -503,13 +696,12 @@ public:
 		return num;
 	}
 
-	double RidgedNoise(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5)
-	{
+	double RidgedNoise(double x,double y,double z,int nOctaves,double deltaAmp = 0.5,double deltaWLen = 2.0,double initialAmp = 0.5) const {
 		double num = 0.0;
 		double num2 = initialAmp;
 		for(int i = 0; i < nOctaves; i++)
 		{
-			num += std::abs(Noise(x,y,z) * num2);
+			num += abs(Noise(x,y,z) * num2);
 			num2 *= deltaAmp;
 			x *= deltaWLen;
 			y *= deltaWLen;
@@ -517,5 +709,5 @@ public:
 		}
 		return num;
 	}
-	#endif
 };
+#endif

@@ -17,18 +17,26 @@ const uint32_t liquid_mask[] = {
 
 static uint16_t get_need_veins(const array<uint16_t,14>& veins_point,const array<uint64_t,14>& veins_amount) {
 	uint16_t result = 0;
-	for(int i=0;i<14;i++) {
+	for(int i=0;i<14;i++)
 		result |= (uint16_t)(veins_point[i] > 0 || veins_amount[i] > 0) << i;
-	}
 	return result;
 }
 
 static uint16_t get_need_veins_amount(const array<uint64_t,14>& veins_amount) {
 	uint16_t result = 0;
-	for(int i=0;i<14;i++) {
+	for(int i=0;i<14;i++)
 		result |= (uint16_t)(veins_amount[i] > 0) << i;
-	}
 	return result;
+}
+
+static bool is_galaxy_need_gen_position(const GalaxyCondition& galaxy_condition) {
+	for(const StarCondition& star_condition: galaxy_condition.stars) {
+		if(star_condition.distance > 1 && star_condition.distance < 999)
+			return true;
+	}
+	if(galaxy_condition.bonds.size() > 0)
+		return true;
+	return false;
 }
 
 static PlanetCondition planet_condition_to_struct(const py::dict& planet_condition) {
@@ -102,5 +110,6 @@ GalaxyCondition galaxy_condition_to_struct(const py::dict& galaxy_condition) {
 	for(auto bond_condition : bond_conditions) {
 		new_galaxy_condition.bonds.push_back(bond_condition_to_struct(bond_condition.cast<py::dict>()));
 	}
+	new_galaxy_condition.need_gen_position = is_galaxy_need_gen_position(new_galaxy_condition);
 	return new_galaxy_condition;
 }

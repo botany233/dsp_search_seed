@@ -12,3 +12,7 @@ constexpr int LAND_DATALENGTH = 40401;
 constexpr float MATHF_PI = 3.1415927f;
 
 constexpr int PERM_LENGTH = 512;
+
+constexpr float GAS_PLANET_REAL_RADIUS = 800.0f;
+constexpr float NORMAL_PLANET_RADIUS = 200.0f;
+constexpr float NORMAL_PLANET_REAL_RADIUS = NORMAL_PLANET_RADIUS * 1.0f;

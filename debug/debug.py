@@ -9,7 +9,7 @@ from debug_condition import debug_condition_functions
 
 def main():
     cpu_thread = 20
-    gpu_thread = 4
+    gpu_thread = 20
     device_id = 0
     local_size = 256
 

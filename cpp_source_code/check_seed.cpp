@@ -43,8 +43,7 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 					break;
 
 				auto [star,planet] = planet_tasks[task_index];
-				unique_ptr<PlanetAlgorithm> planet_algorithm = GetPlanetAlgorithm(planet->algoId);
-				planet_algorithm->get_veins(g,*star,*planet);
+				generate_planet_veins(g,*star,*planet);
 			}
 		};
 
@@ -269,8 +268,7 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 					g.MyGenerateVeins(star,planet);
 					planet_data.land_percent = 0.0f;
 				} else {
-					unique_ptr<PlanetAlgorithm> planet_algorithm = GetPlanetAlgorithm(planet.algoId);
-					planet_algorithm->get_veins(g,star,planet);
+					generate_planet_veins(g,star,planet);
 					planet_data.land_percent = planet.landPercent;
 				}
 				for(int i = 0; i < 14; i++) {
@@ -309,6 +307,7 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 {
 	GalaxyClassSimple galaxy;
 	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
+	galaxy.gen_star_position();
 	galaxy.CreatePlanets((gen_planet_num<0)?seed.star_num:gen_planet_num);
 	if(quick) {
 		for(PlanetClassSimple& planet: galaxy.planets) {
@@ -331,7 +330,7 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 			memcpy(star.upper_veins_amount,star.real_veins_amount,sizeof(star.real_veins_amount));
 		}
 	}
-
+	
 	GalaxyData galaxy_data;
 	galaxy_data.seed_id = seed.seed_id;
 	galaxy_data.star_num = seed.star_num;
@@ -405,6 +404,8 @@ bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,i
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level1 check start" << endl;
 	GalaxyClassSimple galaxy;
 	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
+	if(galaxy_condition.need_gen_position)
+		galaxy.gen_star_position();
 	if(!check_galaxy_level_1(galaxy,galaxy_condition))
 		return !galaxy_condition.valid_state;
 	if(check_level <= 1)
@@ -418,6 +419,7 @@ bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,i
 		return galaxy_condition.valid_state;
 
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level3 check start" << endl;
+	galaxy.gen_star_position();
 	tag_need_veins_galaxy(galaxy,galaxy_condition);
 	galaxy.GenerateUpperVeins();
 	if(!check_galaxy_level_3(galaxy,galaxy_condition))

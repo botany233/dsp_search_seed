@@ -73,13 +73,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>C:\Users\18201\AppData\Local\Programs\Python\Python313\include;C:\Users\18201\Desktop\test_pybind11\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\18201\AppData\Local\Programs\Python\Python313\include;$(ProjectDir)include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\18201\AppData\Local\Programs\Python\Python313\libs;$(LibraryPath)</LibraryPath>
     <TargetExt>.exe</TargetExt>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <TargetExt>.pyd</TargetExt>
-    <IncludePath>C:\Users\18201\AppData\Local\Programs\Python\Python313\include;C:\Users\18201\Desktop\test_pybind11\include;$(IncludePath)</IncludePath>
+    <IncludePath>C:\Users\18201\AppData\Local\Programs\Python\Python313\include;$(ProjectDir)include;$(IncludePath)</IncludePath>
     <LibraryPath>C:\Users\18201\AppData\Local\Programs\Python\Python313\libs;$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Label="Vcpkg">
@@ -123,7 +123,7 @@
       <Optimization>MaxSpeed</Optimization>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <LanguageStandard>stdcpp23</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>D:\vcpkg\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -194,10 +194,7 @@
     <ClInclude Include="VectorLF3.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="assets\generate_terrain.cl" />
     <None Include="assets\generate_terrain_double.cl" />
-    <None Include="assets\indexMap.data" />
-    <None Include="assets\vertices.data" />
     <None Include="packages.config" />
     <None Include="vcpkg.json" />
   </ItemGroup>

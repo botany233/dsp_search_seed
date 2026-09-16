@@ -140,14 +140,14 @@ The searcher no longer uses GPU computation. The performance table is shown belo
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">156977</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">55584</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">51760</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">15786</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">76.52</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">145663</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">144623</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">55583</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">347599</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">86549</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62874</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">19004</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.97</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">319052</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159512</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">65257</td>
   </tr>
 </table>
 
@@ -171,16 +171,16 @@ The viewer sorting performance table is shown below. All results are for 64-star
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">3.77</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.29</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Integrated GPU (Arc 128EU)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.21</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9.42</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Dedicated GPU (RX 9070)</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">28.85</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">30.20</td>
   </tr>
 </table>

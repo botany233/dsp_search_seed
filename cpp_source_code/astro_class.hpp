@@ -18,6 +18,7 @@
 #include "Vector3.hpp"
 #include "VectorLF3.hpp"
 #include "DotNet35Random.hpp"
+#include "const_value.hpp"
 
 using namespace std;
 
@@ -35,14 +36,15 @@ class PlanetClassSimple
 {
 public:
 	int seed;
+	int info_seed; // Replayed only when generating birth points.
 	int id;
 	int index;
 	int orbitAround;
 	int number;
 	int orbitIndex;
 	float maxorbitRadius;
-	float radius = 200.0f;
-	float scale = 1.0f;
+	//float radius = 200.0f;
+	//float scale = 1.0f;
 	uint8_t waterItemId;
 	uint8_t singularity;
 	uint8_t dsp_level;
@@ -56,6 +58,7 @@ public:
 	uint16_t has_veins = 0;
 	bool need_generate_veins = false;
 	bool need_generate_veins_amount = false;
+	float orbitRadius = 1.0f;
 	//uint16_t veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
@@ -63,29 +66,7 @@ public:
 	double mod_y;
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
 	span<PlanetClassSimple> moons;
-	float orbitRadius = 1.0f;
-	float rotationPhase;
-	float orbitInclination;
-	float orbitPhase;
-	double orbitalPeriod = 3600.0;
-	double rotationPeriod = 480.0;
 	StarClassSimple* star = nullptr;
-	Quaternion runtimeOrbitRotation;
-	Quaternion runtimeSystemRotation;
-
-	Vector3 birthPoint;
-	Vector3 birthResourcePoint0;
-	Vector3 birthResourcePoint1;
-
-	float realRadius() const {
-		return radius * scale;
-	}
-
-	float get_ion_enhance(const float ionHeight) const {
-		float real_radius = realRadius();
-		float temp = real_radius + ionHeight * 0.6f;
-		return sqrt(temp*temp-real_radius*real_radius)/temp;
-	}
 
 	void MyGenerateVeins();
 
@@ -270,10 +251,14 @@ protected:
 		}
 		if(star.dysonRadius > planet.maxorbitRadius * 52083.333f)
 			planet.dsp_level = 2;
-		else if((1.041667f-planet.get_ion_enhance(themeProto1.IonHeight))*planet.maxorbitRadius <= 0.00002f * star.dysonRadius)
-			planet.dsp_level = 1;
-		else
-			planet.dsp_level = 0;
+		else {
+			float temp = NORMAL_PLANET_REAL_RADIUS + themeProto1.IonHeight * 0.6f;
+			float ion_enhance = sqrt(temp*temp-NORMAL_PLANET_REAL_RADIUS*NORMAL_PLANET_REAL_RADIUS)/temp;
+			if((1.041667f-ion_enhance)*planet.maxorbitRadius <= 0.00002f * star.dysonRadius)
+				planet.dsp_level = 1;
+			else
+				planet.dsp_level = 0;
+		}
 		planet.type_mask = 1 << themeProto1.TypeId;
 		planet.has_veins = planet_veins_mask[themeProto1.ID - 1] | star_veins_mask[star.typeId()];
 		star.has_veins |= planet.has_veins;
@@ -285,6 +270,7 @@ protected:
 		DotNet35Random dotNet35Random(info_seed);
 		planet.index = index;
 		planet.seed = gen_seed;
+		planet.info_seed = info_seed;
 		planet.orbitAround = orbitAround;
 		planet.orbitIndex = orbitIndex;
 		planet.number = number;
@@ -306,14 +292,14 @@ protected:
 		}
 		double num3 = dotNet35Random.NextDouble();
 		double num4 = dotNet35Random.NextDouble();
-		double num5 = dotNet35Random.NextDouble();
-		double num6 = dotNet35Random.NextDouble();
-		double num7 = dotNet35Random.NextDouble();
-		double num8 = dotNet35Random.NextDouble();
-		double num9 = dotNet35Random.NextDouble();
-		double num10 = dotNet35Random.NextDouble();
-		double num11 = dotNet35Random.NextDouble();
-		double num12 = dotNet35Random.NextDouble();
+		dotNet35Random.NextDouble(); // num5: birth pose
+		dotNet35Random.NextDouble(); // num6: birth pose
+		dotNet35Random.NextDouble(); // num7: birth pose
+		dotNet35Random.NextDouble(); // num8: birth pose
+		dotNet35Random.NextDouble(); // num9: birth pose
+		dotNet35Random.NextDouble(); // num10: birth pose
+		dotNet35Random.NextDouble(); // num11: birth pose
+		dotNet35Random.NextDouble(); // num12: birth pose
 		double num13 = dotNet35Random.NextDouble();
 		double num14 = dotNet35Random.NextDouble();
 		double rand1 = dotNet35Random.NextDouble();
@@ -330,94 +316,30 @@ protected:
 			float num16 = (float)(((double)a - 1.0) / (double)Mathf.Max(1.0f,b) + 1.0);
 			f1 = b * num16;
 		} else
-			f1 = (float)(((1600.0 * (double)orbitIndex + 200.0) * (double)Mathf.Pow(star.orbitScaler,0.3f) * (double)Mathf.Lerp(a,1.0f,0.5f) + (double)planet.orbitAroundPlanet->realRadius()) / 40000.0);
+			f1 = (float)(((1600.0 * (double)orbitIndex + 200.0) * (double)Mathf.Pow(star.orbitScaler,0.3f) * (double)Mathf.Lerp(a,1.0f,0.5f) + (double)GAS_PLANET_REAL_RADIUS) / 40000.0);
 		planet.orbitRadius = f1;
-		planet.orbitInclination = (float)(num5 * 16.0 - 8.0);
-		if(orbitAround > 0)
-			planet.orbitInclination *= 2.2f;
-		//planet.orbitLongitude = (float)(num6 * 360.0);
-		if(star.type >= EStarType::NeutronStar)
-		{
-			if((double)planet.orbitInclination > 0.0)
-				planet.orbitInclination += 3.0f;
-			else
-				planet.orbitInclination -= 3.0f;
-		}
-		planet.orbitalPeriod = planet.orbitAroundPlanet != NULL ? Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / 1.08308421068537E-08) : Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / (1.35385519905204E-06 * (double)star.mass));
-		planet.orbitPhase = (float)(num7 * 360.0);
-		float planet_obliquity;
+		// Preserve classification without calculating birth-only angles and periods.
 		if(num15 < 0.0399999991059303)
-		{
-			planet_obliquity = (float)(num8 * (num9 - 0.5) * 39.9);
-			if((double)planet_obliquity < 0.0)
-				planet_obliquity -= 70.0f;
-			else
-				planet_obliquity += 70.0f;
 			planet.singularity |= EPlanetSingularity::LaySide;
-		} else if(num15 < 0.100000001490116)
-		{
-			planet_obliquity = (float)(num8 * (num9 - 0.5) * 80.0);
-			if((double)planet_obliquity < 0.0)
-				planet_obliquity -= 30.0f;
-			else
-				planet_obliquity += 30.0f;
-		} else
-			planet_obliquity = (float)(num8 * (num9 - 0.5) * 60.0);
-		planet.rotationPeriod = (num10 * num11 * 1000.0 + 400.0) * (orbitAround == 0 ? (double)Mathf.Pow(f1,0.25f) : 1.0) * (gasGiant ? 0.200000002980232 : 1.0);
-		if(!gasGiant)
-		{
-			if(star.type == EStarType::WhiteDwarf)
-				planet.rotationPeriod *= 0.5;
-			else if(star.type == EStarType::NeutronStar)
-				planet.rotationPeriod *= 0.200000002980232;
-			else if(star.type == EStarType::BlackHole)
-				planet.rotationPeriod *= 0.150000005960464;
-		}
-		planet.rotationPhase = (float)(num12 * 360.0);
 		float planet_sunDistance = orbitAround == 0 ? planet.orbitRadius : planet.orbitAroundPlanet->orbitRadius;
-		planet.scale = 1.0f;
 		planet.maxorbitRadius = orbitAround == 0 ? planet.orbitRadius : planet.orbitRadius + planet_sunDistance;
 
-		double num17 = orbitAround == 0 ? planet.orbitalPeriod : planet.orbitAroundPlanet->orbitalPeriod;
-		planet.rotationPeriod = 1.0 / (1.0 / num17 + 1.0 / planet.rotationPeriod);
 		if(orbitAround == 0 && orbitIndex <= 4 && !gasGiant)
 		{
 			if(num15 > 0.959999978542328)
-			{
-				planet_obliquity *= 0.01f;
-				planet.rotationPeriod = planet.orbitalPeriod;
 				planet.singularity |= EPlanetSingularity::TidalLocked;
-			} else if(num15 > 0.930000007152557)
-			{
-				planet_obliquity *= 0.1f;
-				planet.rotationPeriod = planet.orbitalPeriod * 0.5;
+			else if(num15 > 0.930000007152557)
 				planet.singularity |= EPlanetSingularity::TidalLocked2;
-			} else if(num15 > 0.899999976158142)
-			{
-				planet_obliquity *= 0.2f;
-				planet.rotationPeriod = planet.orbitalPeriod * 0.25;
+			else if(num15 > 0.899999976158142)
 				planet.singularity |= EPlanetSingularity::TidalLocked4;
-			}
 		}
 		if(num15 > 0.85 && num15 <= 0.9)
-		{
-			planet.rotationPeriod = -planet.rotationPeriod;
 			planet.singularity |= EPlanetSingularity::ClockwiseRotate;
-		}
-		planet.runtimeOrbitRotation = Quaternion::AngleAxis((float)(num6 * 360.0),Vector3::up()) * Quaternion::AngleAxis(planet.orbitInclination,Vector3::forward());
-		//planet.runtimeOrbitRotation = Quaternion::AngleAxis(planet.orbitLongitude,Vector3::up()) * Quaternion::AngleAxis(planet.orbitInclination,Vector3::forward());
-		if(planet.orbitAroundPlanet != NULL)
-		{
-			planet.runtimeOrbitRotation = planet.orbitAroundPlanet->runtimeOrbitRotation * planet.runtimeOrbitRotation;
-		}
-		planet.runtimeSystemRotation = planet.runtimeOrbitRotation * Quaternion::AngleAxis(planet_obliquity,Vector3::forward());
 		float habitableRadius = star.habitableRadius;
 		float planet_temperatureBias = 0.0f;
 		if(gasGiant)
 		{
 			planet.type = EPlanetType::Gas;
-			planet.radius = 80.0f;
-			planet.scale = 10.0f;
 			//planet.habitableBias = 100.0f;
 		} else
 		{
@@ -456,22 +378,18 @@ protected:
 				float num27 = (float)(0.899999976158142 / (double)f2 - 0.100000001490116);
 				planet.type = num14 >= (double)num27 ? EPlanetType::Ice : EPlanetType::Desert;
 			}
-			planet.radius = 200.0f;
 		}
 		SetPlanetTheme(star,planet,rand1,rand2,rand3,rand4,theme_seed,planet_temperatureBias);
-		//star.galaxy.astrosData[planet.id].uRadius = planet.realRadius();
-		//return planet;
 	}
 
 	float RandNormal(float averageValue,float standardDeviation,double r1,double r2) {
 		return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
 	}
-
-	void SetStarAge(StarClassSimple& star,double rn,double rt)
-	{
+	
+	void SetStarAge(StarClassSimple& star,double rn,double rt) {
 		float num1 = (float)(rn * 0.1 + 0.95);
 		float num2 = (float)(rt * 0.4 + 0.8);
-		float num3 = (float)(rt * 9.0 + 1.0);
+		//float num3 = (float)(rt * 9.0 + 1.0);
 		if((double)star.age >= 1.0)
 		{
 			if((double)star.mass >= 18.0)
@@ -517,22 +435,15 @@ protected:
 		}
 	}
 
-	void CreateStar(VectorLF3 pos,int id,int seed,EStarType needtype,ESpectrType needSpectr)
-	{
-		StarClassSimple& star = stars[id - 1];
-		star.index = id - 1;
+	void CreateStar(int index,int seed,EStarType needtype,ESpectrType needSpectr) {
+		StarClassSimple& star = stars[index];
+		star.index = index;
 		float level = (float)star.index / (float)(starCount - 1);
-		star.id = id;
+		star.id = index + 1;
 		star.seed = seed;
 		DotNet35Random dotNet35Random1(seed);
 		int seed1 = dotNet35Random1.Next();
 		int Seed = dotNet35Random1.Next();
-		star.position = pos;
-		star.uPosition = pos * 2400000.0;
-		float num1 = (float)pos.magnitude() / 32.0f;
-		if((double)num1 > 1.0)
-			num1 = Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(num1) + 1.0f) + 1.0f) + 1.0f) + 1.0f) + 1.0f;
-		star.resourceCoef = Mathf.Pow(7.0f,num1) * 0.6f;
 		DotNet35Random dotNet35Random2(Seed);
 		double r1 = dotNet35Random2.NextDouble();
 		double r2 = dotNet35Random2.NextDouble();
@@ -546,8 +457,7 @@ protected:
 		float num6 = Mathf.Lerp(-0.98f,0.88f,level);
 		float averageValue = (double)num6 >= 0.0 ? num6 + 0.65f : num6 - 0.65f;
 		float standardDeviation = 0.33f;
-		if(needtype == EStarType::GiantStar)
-		{
+		if(needtype == EStarType::GiantStar) {
 			averageValue = y > -0.08 ? -1.5f : 1.6f;
 			standardDeviation = 0.3f;
 		}
@@ -613,16 +523,16 @@ protected:
 		if((double)star.dysonRadius * 40000.0 < (double)star.physicsRadius() * 1.5)
 			star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
 		star.dysonRadius = round(star.dysonRadius * 800) * 100;
-		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f; //必须在设置完age之后再修正
+		star.luminosity = Mathf.Round((float)Math.Pow(star.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f; //必须在SetStarAge之后再修正
 		//star.type_id = star.typeId();
 		star.set_type_mask();
 		star.galaxy = this;
-		star.distance = (star.position - stars[0].position).magnitude();
+		star.distance = 2.0f;
 	}
 
-	void CreateBirthStar(int index,int seed)
+	void CreateBirthStar(int seed)
 	{
-		StarClassSimple& birthStar = stars[index];
+		StarClassSimple& birthStar = stars[0];
 		birthStar.index = 0;
 		birthStar.id = 1;
 		birthStar.seed = seed;
@@ -665,111 +575,10 @@ protected:
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
 		birthStar.dysonRadius = round(birthStar.dysonRadius * 800) * 100;
-		birthStar.luminosity = Mathf.Round((float)Math.Pow(birthStar.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f;
+		birthStar.luminosity = Mathf.Round((float)Math.Pow(birthStar.luminosity,0.33000001311302185) * 1000.0f) / 1000.0f; //必须在SetStarAge之后再修正
 		birthStar.galaxy = this;
 		birthStar.set_type_mask();
-		birthStar.distance = (birthStar.position - stars[0].position).magnitude();
-	}
-
-	void GenerateTempPoses(std::vector<VectorLF3>& poses,int seed,int targetCount,int iterCount,double minDist,double minStepLen,double maxStepLen,double flatten)
-	{
-		//std::vector<VectorLF3> tmp_drunk;
-		//std::vector<VectorLF3> tmp_poses;
-		double x1[256] = {0},y1[256] = {0},z1[256] = {0};
-		double x2[8],y2[8],z2[8];
-		int cur_num = 1;
-		int cur_num_2 = 0;
-		int maxCount = targetCount * iterCount;
-		//tmp_drunk.reserve(maxCount);
-		//tmp_poses.reserve(maxCount);
-
-		double minDistSquare = minDist * minDist;
-		DotNet35RandomLong dotNet35Random(seed);
-		double num1 = dotNet35Random.NextDouble();
-		//tmp_poses.push_back(VectorLF3::zero());
-
-		int num5 = (int)(num1 * 2.0 + 6.0);
-		for(int index = 0; index < num5; ++index)
-		{
-			int num6 = 0;
-			while(num6++ < 256)
-			{
-				double num7 = dotNet35Random.NextDouble() * 2.0 - 1.0;
-				double num8 = (dotNet35Random.NextDouble() * 2.0 - 1.0) * flatten;
-				double num9 = dotNet35Random.NextDouble() * 2.0 - 1.0;
-				double num10 = dotNet35Random.NextDouble();
-				double d = num7 * num7 + num8 * num8 + num9 * num9;
-				if(d <= 1.0 && d >= 1E-08)
-				{
-					double num11 = Math.Sqrt(d);
-					double num12 = (num10 * (maxStepLen - minStepLen) + minDist) / num11;
-					double x = num7 * num12;
-					double y = num8 * num12;
-					double z = num9 * num12;
-					//VectorLF3 pt(num7 * num12,num8 * num12,num9 * num12);
-					if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
-					{
-						x1[cur_num] = x;
-						y1[cur_num] = y;
-						z1[cur_num] = z;
-						x2[cur_num_2] = x;
-						y2[cur_num_2] = y;
-						z2[cur_num_2] = z;
-						cur_num_2++;
-						cur_num++;
-						break;
-					}
-				}
-			}
-		}
-		int num13 = 0;
-		while(num13++ < 256)
-		{
-			for(int index = 0; index < cur_num_2; ++index)
-			{
-				if(dotNet35Random.NextDouble() <= 0.7)
-				{
-					int num14 = 0;
-					while(num14++ < 256)
-					{
-						double num15 = dotNet35Random.NextDouble() * 2.0 - 1.0;
-						double num16 = (dotNet35Random.NextDouble() * 2.0 - 1.0) * flatten;
-						double num17 = dotNet35Random.NextDouble() * 2.0 - 1.0;
-						double num18 = dotNet35Random.NextDouble();
-						double d = num15 * num15 + num16 * num16 + num17 * num17;
-						if(d <= 1.0 && d >= 1E-08)
-						{
-							double num19 = Math.Sqrt(d);
-							double num20 = (num18 * (maxStepLen - minStepLen) + minDist) / num19;
-							double x = x2[index] + num15 * num20;
-							double y = y2[index] + num16 * num20;
-							double z = z2[index] + num17 * num20;
-							if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
-							{
-								//tmp_drunk[index] = pt;
-								//tmp_poses.push_back(pt);
-								x2[index] = x;
-								y2[index] = y;
-								z2[index] = z;
-								x1[cur_num] = x;
-								y1[cur_num] = y;
-								z1[cur_num] = z;
-								cur_num++;
-								if(cur_num >= maxCount)
-									goto finish_label;
-								break;
-							}
-						}
-					}
-				}
-			}
-		}
-		finish_label:
-
-		poses.reserve(targetCount);
-		for(int i = 0; i < targetCount; i++)
-			poses.emplace_back(x1[i*4],y1[i*4],z1[i*4]);
-		//poses[i] = tmp_poses[i * 4];
+		birthStar.distance = 0.0f;
 	}
 
 	bool CheckCollision(int cur_num,double* x1,double* y1,double* z1,double x,double y,double z,double min_dist_square) const
@@ -780,7 +589,7 @@ protected:
 		const __m256d vz = _mm256_set1_pd(z);
 		const __m256d v_thresh = _mm256_set1_pd(min_dist_square);
 
-		for(int i=0;i<cur_num;i+=4) {
+		for(int i = (cur_num - 1) & ~3; i >= 0; i -= 4) {
 			__m256d dx = _mm256_loadu_pd(x1 + i);
 			__m256d dy = _mm256_loadu_pd(y1 + i);
 			__m256d dz = _mm256_loadu_pd(z1 + i);
@@ -851,33 +660,31 @@ public:
 	int seed;
 	int starCount;
 	int planetCount;
-	//float resource_rate;
 	float resource_multiplier;
-	bool is_rare_resource;
-	bool is_infinite_resource;
-	vector<StarClassSimple> stars;
-	vector<PlanetClassSimple> planets;
 	int habitableCount;
 	int birthPlanetId;
+	bool is_rare_resource;
+	bool is_infinite_resource;
+	bool is_gen_position;
 	//int veins_group[14]{0};
 	uint16_t veins_point[14]{0};
 	uint64_t veins_amount[14]{0};
+	vector<StarClassSimple> stars;
+	vector<PlanetClassSimple> planets;
 
-	void CreateStars(int galaxySeed,int starNum,float resource_rate)
-	{
+	void CreateStars(int galaxySeed,int starNum,float resource_rate) {
 		seed = galaxySeed;
 		starCount = starNum;
-		//resource_rate = resourceRate;
 		resource_multiplier = resource_rate;
 		is_infinite_resource = resource_multiplier >= 99.5f;
 		is_rare_resource = resource_multiplier <= 0.1001f;
+		is_gen_position = false;
 
 		DotNet35Random dotNet35Random(galaxySeed);
-		std::vector<VectorLF3> tmp_poses;
-		GenerateTempPoses(tmp_poses,dotNet35Random.Next(),starCount,4,2.0,2.3,3.5,0.18);
+		dotNet35Random.Next();
 		stars.resize(starCount);
 		habitableCount = 0;
-
+		
 		float num1 = (float)dotNet35Random.NextDouble();
 		float num2 = (float)dotNet35Random.NextDouble();
 		float num3 = (float)dotNet35Random.NextDouble();
@@ -892,14 +699,11 @@ public:
 		int num11 = num10 - num7;
 		int num12 = (num11 - 1) / num8;
 		int num13 = num12 / 2;
-		for(int index = 0; index < starCount; ++index)
-		{
+		for(int index = 0; index < starCount; ++index) {
 			int seed = dotNet35Random.Next();
 			if(index == 0)
-			{
-				CreateBirthStar(index,seed);
-			} else
-			{
+				CreateBirthStar(seed);
+			else {
 				ESpectrType needSpectr = ESpectrType::X;
 				if(index == 3)
 					needSpectr = ESpectrType::M;
@@ -914,13 +718,126 @@ public:
 					needtype = EStarType::NeutronStar;
 				else if(index >= num11)
 					needtype = EStarType::WhiteDwarf;
-				CreateStar(tmp_poses[index],index + 1,seed,needtype,needSpectr);
+				CreateStar(index,seed,needtype,needSpectr);
 			}
 		}
 	}
 
-	void CreatePlanets(int need_generate_planet_num)
-	{
+	void gen_star_position() {
+		if(is_gen_position)
+			return;
+		is_gen_position = true;
+		DotNet35Random dotNet35Random1(seed);
+		
+		constexpr int iterCount = 4;
+		constexpr double minDist = 2.0;
+		constexpr double minStepLen = 2.3;
+		constexpr double maxStepLen = 3.5;
+		constexpr double flatten = 0.18;
+		double x1[256] = {0},y1[256] = {0},z1[256] = {0};
+		double x2[8],y2[8],z2[8];
+		int cur_num = 1;
+		int cur_num_2 = 0;
+		int maxCount = (starCount - 1) * iterCount + 1;
+
+		double minDistSquare = minDist * minDist;
+		DotNet35RandomLong dotNet35Random(dotNet35Random1.Next());
+		double num1 = dotNet35Random.NextDouble();
+
+		int num5 = (int)(num1 * 2.0 + 6.0);
+		for(int index = 0; index < num5; ++index)
+		{
+			int num6 = 0;
+			while(num6++ < 256)
+			{
+				double num7 = dotNet35Random.NextDouble() * 2.0 - 1.0;
+				double num8 = (dotNet35Random.NextDouble() * 2.0 - 1.0) * flatten;
+				double num9 = dotNet35Random.NextDouble() * 2.0 - 1.0;
+				double num10 = dotNet35Random.NextDouble();
+				double d = num7 * num7 + num8 * num8 + num9 * num9;
+				if(d <= 1.0 && d >= 1E-08)
+				{
+					double num11 = Math.Sqrt(d);
+					double num12 = (num10 * (maxStepLen - minStepLen) + minDist) / num11;
+					double x = num7 * num12;
+					double y = num8 * num12;
+					double z = num9 * num12;
+					if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
+					{
+						x1[cur_num] = x;
+						y1[cur_num] = y;
+						z1[cur_num] = z;
+						x2[cur_num_2] = x;
+						y2[cur_num_2] = y;
+						z2[cur_num_2] = z;
+						cur_num_2++;
+						cur_num++;
+						break;
+					}
+				}
+			}
+		}
+		int num13 = 0;
+		while(num13++ < 256)
+		{
+			for(int index = 0; index < cur_num_2; ++index)
+			{
+				if(dotNet35Random.NextDouble() <= 0.7)
+				{
+					int num14 = 0;
+					while(num14++ < 256)
+					{
+						double num15 = dotNet35Random.NextDouble() * 2.0 - 1.0;
+						double num16 = (dotNet35Random.NextDouble() * 2.0 - 1.0) * flatten;
+						double num17 = dotNet35Random.NextDouble() * 2.0 - 1.0;
+						double num18 = dotNet35Random.NextDouble();
+						double d = num15 * num15 + num16 * num16 + num17 * num17;
+						if(d <= 1.0 && d >= 1E-08)
+						{
+							double num19 = Math.Sqrt(d);
+							double num20 = (num18 * (maxStepLen - minStepLen) + minDist) / num19;
+							double x = x2[index] + num15 * num20;
+							double y = y2[index] + num16 * num20;
+							double z = z2[index] + num17 * num20;
+							if(!CheckCollision(cur_num,x1,y1,z1,x,y,z,minDistSquare))
+							{
+								//tmp_drunk[index] = pt;
+								//tmp_poses.push_back(pt);
+								x2[index] = x;
+								y2[index] = y;
+								z2[index] = z;
+								x1[cur_num] = x;
+								y1[cur_num] = y;
+								z1[cur_num] = z;
+								cur_num++;
+								if(cur_num >= maxCount)
+									goto finish_label;
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		finish_label:
+
+		for(int i=0;i<starCount;i++) {
+			StarClassSimple& star = stars[i];
+			star.position = VectorLF3(x1[i*4],y1[i*4],z1[i*4]);
+			star.uPosition = star.position * 2400000.0;
+			star.distance = (star.position - stars[0].position).magnitude();
+			if(i == 0)
+				star.resourceCoef = 0.6f;
+			else {
+				float num1 = (float)star.position.magnitude() / 32.0f;
+				if((double)num1 > 1.0)
+					num1 = Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(Mathf.Log(num1) + 1.0f) + 1.0f) + 1.0f) + 1.0f) + 1.0f;
+				star.resourceCoef = Mathf.Pow(7.0f,num1) * 0.6f;
+			}
+		}
+	}
+
+	void CreatePlanets(int need_generate_planet_num) {
 		planetCount = 0;
 		planets.resize(get_galaxy_planet_num(need_generate_planet_num));
 		for(int i=0;i<need_generate_planet_num;i++) {

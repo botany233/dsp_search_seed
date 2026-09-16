@@ -12,7 +12,7 @@ cur_dir = os.path.dirname(__file__)
 
 def main(test_num: int, load_condition: bool = False):
     cpu_thread = 20
-    gpu_thread = 8
+    gpu_thread = 20
     device_id = 0
     local_size = 256
 

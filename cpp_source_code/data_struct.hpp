@@ -50,6 +50,7 @@ struct BondCondition {
 struct GalaxyCondition {
 	uint16_t need_veins = 0;
 	bool valid_state = true;
+	bool need_gen_position = true;
 	bool need_veins_amount = false;
 	array<uint16_t,14> veins_point = {};
 	array<uint64_t,14> veins_amount = {};

@@ -1,102 +1,132 @@
+import importlib
 import json
+import multiprocessing as mp
 import random
-import subprocess
 import sys
+import traceback
+from collections import deque
 from pathlib import Path
+from queue import Empty
 
 from tqdm import tqdm
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-WORKER_CODE = """
-import importlib
-import json
-import sys
 
-project_root, api_name, seed_id, star_num, resource_index, quick = sys.argv[1:]
-sys.path.insert(0, project_root)
-
-api = importlib.import_module(api_name)
-api.set_device_id_c(-1)
-seed = api.Seed(int(seed_id), int(star_num), int(resource_index))
-galaxy_data = api.search_seed.get_galaxy_data_c(seed, quick == "1")
-galaxy_dict = api.data_to_dict(galaxy_data)
-print(json.dumps(galaxy_dict, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
-"""
-
-# 这是使用示例
-# galaxy_data = search_seed.get_galaxy_data_c(Seed(seed_id, star_num, resource_index), quick)
-# galaxy_dict = data_to_dict(galaxy_data)
-# galaxy_json = json.dumps(galaxy_dict, ensure_ascii=False, indent=4)
-# with open("example.json", "w", encoding="utf-8") as f:
-#     f.write(galaxy_json)
-
-
-def _get_galaxy_json(
-    api_name: str,
-    seed_id: int,
-    star_num: int,
-    resource_index: int,
-    quick: bool,
-) -> str:
+def _worker(api_name, task_queue, result_queue):
+    task = None
     try:
-        result = subprocess.run(
-            [
-                sys.executable,
-                "-c",
-                WORKER_CODE,
-                str(PROJECT_ROOT),
-                api_name,
-                str(seed_id),
-                str(star_num),
-                str(resource_index),
-                "1" if quick else "0",
-            ],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            check=True,
-            encoding="utf-8",
-            errors="replace",
-        )
-    except subprocess.CalledProcessError as error:
-        detail = error.stderr.strip() or error.stdout.strip() or "no error output"
-        raise RuntimeError(f"{api_name} failed to generate galaxy data: {detail}") from error
-
-    galaxy_json = result.stdout.strip()
-    try:
-        json.loads(galaxy_json)
-    except json.JSONDecodeError as error:
-        raise RuntimeError(f"{api_name} returned invalid JSON: {galaxy_json!r}") from error
-    return galaxy_json
+        # 两个扩展的命名空间冲突，只在各自的子进程中导入。
+        sys.path.insert(0, str(PROJECT_ROOT))
+        api = importlib.import_module(api_name)
+        api.set_device_id_c(-1)
+        while True:
+            task = task_queue.get()
+            if task is None:
+                return
+            task_id, seed_id, star_num, resource_index, quick = task
+            seed = api.Seed(seed_id, star_num, resource_index)
+            galaxy_data = api.search_seed.get_galaxy_data_c(seed, quick)
+            galaxy_json = json.dumps(
+                api.data_to_dict(galaxy_data),
+                ensure_ascii=True,
+                sort_keys=True,
+                separators=(",", ":"),
+            )
+            result_queue.put((task_id, galaxy_json))
+    except Exception:
+        result_queue.put({
+            "api_name": api_name,
+            "task": task,
+            "traceback": traceback.format_exc(),
+        })
 
 
-def compare(seed_id: int, star_num: int, resource_index: int, quick: bool) -> None:
-    # 对比CApi和CApi_old的get_galaxy_data_c生成的结果是否完全一致，注意这两个pyd扩展命名空间有冲突，不能同时导入，可以考虑用子进程生成信息后变成json字符串再比较。如果不一样，则停止后续比较，同时保存为两个json供人工核验
-    # 先用纯cpu跑
-    capi_json = _get_galaxy_json("CApi", seed_id, star_num, resource_index, quick)
-    old_capi_json = _get_galaxy_json("CApi_old", seed_id, star_num, resource_index, quick)
-    if capi_json == old_capi_json:
-        return
-
-    case_name = f"seed_{seed_id}_{star_num}_{resource_index}_{quick}"
-    output_paths = []
-    for api_name, galaxy_json in (("CApi", capi_json), ("CApi_old", old_capi_json)):
-        output_path = Path(__file__).resolve().parent / f"{case_name}_{api_name}.json"
-        formatted_json = json.dumps(json.loads(galaxy_json), ensure_ascii=False, indent=4)
-        output_path.write_text(f"{formatted_json}\n", encoding="utf-8")
-        output_paths.append(output_path)
-
-    raise AssertionError(
-        f"CApi mismatch for Seed({seed_id}, {star_num}, {resource_index}), "
-        f"quick={quick}; results saved to {output_paths[0]} and {output_paths[1]}"
-    )
+def _receive_result(result_queue, worker):
+    while True:
+        try:
+            result = result_queue.get(timeout=1.0)
+        except Empty:
+            if worker.exitcode is not None:
+                raise RuntimeError(
+                    f"{worker.name} exited before returning a result "
+                    f"(exit code {worker.exitcode})"
+                )
+            continue
+        if isinstance(result, dict):
+            raise RuntimeError(
+                f"{result['api_name']} failed for task {result['task']}:\n"
+                f"{result['traceback']}"
+            )
+        return result
 
 
 if __name__ == "__main__":
-    test_num = 1000  # 测试脚本时候先跑10个就好
-    for _ in tqdm(range(test_num)):
-        seed_id = random.randint(0, 99999999)
-        star_num = random.randint(32, 64)
-        resource_index = random.randint(0, 10)
-        quick = random.choice([True, False])
-        compare(seed_id, star_num, resource_index, quick)
+    quick = bool(1)
+    test_num = 100000 if quick else 1000
+    queue_size = 256 if quick else 16
+
+    context = mp.get_context("spawn")
+    api_names = ("CApi", "CApi_old")
+    task_queues = [context.Queue(maxsize=queue_size) for _ in api_names]
+    result_queues = [context.Queue(maxsize=queue_size) for _ in api_names]
+    workers = [context.Process(target=_worker, name=api_name, args=(api_name, tasks, results)) for api_name, tasks, results in zip(api_names, task_queues, result_queues)]
+    pending = deque()
+    submitted = 0
+    try:
+        for worker in workers:
+            worker.start()
+        with tqdm(total=test_num) as progress:
+            while submitted < test_num or pending:
+                # 最多八组在途任务；比较完成一组之后才补充任务。
+                while submitted < test_num and len(pending) < queue_size:
+                    task = (
+                        submitted,
+                        random.randint(0, 99999999),
+                        random.randint(32, 64),
+                        random.randint(0, 10),
+                        quick,
+                    )
+                    for task_queue in task_queues:
+                        task_queue.put(task)
+                    pending.append(task)
+                    submitted += 1
+
+                task_id, seed_id, star_num, resource_index, quick = pending.popleft()
+                results = [_receive_result(result_queue, worker) for result_queue, worker in zip(result_queues, workers)]
+                for api_name, (result_id, _) in zip(api_names, results):
+                    if result_id != task_id:
+                        raise RuntimeError(f"{api_name} returned task {result_id}, expected {task_id}")
+                capi_json, old_capi_json = (result[1] for result in results)
+                if capi_json != old_capi_json:
+                    case_name = f"seed_{seed_id}_{star_num}_{resource_index}_{quick}"
+                    output_paths = []
+                    for api_name, galaxy_json in zip(api_names, (capi_json, old_capi_json)):
+                        output_path = Path(__file__).resolve().parent / f"{case_name}_{api_name}.json"
+                        formatted_json = json.dumps(json.loads(galaxy_json), ensure_ascii=False, indent=4)
+                        output_path.write_text(f"{formatted_json}\n", encoding="utf-8")
+                        output_paths.append(output_path)
+                    raise AssertionError(
+                        f"CApi mismatch for Seed({seed_id}, {star_num}, {resource_index}), "
+                        f"quick={quick}; results saved to {output_paths[0]} and {output_paths[1]}"
+                    )
+                progress.update(1)
+
+        for task_queue in task_queues:
+            task_queue.put(None)
+        for worker in workers:
+            worker.join(timeout=5)
+            if worker.is_alive() or worker.exitcode != 0:
+                raise RuntimeError(f"{worker.name} failed to shut down (exit code {worker.exitcode})")
+    finally:
+        for worker in workers:
+            if worker.is_alive():
+                worker.terminate()
+        for worker in workers:
+            if worker.pid is not None:
+                worker.join()
+                worker.close()
+        for queue in task_queues + result_queues:
+            # 异常退出时可能还有未消费任务，不等待 feeder 刷入无人读取的管道。
+            queue.cancel_join_thread()
+            queue.close()

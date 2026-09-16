@@ -123,15 +123,6 @@
   <ItemGroup>
     <None Include="packages.config" />
     <None Include="vcpkg.json" />
-    <None Include="assets\indexMap.data">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="assets\vertices.data">
-      <Filter>资源文件</Filter>
-    </None>
-    <None Include="assets\generate_terrain.cl">
-      <Filter>资源文件</Filter>
-    </None>
     <None Include="assets\generate_terrain_double.cl">
       <Filter>资源文件</Filter>
     </None>
