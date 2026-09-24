@@ -205,6 +205,7 @@ class NormalSettingFrame(BaseSettingFrame):
             ["English", "中文"],
             tr("settings.basic.name_language"),
             cfg_key="name_language",
+            type_input="str",
         )
         self.useGpuSetting = SwitchButtonSettingItemFrame(
             tr("settings.basic.use_gpu"),

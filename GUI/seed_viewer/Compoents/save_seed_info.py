@@ -1,7 +1,7 @@
 from config.cfg_dict_tying import GalaxyExportCondition, StarExportCondition, PlanetExportCondition, CSVExportCondition
 from CApi import *
 from language import tr, tr_domain
-from config import cfg
+from config import cfg as global_cfg
 
 def _csv_label(key: str) -> str:
     return tr(f"viewer.export.csv.{key}")
@@ -58,12 +58,12 @@ def get_planet_text(galaxy: GalaxyData, cfg: PlanetExportCondition) -> str:
     for star in galaxy.stars:
         for planet in star.planets:
             planet_data = [
-                star.name_zhcn if cfg.config.name_language == "中文" else star.name_enus,
+                star.name_zhcn if global_cfg.config.name_language == "中文" else star.name_enus,
                 tr_domain("star_types", star.type),
                 round(star.dyson_lumino, 3),
                 round(star.distance, 2),
                 *star.pos_m,
-                planet.name_zhcn if cfg.config.name_language == "中文" else planet.name_enus,
+                planet.name_zhcn if global_cfg.config.name_language == "中文" else planet.name_enus,
                 tr_domain("planet_types", planet.type),
                 _tr_traits(planet.singularity_str),
                 dsp_name[planet.dsp_level],
@@ -100,7 +100,7 @@ def get_star_text(galaxy: GalaxyData, cfg: StarExportCondition) -> str:
     ]]
     for star in galaxy.stars:
         star_data = [
-            star.name_zhcn if cfg.config.name_language == "中文" else star.name_enus,
+            star.name_zhcn if global_cfg.config.name_language == "中文" else star.name_enus,
             tr_domain("star_types", star.type),
             round(star.distance, 2),
             *star.pos_m,
