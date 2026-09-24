@@ -15,7 +15,7 @@ def check_veins(seed: Seed):
         for planet_data_cpu, planet_data_gpu in zip(star_data_cpu.planets, star_data_gpu.planets):
             for i in range(14):
                 if abs(planet_data_cpu.veins_point[i] - planet_data_gpu.veins_point[i]) > 0:
-                    print(f" Seed({seed_id}, {star_num}) in {planet_data_cpu.name}({planet_data_cpu.type}) vein {i} mismatch: CPU={planet_data_cpu.veins_point[i]}, GPU={planet_data_gpu.veins_point[i]}")
+                    print(f" Seed({seed_id}, {star_num}) in {planet_data_cpu.name_zhcn}({planet_data_cpu.type}) vein {i} mismatch: CPU={planet_data_cpu.veins_point[i]}, GPU={planet_data_gpu.veins_point[i]}")
 
 if __name__ == "__main__":
     test_num = 1000

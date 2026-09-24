@@ -1026,6 +1026,8 @@ public:
 				{
 					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
 					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
 				}
 				if(vein_amount < 1)
 					vein_amount = 1;
@@ -2564,6 +2566,8 @@ public:
 				{
 					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
 					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
 				}
 				if(vein_amount < 1)
 					vein_amount = 1;
@@ -3812,6 +3816,8 @@ public:
 				{
 					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
 					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
 				}
 				if(vein_amount < 1)
 					vein_amount = 1;
@@ -4348,6 +4354,8 @@ public:
 				{
 					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
 					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
 				}
 				if(vein_amount < 1)
 					vein_amount = 1;
@@ -4824,6 +4832,8 @@ public:
 				{
 					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
 					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
+					if(vein_amount < 2500)
+						vein_amount = 2500;
 				}
 				if(vein_amount < 1)
 					vein_amount = 1;
