@@ -68,7 +68,8 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 	{
 		StarData star_data;
 		star_data.star_index = star.index;
-		star_data.name = star.name;
+		star_data.name_enus = star.name_enus;
+		star_data.name_zhcn = star.name_zhcn;
 		star_data.type = star.typeString();
 		star_data.type_id = star.typeId();
 		star_data.seed = star.seed;
@@ -88,7 +89,8 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 			PlanetData planet_data;
 			planet_data.star_index = star.index;
 			planet_data.planet_index = planet.index;
-			planet_data.name = planet.name;
+			planet_data.name_enus = planet.name_enus;
+			planet_data.name_zhcn = planet.name_zhcn;
 			planet_data.type = planet.display_name;
 			planet_data.type_id = planet.type_id;
 			planet_data.singularity = planet.singularity;
@@ -190,7 +192,8 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 	{
 		StarData star_data;
 		star_data.star_index = star.index;
-		star_data.name = star.name;
+		star_data.name_enus = star.name_enus;
+		star_data.name_zhcn = star.name_zhcn;
 		star_data.type = star.typeString();
 		star_data.type_id = star.typeId();
 		star_data.seed = star.seed;
@@ -210,7 +213,8 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 			PlanetData planet_data;
 			planet_data.star_index = star.index;
 			planet_data.planet_index = planet.index;
-			planet_data.name = planet.name;
+			planet_data.name_enus = planet.name_enus;
+			planet_data.name_zhcn = planet.name_zhcn;
 			planet_data.type = planet.display_name;
 			planet_data.type_id = planet.type_id;
 			planet_data.singularity = planet.singularity;

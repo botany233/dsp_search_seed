@@ -201,6 +201,11 @@ class NormalSettingFrame(BaseSettingFrame):
         self.languageSetting = LanguageSettingItemFrame(
             tr("settings.basic.language"),
         )
+        self.nameLanguageSetting = ComboBoxSettingItemFrame(
+            ["English", "中文"],
+            tr("settings.basic.name_language"),
+            cfg_key="name_language",
+        )
         self.useGpuSetting = SwitchButtonSettingItemFrame(
             tr("settings.basic.use_gpu"),
             None,
@@ -216,6 +221,7 @@ class NormalSettingFrame(BaseSettingFrame):
 
         self.mainLayout.addWidget(self.threadNumSetting)
         self.mainLayout.addWidget(self.languageSetting)
+        self.mainLayout.addWidget(self.nameLanguageSetting)
         self.mainLayout.addWidget(self.useGpuSetting)
 
         self.threadNumSetting.line.editingFinished.connect(self._warning_thread_count)

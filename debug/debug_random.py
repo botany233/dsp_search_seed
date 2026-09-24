@@ -11,8 +11,8 @@ from debug_random_condition import get_random_debug_condition
 cur_dir = os.path.dirname(__file__)
 
 def main(test_num: int, load_condition: bool = False):
-    cpu_thread = 20
-    gpu_thread = 20
+    cpu_thread = 18
+    gpu_thread = 18
     device_id = 0
     local_size = 256
 

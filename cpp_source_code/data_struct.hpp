@@ -62,7 +62,8 @@ struct GalaxyCondition {
 struct PlanetData {
 	int star_index;
 	int planet_index;
-	string name;
+	string name_enus;
+	string name_zhcn;
 	string type;
 	int type_id;
 	uint8_t singularity;
@@ -88,7 +89,8 @@ struct PlanetData {
 
 struct StarData {
 	int star_index;
-	string name;
+	string name_enus;
+	string name_zhcn;
 	string type;
 	int type_id;
 	int seed;

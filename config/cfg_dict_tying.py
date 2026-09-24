@@ -155,6 +155,7 @@ class GUIConfig(BaseModel):
     device_name: str = "cpu"
     max_gpu_worker: int = 4
     use_gpu: bool = False # 仅仅是方便初始化, 不过确实是关联的
+    name_language: str = "English"
     # csv
     csv: CSVExportCondition = CSVExportCondition()
 

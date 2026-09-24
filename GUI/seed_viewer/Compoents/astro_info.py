@@ -9,6 +9,7 @@ from GUI.Compoents.Widgets import GlowLabelBase
 from GUI.dsp_icons import DSPIcons
 from GUI import singularity
 from language import tr, tr_any_domain, tr_domain
+from config import cfg
 
 class GlowBodyLabel(GlowLabelBase, BodyLabel):
     def _init(self):
@@ -219,7 +220,7 @@ class StarInfo(InfoBase):
     def __init__(self, data: StarData, parent=None):
         super().__init__(data, parent)
 
-        self.title_label.setText(data.name)
+        self.title_label.setText(data.name_zhcn if cfg.config.name_language == "中文" else data.name_enus)
 
         self.sub_title_label.setText(tr_domain("star_types", data.type))
 
@@ -236,7 +237,7 @@ class PlanetInfo(InfoBase):
     def __init__(self, data: PlanetData, parent=None):
         super().__init__(data, parent)
 
-        self.title_label.setText(data.name)
+        self.title_label.setText(data.name_zhcn if cfg.config.name_language == "中文" else data.name_enus)
 
         sub_title_text = [data.type]
         if data.dsp_level == 2:

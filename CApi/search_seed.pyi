@@ -1,7 +1,8 @@
 class PlanetData:
     star_index: int
     planet_index: int
-    name: str
+    name_enus: str
+    name_zhcn: str
     type: str
     type_id: int
     singularity: int
@@ -26,7 +27,8 @@ class PlanetData:
 
 class StarData:
     star_index: int
-    name: str
+    name_enus: str
+    name_zhcn: str
     type: str
     type_id: int
     seed: int

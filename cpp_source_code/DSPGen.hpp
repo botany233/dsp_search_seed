@@ -3,6 +3,7 @@
 #pragma once
 #include <iostream>
 #include <iomanip>
+#include <tuple>
 
 #include "defines.hpp"
 #include "LDB.hpp"
@@ -24,7 +25,8 @@ public:
 	std::vector<StarClass> stars;
     int habitableCount;
 	int birthPlanetId;
-	std::set<std::string> starnames;
+	std::set<std::string> starnames_enus;
+	std::set<std::string> starnames_zhcn;
 	
 protected:
 	void SetPlanetTheme(StarClass& star,PlanetClass& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed)
@@ -165,8 +167,9 @@ protected:
 				}
 			}
 		}
-		std::string str = NameGen.roman[index + 1];
-		planet.name = star.name + " " + str;
+		std::string str(NameGen.roman[index + 1]);
+		planet.name_enus = star.name_enus + " " + str;
+		planet.name_zhcn = star.name_zhcn + " " + str;
 		double num3 = dotNet35Random.NextDouble();
 		double num4 = dotNet35Random.NextDouble();
 		double num5 = dotNet35Random.NextDouble();
@@ -853,7 +856,7 @@ protected:
 		if((double)star.dysonRadius * 40000.0 < (double)star.physicsRadius() * 1.5)
 			star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
 		star.uPosition = star.position * 2400000.0;
-		star.name = NameGen.RandomStarName(seed1,star,starnames);
+		std::tie(star.name_enus,star.name_zhcn) = NameGen.RandomStarName(seed1,star,starnames_enus,starnames_zhcn);
 		star.overrideName = "";
 	}
 
@@ -910,7 +913,7 @@ protected:
 		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
 		birthStar.uPosition = VectorLF3::zero();
-		birthStar.name = NameGen.RandomStarName(seed1,birthStar,starnames);
+		std::tie(birthStar.name_enus,birthStar.name_zhcn) = NameGen.RandomStarName(seed1,birthStar,starnames_enus,starnames_zhcn);
 		birthStar.overrideName = "";
 		return birthStar;
 	}

@@ -34,6 +34,7 @@
             "title": "基础设置",
             "max_cpu_threads": "最大CPU线程数",
             "language": "语言",
+            "name_language": "名称语言",
             "use_gpu": "启用GPU加速",
             "thread_warning": "当前设置的线程数≥CPU线程数，搜索时UI界面可能会卡顿"
         },

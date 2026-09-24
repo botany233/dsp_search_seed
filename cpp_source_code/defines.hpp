@@ -171,7 +171,8 @@ public:
 	int orbitAround;
 	int number;
 	int orbitIndex;
-	std::string name;
+	std::string name_enus;
+	std::string name_zhcn;
 	std::string overrideName;
 	float orbitRadius = 1.0f;
 	float maxorbitRadius;
@@ -252,7 +253,8 @@ public:
 	int seed;
 	int index;
 	int id;
-	std::string name;
+	std::string name_enus;
+	std::string name_zhcn;
 	std::string overrideName;
 	VectorLF3 position;
 	VectorLF3 uPosition;
