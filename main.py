@@ -1,12 +1,17 @@
-from GUI.MainWindow import MainWindow
-from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt
 import sys
 import os
-from config import cfg
-from CApi import *
 
 def main():
+    from logger import install_exception_hooks
+
+    install_exception_hooks()
+
+    from GUI.MainWindow import MainWindow
+    from PySide6.QtWidgets import QApplication
+    from PySide6.QtCore import Qt
+    from config import cfg
+    from CApi import do_init_c
+
     do_init_c()
     if cfg.config.language == "en_US":
         cfg.config.ui_scale_factor = 0.84

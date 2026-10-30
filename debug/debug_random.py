@@ -13,7 +13,7 @@ cur_dir = os.path.dirname(__file__)
 
 def prepare_random_search(cpu_thread: int):
     # 每轮先选模式，防止预筛把标准矿物条件全部挤掉。
-    need_veins, quick = random.choice([(False, True), (True, True), (True, False)])
+    need_veins, quick = random.choices([(False, True), (True, True), (True, False)], weights=[0.2, 0.4, 0.4], k=1)[0]
     for attempt in range(1, 101):
         raw, seeds, star_nums, resource_index, quick = get_random_debug_condition(need_veins, quick)
         condition = change_galaxy_condition_legal(deepcopy(raw))
@@ -32,10 +32,9 @@ def prepare_random_search(cpu_thread: int):
     py_time = elapsed
     end_seed = seeds[1]
     batch_size = sample_num
-    while py_time < 40 and end_seed < 99999999:
-        batch_seconds = min(5, 45 - py_time)
-        batch_size = max(1, min(int(batch_size * batch_seconds / max(elapsed, 0.001)),
-                                batch_size * 4, 100000, 99999999 - end_seed))
+    while py_time < 30 and end_seed < 99999999 and end_seed - seeds[0] < 100000:
+        batch_seconds = min(5, 35 - py_time)
+        batch_size = max(1, min(int(batch_size * batch_seconds / max(elapsed, 0.001)), batch_size * 4, 100000, 99999999 - end_seed))
         batch_seeds = (end_seed + 1, end_seed + batch_size)
         flag = perf_counter()
         results.extend(check_seeds_py(batch_seeds, star_nums, resource_index, condition, quick, cpu_thread))
@@ -66,10 +65,7 @@ def main(test_num: int, load_condition: bool = False):
             galaxy_condition_raw, seeds, star_nums, resource_index, quick, py_results, py_time = prepare_random_search(cpu_thread)
             galaxy_condition = change_galaxy_condition_legal(deepcopy(galaxy_condition_raw))
         total = seeds[1] - seeds[0] + 1
-        print(f"搜索范围: {seeds}，64星，{resource_rate_c[resource_index]}，{'快速' if quick else '标准'}，"
-              f"Python命中率{len(py_results) / total:.2%}")
-        if not 30 <= py_time <= 60:
-            print(f"提示：本轮Python用时{py_time:.2f}s，超出30~60s目标范围")
+        print(f"搜索范围: {seeds}，64星，{resource_rate_c[resource_index]}，{'快速' if quick else '标准'}，Python命中率{len(py_results) / total:.2%}")
 
         flag = perf_counter()
         check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)

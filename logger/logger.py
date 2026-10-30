@@ -12,7 +12,7 @@ class CustomFormatter(colorlog.ColoredFormatter):
 
     def format(self, record: logging.LogRecord) -> str:
         record.pathname = os.path.relpath(record.pathname, self.root).replace("..\\..\\", "")
-        if record.levelno >= logging.ERROR:
+        if record.levelno >= logging.ERROR and not record.exc_info:
             exc_msg = format_exc()
             if "NoneType" not in exc_msg:
                 record.msg = f"{record.msg}\n{exc_msg}"
