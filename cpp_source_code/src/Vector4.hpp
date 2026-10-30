@@ -37,7 +37,8 @@ public:
 	};
 
 	float magnitude() const {
-		return std::sqrt(x * x + y * y + z * z + w * w);
+		const float squared = static_cast<float>(((static_cast<double>(x) * x + static_cast<double>(y) * y) + static_cast<double>(z) * z) + static_cast<double>(w) * w);
+		return static_cast<float>(std::sqrt(static_cast<double>(squared)));
 	};
 
 	void Normalize() {

@@ -1,25 +1,23 @@
 #pragma once
 #include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
+#include <algorithm>
+#include <atomic>
 #include <condition_variable>
-#include <iostream>
+#include <cstdint>
 #include <mutex>
 #include <queue>
+#include <stop_token>
 #include <thread>
+#include <utility>
 #include <vector>
-#include <atomic>
-#include <chrono>
-#include <memory>
 #include <windows.h>
 
-#include "defines.hpp"
 #include "data_struct.hpp"
 #include "check_seed.hpp"
 #include "python_api.hpp"
 #include "seed_manager.hpp"
 #include "condition_to_struct.hpp"
 
-using namespace std;
 namespace py = pybind11;
 
 class GetDataQueue {
@@ -30,39 +28,39 @@ protected:
 	};
 
 	int max_cache;
-	thread worker_thread;
-	mutex task_mtx;
-	queue<Task> tasks;
-	condition_variable on_task_generated;
-	atomic<bool> stop = false;
+	std::mutex task_mtx;
+	std::queue<Task> tasks;
+	std::condition_variable_any on_task_generated;
+	bool stopped = false;
 
-	mutex result_mtx;
-	condition_variable on_result_clear;
-	vector<GalaxyData> result;
+	std::mutex result_mtx;
+	std::condition_variable_any on_result_clear;
+	std::vector<GalaxyData> result;
+	// Threads must be destroyed before the state they access.
+	std::jthread worker_thread;
 
-	void worker_func() {
+	void worker_func(std::stop_token token) {
 		while(true) {
 			Task task;
 			{
-				unique_lock<mutex> lck(task_mtx);
-				on_task_generated.wait(lck,[this]() { return !tasks.empty() || stop.load(); });
-				if(stop.load())
+				std::unique_lock lck(task_mtx);
+				on_task_generated.wait(lck,token,[this] { return !tasks.empty(); });
+				if(stopped || token.stop_requested())
 					break;
 				task = tasks.front();
 				tasks.pop();
 			}
 
-			GalaxyData galaxy_data = get_galaxy_data_para(task.seed,task.thread_num);
-			unique_lock<mutex> lck(result_mtx);
-			on_result_clear.wait(lck,[this]() { return result.size() < max_cache || stop.load(); });
-			result.push_back(move(galaxy_data));
+			auto galaxy_data = get_galaxy_data_para(task.seed,task.thread_num);
+			std::unique_lock lck(result_mtx);
+			// An in-flight result is retained even when stopping with a full cache.
+			on_result_clear.wait(lck,token,[this] { return result.size() < max_cache; });
+			result.push_back(std::move(galaxy_data));
 		}
 	}
 public:
-	GetDataQueue(int max_cache=1024) {
-		this->max_cache = max(max_cache,1);
-		worker_thread = thread(&GetDataQueue::worker_func,this);
-	}
+	explicit GetDataQueue(int max_cache=1024): max_cache(std::max(max_cache,1)),
+		worker_thread([this](std::stop_token token) { worker_func(token); }) {}
 
 	~GetDataQueue() {
 		shutdown();
@@ -70,8 +68,8 @@ public:
 
 	void add_task(const SeedStruct& seed,int thread_num) {
 		{
-			lock_guard<mutex> lck(task_mtx);
-			if(stop.load())
+			std::lock_guard lck(task_mtx);
+			if(stopped)
 				return;
 			tasks.push({seed,thread_num});
 		}
@@ -79,19 +77,20 @@ public:
 	}
 
 	void shutdown() {
-		stop.store(true);
-		on_task_generated.notify_all();
-		on_result_clear.notify_all();
+		{
+			std::lock_guard lck(task_mtx);
+			stopped = true;
+		}
+		worker_thread.request_stop();
 		if(worker_thread.joinable())
 			worker_thread.join();
 	}
 
-	vector<GalaxyData> get_results() {
-		vector<GalaxyData> return_result;
+	std::vector<GalaxyData> get_results() {
+		std::vector<GalaxyData> return_result;
 		{
-			lock_guard<mutex> lck(result_mtx);
-			return_result = move(result);
-			result.clear();
+			std::lock_guard lck(result_mtx);
+			return_result.swap(result);
 		}
 		on_result_clear.notify_one();
 		return return_result;
@@ -100,45 +99,48 @@ public:
 
 class GetDataManager {
 protected:
-	vector<thread> search_threads{};
-	mutex task_mtx;
-	queue<SeedStruct> tasks{};
-	condition_variable on_task_generated;
-	atomic<bool> stop = false;
-
+	std::mutex task_mtx;
+	std::queue<SeedStruct> tasks;
+	std::condition_variable_any on_task_generated;
+	bool stopped = false;
 	int max_thread;
 	bool quick;
 	int max_cache;
 
-	mutex result_mtx;
-	condition_variable on_result_clear;
-	vector<GalaxyData> result{};
+	std::mutex result_mtx;
+	std::condition_variable_any on_result_clear;
+	std::vector<GalaxyData> result;
+	std::vector<std::jthread> search_threads;
 
-	void search_func() {
+	void search_func(std::stop_token token) {
 		while(true) {
-			unique_lock<mutex> task_lck(task_mtx);
-			on_task_generated.wait(task_lck,[this]() { return !tasks.empty() || stop.load(); });
-			if(stop.load()) {
-				task_lck.unlock();
-				break;
+			SeedStruct current_task;
+			{
+				std::unique_lock lck(task_mtx);
+				on_task_generated.wait(lck,token,[this] { return !tasks.empty(); });
+				if(stopped || token.stop_requested())
+					break;
+				current_task = tasks.front();
+				tasks.pop();
 			}
-			SeedStruct current_task = tasks.front();
-			tasks.pop();
-			task_lck.unlock();
 
-			GalaxyData galaxy_data = get_galaxy_data(current_task,quick);
-			unique_lock<mutex> lck(result_mtx);
-			on_result_clear.wait(lck,[this]() { return result.size() < max_cache || stop.load(); });
-			result.push_back(galaxy_data);
+			auto galaxy_data = get_galaxy_data(current_task,quick);
+			std::unique_lock lck(result_mtx);
+			on_result_clear.wait(lck,token,[this] { return result.size() < max_cache; });
+			result.push_back(std::move(galaxy_data));
 		}
 	}
 public:
-	GetDataManager(int max_thread,bool quick,int max_cache=1024) {
-		this->max_thread = clamp(max_thread,1,128);
-		this->quick = quick;
-		this->max_cache = max(max_cache,1);
-		for(int i=0;i<max_thread;i++) {
-			search_threads.push_back(thread(&GetDataManager::search_func,this));
+	GetDataManager(int max_thread,bool quick,int max_cache=1024):
+		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1))
+	{
+		try {
+			search_threads.reserve(this->max_thread);
+			for(int i=0;i<this->max_thread;++i)
+				search_threads.emplace_back([this](std::stop_token token) { search_func(token); });
+		} catch(...) {
+			shutdown();
+			throw;
 		}
 	}
 
@@ -148,30 +150,33 @@ public:
 
 	void add_task(const SeedStruct& seed) {
 		{
-			lock_guard<mutex> lck(task_mtx);
+			std::lock_guard lck(task_mtx);
+			if(stopped)
+				return;
 			tasks.push(seed);
 		}
 		on_task_generated.notify_one();
 	}
 
 	void shutdown() {
-		stop.store(true);
-		on_task_generated.notify_all();
-		on_result_clear.notify_all();
-		for(int i=0;i<max_thread;i++) {
-			thread& search_thread = search_threads[i];
-			if(search_thread.joinable())
-				search_thread.join();
+		{
+			std::lock_guard lck(task_mtx);
+			stopped = true;
 		}
-		//search_threads.clear();
+		for(auto& worker: search_threads)
+			worker.request_stop();
+		for(auto& worker: search_threads) {
+			if(worker.joinable())
+				worker.join();
+		}
+		search_threads.clear();
 	}
 
-	vector<GalaxyData> get_results() {
-		vector<GalaxyData> return_result;
+	std::vector<GalaxyData> get_results() {
+		std::vector<GalaxyData> return_result;
 		{
-			lock_guard<mutex> lck(result_mtx);
-			return_result = move(result);
-			result.clear();
+			std::lock_guard lck(result_mtx);
+			return_result.swap(result);
 		}
 		on_result_clear.notify_all();
 		return return_result;
@@ -180,72 +185,67 @@ public:
 
 class CheckPreciseManager {
 protected:
-	vector<thread> search_threads;
-	thread task_thread;
-	mutex task_mtx;
-	queue<SeedStruct> tasks;
-	condition_variable cv_generator;
-	condition_variable cv_consumer;
+	std::mutex task_mtx;
+	std::queue<SeedStruct> tasks;
+	std::condition_variable_any cv_generator;
+	std::condition_variable_any cv_consumer;
+	bool paused = false;
+	bool stopped = false;
+	bool started = false;
+	bool finish = false;
+	std::atomic<int> working_num = 0;
 
-	atomic<int> working_num = 0;
-	enum class State: uint8_t {Running,Paused,Stopped};
-	atomic<State> state{State::Running};
-	atomic<bool> finish = false;
-
-	uint8_t resource_index;
-	SeedManager* seed_manager = nullptr;
+	std::uint8_t resource_index;
+	SeedManager* seed_manager;
 	GalaxyCondition galaxy_condition;
 	int max_thread;
 	int check_level;
 
-	atomic<size_t> finish_task_num = 0;
-	mutex result_mtx;
-	vector<SeedStruct> result;
+	std::atomic<std::size_t> finish_task_num = 0;
+	std::mutex result_mtx;
+	std::vector<SeedStruct> result;
+	std::vector<std::jthread> search_threads;
+	std::jthread task_thread;
 
-	void task_generator() {
+	void task_generator(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		seed_manager->reset_index();
 		while(true) {
-			state.wait(State::Paused);
-			{
-				unique_lock<mutex> lck(task_mtx);
-				cv_generator.wait(lck,[this]() {return tasks.size() <= 1024 || state.load()==State::Stopped;});
-			}
-			if(state.load()==State::Stopped)
+			std::unique_lock lck(task_mtx);
+			cv_generator.wait(lck,token,[this] { return !paused && tasks.size() <= 1024; });
+			if(stopped || token.stop_requested())
 				break;
-			vector<SeedStruct> batch_seeds = seed_manager->get_seeds(1024,resource_index);
+			auto batch_seeds = seed_manager->get_seeds(1024,resource_index);
 			if(batch_seeds.empty())
 				break;
-			{
-				lock_guard<mutex> lck(task_mtx);
-				for(const SeedStruct& seed: batch_seeds)
-					tasks.push(seed);
-			}
+			for(const auto& seed: batch_seeds)
+				tasks.push(seed);
+			lck.unlock();
 			cv_consumer.notify_all();
 		}
-		finish.store(true);
+		{
+			std::lock_guard lck(task_mtx);
+			finish = true;
+		}
 		cv_consumer.notify_all();
 	}
 
-	void search_func() {
+	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		while(true) {
-			state.wait(State::Paused);
 			SeedStruct current_task;
 			{
-				unique_lock<mutex> lck(task_mtx);
-				cv_consumer.wait(lck,[this]() { return !tasks.empty() || finish.load() || state.load()==State::Stopped; });
-				if(state.load()==State::Stopped)
-					break;
-				if(tasks.empty() && finish.load())
+				std::unique_lock lck(task_mtx);
+				cv_consumer.wait(lck,token,[this] { return !paused && (!tasks.empty() || finish); });
+				if(stopped || token.stop_requested() || (tasks.empty() && finish))
 					break;
 				current_task = tasks.front();
 				tasks.pop();
 			}
 			cv_generator.notify_one();
 			if(check_seed(current_task,galaxy_condition,check_level)) {
-				lock_guard<mutex> lck(result_mtx);
+				std::lock_guard lck(result_mtx);
 				result.push_back(current_task);
 			}
 			finish_task_num.fetch_add(1);
@@ -253,36 +253,48 @@ protected:
 		working_num.fetch_sub(1);
 	}
 public:
-	CheckPreciseManager(SeedManager& seed_manager,uint8_t resource_index,
-		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
-	{
-		this->galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		this->check_level = get_condition_level(galaxy_condition,quick);
-		this->resource_index = resource_index;
-		this->max_thread = max_thread;
-		this->seed_manager = &seed_manager;
-	}
+	CheckPreciseManager(SeedManager& seed_manager,std::uint8_t resource_index,
+		const py::dict& galaxy_condition_dict,bool quick,int max_thread):
+		resource_index(resource_index),seed_manager(&seed_manager),
+		galaxy_condition(galaxy_condition_to_struct(galaxy_condition_dict)),
+		max_thread(std::clamp(max_thread,1,128)),check_level(get_condition_level(galaxy_condition,quick)) {}
 
 	~CheckPreciseManager() {
 		shutdown();
 	}
 
 	void start_wait() {
-		State expected = State::Running;
-		state.compare_exchange_strong(expected,State::Paused);
+		std::lock_guard lck(task_mtx);
+		paused = true;
 	}
 
 	void end_wait() {
-		State expected = State::Paused;
-		state.compare_exchange_strong(expected,State::Running);
-		state.notify_all();
+		{
+			std::lock_guard lck(task_mtx);
+			paused = false;
+		}
+		cv_generator.notify_all();
+		cv_consumer.notify_all();
 	}
 
 	void run() {
-		task_thread = thread(&CheckPreciseManager::task_generator,this);
-		for(int i=0;i<max_thread;i++) {
-			working_num.fetch_add(1);
-			search_threads.push_back(thread(&CheckPreciseManager::search_func,this));
+		{
+			std::lock_guard lck(task_mtx);
+			if(started || stopped)
+				return;
+			started = true;
+		}
+		// Count all workers before any can finish, including those not yet created.
+		working_num.store(max_thread);
+		try {
+			search_threads.reserve(max_thread);
+			task_thread = std::jthread([this](std::stop_token token) { task_generator(token); });
+			for(int i=0;i<max_thread;++i)
+				search_threads.emplace_back([this](std::stop_token token) { search_func(token); });
+		} catch(...) {
+			working_num.fetch_sub(max_thread - static_cast<int>(search_threads.size()));
+			shutdown();
+			throw;
 		}
 	}
 
@@ -291,86 +303,90 @@ public:
 	}
 
 	void shutdown() {
-		state.store(State::Stopped);
-		state.notify_all();
-		cv_generator.notify_all();
-		cv_consumer.notify_all();
+		{
+			std::lock_guard lck(task_mtx);
+			stopped = true;
+		}
+		task_thread.request_stop();
+		for(auto& worker: search_threads)
+			worker.request_stop();
 		if(task_thread.joinable())
 			task_thread.join();
-		for(thread& search_thread: search_threads) {
-			if(search_thread.joinable())
-				search_thread.join();
+		for(auto& worker: search_threads) {
+			if(worker.joinable())
+				worker.join();
 		}
-		//search_threads.clear();
+		search_threads.clear();
 	}
 
-	size_t get_task_num() {
+	std::size_t get_task_num() {
 		return seed_manager->get_seeds_count();
 	}
 
-	size_t get_task_progress() {
+	std::size_t get_task_progress() {
 		return finish_task_num.load();
 	}
 
-	size_t get_result_num() {
-		lock_guard<mutex> lck(result_mtx);
+	std::size_t get_result_num() {
+		std::lock_guard lck(result_mtx);
 		return result.size();
 	}
 
 	SeedStruct get_last_result() {
-		lock_guard<mutex> lck(result_mtx);
-		if(result.empty())
-			return SeedStruct(-1,-1,0.0f);
-		return result.back();
+		std::lock_guard lck(result_mtx);
+		return result.empty() ? SeedStruct(-1,-1,0) : result.back();
 	}
 
-	vector<SeedStruct> get_results() {
-		lock_guard<mutex> lck(result_mtx);
+	std::vector<SeedStruct> get_results() {
+		std::lock_guard lck(result_mtx);
 		return result;
 	}
 };
 
 class CheckBatchManager {
 protected:
-	vector<thread> search_threads;
-	atomic<int> working_num = 0;
-	atomic<size_t> task_id = 0;
-	atomic<size_t> finish_task_num = 0;
-	enum class State: uint8_t {Running,Paused,Stopped};
-	atomic<State> state{State::Running};
+	std::atomic<int> working_num = 0;
+	std::atomic<std::size_t> task_id = 0;
+	std::atomic<std::size_t> finish_task_num = 0;
+	std::mutex task_mtx;
+	std::condition_variable_any cv_resume;
+	bool paused = false;
+	bool stopped = false;
+	bool started = false;
 
 	GalaxyCondition galaxy_condition;
 	int check_level;
 	int start_seed;
-	int end_seed;
 	int start_star_num;
-	int end_star_num;
-	uint8_t resource_index;
-	size_t task_num;
+	int star_num_count;
+	std::uint8_t resource_index;
+	std::size_t task_num;
 	int max_thread;
 
-	mutex mtx;
-	vector<SeedStruct> result;
+	std::mutex result_mtx;
+	std::vector<SeedStruct> result;
+	std::vector<std::jthread> search_threads;
 
-	void search_func() {
+	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		while(true) {
-			state.wait(State::Paused);
-			if(state.load()==State::Stopped)
-				break;
-
-			size_t current_task_id = task_id.fetch_add(1);
-			if(current_task_id >= task_num) {
-				break;
+			std::size_t current_task_id;
+			{
+				std::unique_lock lck(task_mtx);
+				cv_resume.wait(lck,token,[this] { return !paused; });
+				if(stopped || token.stop_requested())
+					break;
+				current_task_id = task_id.fetch_add(1);
 			}
+			if(current_task_id >= task_num)
+				break;
 
-			int seed_id = start_seed + current_task_id / (end_star_num - start_star_num);
-			int star_num = start_star_num + current_task_id % (end_star_num - start_star_num);
-			SeedStruct task = SeedStruct(seed_id,star_num,resource_index);
-
+			const int seed_id = start_seed + static_cast<int>(current_task_id / star_num_count);
+			const int star_num = start_star_num + static_cast<int>(current_task_id % star_num_count);
+			const SeedStruct task(seed_id,star_num,resource_index);
 			if(check_seed(task,galaxy_condition,check_level)) {
-				lock_guard<mutex> lck(mtx);
+				std::lock_guard lck(result_mtx);
 				result.push_back(task);
 			}
 			finish_task_num.fetch_add(1);
@@ -378,57 +394,51 @@ protected:
 		working_num.fetch_sub(1);
 	}
 public:
-	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
-		const py::dict& galaxy_condition_dict,bool quick,int max_thread)
-	{
-		this->galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
-		this->check_level = get_condition_level(galaxy_condition,quick);
-		this->start_seed = start_seed;
-		this->end_seed = end_seed;
-		this->start_star_num = start_star_num;
-		this->end_star_num = end_star_num;
-		this->resource_index = resource_index;
-		this->max_thread = max_thread;
-		size_t seed_count = end_seed > start_seed ? end_seed - start_seed : 0;
-		size_t star_num_count = end_star_num > start_star_num ? end_star_num - start_star_num : 0;
-		this->task_num = seed_count * star_num_count;
-	}
+	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
+		const py::dict& galaxy_condition_dict,bool quick,int max_thread):
+		CheckBatchManager(start_seed,end_seed,start_star_num,end_star_num,resource_index,
+			galaxy_condition_to_struct(galaxy_condition_dict),quick,max_thread) {}
 
-	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
-		const GalaxyCondition& galaxy_condition,bool quick,int max_thread)
-	{
-		this->galaxy_condition = galaxy_condition;
-		this->check_level = get_condition_level(galaxy_condition,quick);
-		this->start_seed = start_seed;
-		this->end_seed = end_seed;
-		this->start_star_num = start_star_num;
-		this->end_star_num = end_star_num;
-		this->resource_index = resource_index;
-		this->max_thread = max_thread;
-		size_t seed_count = end_seed > start_seed ? end_seed - start_seed : 0;
-		size_t star_num_count = end_star_num > start_star_num ? end_star_num - start_star_num : 0;
-		this->task_num = seed_count * star_num_count;
-	}
+	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
+		const GalaxyCondition& galaxy_condition,bool quick,int max_thread):
+		galaxy_condition(galaxy_condition),check_level(get_condition_level(galaxy_condition,quick)),
+		start_seed(start_seed),start_star_num(start_star_num),star_num_count(std::max(end_star_num-start_star_num,0)),
+		resource_index(resource_index),task_num(std::size_t(std::max(end_seed-start_seed,0)) * star_num_count),
+		max_thread(std::clamp(max_thread,1,128)) {}
 
 	~CheckBatchManager() {
 		shutdown();
 	}
 
 	void start_wait() {
-		State expected = State::Running;
-		state.compare_exchange_strong(expected,State::Paused);
+		std::lock_guard lck(task_mtx);
+		paused = true;
 	}
 
 	void end_wait() {
-		State expected = State::Paused;
-		state.compare_exchange_strong(expected,State::Running);
-		state.notify_all();
+		{
+			std::lock_guard lck(task_mtx);
+			paused = false;
+		}
+		cv_resume.notify_all();
 	}
 
 	void run() {
-		for(int i=0;i<max_thread;i++) {
-			working_num.fetch_add(1);
-			search_threads.push_back(thread(&CheckBatchManager::search_func,this));
+		{
+			std::lock_guard lck(task_mtx);
+			if(started || stopped)
+				return;
+			started = true;
+		}
+		working_num.store(max_thread);
+		try {
+			search_threads.reserve(max_thread);
+			for(int i=0;i<max_thread;++i)
+				search_threads.emplace_back([this](std::stop_token token) { search_func(token); });
+		} catch(...) {
+			working_num.fetch_sub(max_thread - static_cast<int>(search_threads.size()));
+			shutdown();
+			throw;
 		}
 	}
 
@@ -437,37 +447,39 @@ public:
 	}
 
 	void shutdown() {
-		state.store(State::Stopped);
-		state.notify_all();
-		for(thread& search_thread: search_threads) {
-			if(search_thread.joinable())
-				search_thread.join();
+		{
+			std::lock_guard lck(task_mtx);
+			stopped = true;
+		}
+		for(auto& worker: search_threads)
+			worker.request_stop();
+		for(auto& worker: search_threads) {
+			if(worker.joinable())
+				worker.join();
 		}
 		search_threads.clear();
 	}
 
-	size_t get_task_num() const {
+	std::size_t get_task_num() const {
 		return task_num;
 	}
 
-	size_t get_task_progress() {
+	std::size_t get_task_progress() {
 		return finish_task_num.load();
 	}
 
-	size_t get_result_num() {
-		lock_guard<mutex> lck(mtx);
+	std::size_t get_result_num() {
+		std::lock_guard lck(result_mtx);
 		return result.size();
 	}
 
 	SeedStruct get_last_result() {
-		lock_guard<mutex> lck(mtx);
-		if(result.empty())
-			return SeedStruct(-1,0,0);
-		return result.back();
+		std::lock_guard lck(result_mtx);
+		return result.empty() ? SeedStruct(-1,0,0) : result.back();
 	}
 
-	vector<SeedStruct> get_results() {
-		lock_guard<mutex> lck(mtx);
+	std::vector<SeedStruct> get_results() {
+		std::lock_guard lck(result_mtx);
 		return result;
 	}
 };

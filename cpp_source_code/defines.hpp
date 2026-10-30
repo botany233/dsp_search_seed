@@ -6,11 +6,11 @@
 #include <cstdint>
 #include <string_view>
 
-#include "Maths.hpp"
-#include "Vector2.hpp"
-#include "Vector3.hpp"
-#include "DotNet35Random.hpp"
-#include "quaternion.hpp"
+#include "src/Maths.hpp"
+#include "src/Vector2.hpp"
+#include "src/Vector3.hpp"
+#include "src/DotNet35Random.hpp"
+#include "src/quaternion.hpp"
 
 enum ESpectrType {
     M = 0,

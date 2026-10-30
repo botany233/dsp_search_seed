@@ -34,11 +34,13 @@ public:
 	}
 
 	float sqrMagnitude() {
-		return x * x + y * y;
+		return static_cast<float>(static_cast<double>(x) * x + static_cast<double>(y) * y);
 	};
 
 	float magnitude() const {
-		return std::sqrt(x * x + y * y);
+		const double dx = x;
+		const double dy = y;
+		return static_cast<float>(std::sqrt(dx * dx + dy * dy));
 	};
 
 	void Normalize() {

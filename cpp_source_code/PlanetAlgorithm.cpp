@@ -1,7 +1,7 @@
 #include "PlanetAlgorithm.hpp"
 
 bool OpenCLManager::set_device_id(int input_device_id) {
-	lock_guard<mutex> lck(lock);
+	std::lock_guard<std::mutex> lck(lock);
 	cfg_version++;
 
 	devices.clear();
@@ -79,7 +79,7 @@ bool OpenCLManager::set_device_id(int input_device_id) {
 		throw std::runtime_error("Program build failed");
 	}
 
-	vector<float> vertices(LAND_DATALENGTH*3);
+	std::vector<float> vertices(LAND_DATALENGTH*3);
 	for(int i=0;i<LAND_DATALENGTH;i++) {
 		int index = PlanetAlgorithm::landIndex[i];
 		vertices[i*3] = PlanetAlgorithm::vertices[index].x;

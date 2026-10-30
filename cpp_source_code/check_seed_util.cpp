@@ -7,12 +7,10 @@
 #include "defines.hpp"
 #include "data_struct.hpp"
 #include "astro_class.hpp"
-#include "max_flow.hpp"
-#include "VectorLF3.hpp"
+#include "src/max_flow.hpp"
+#include "src/VectorLF3.hpp"
 
-using namespace std;
-
-static bool check_bond_position(vector<VectorLF3> pos1,vector<VectorLF3> pos2,const BondCondition bond_condition) {
+static bool check_bond_position(std::vector<VectorLF3> pos1,std::vector<VectorLF3> pos2,const BondCondition bond_condition) {
 	int limit1 = std::visit([](const auto& c) { return c.satisfy_num; },bond_condition.con1);
 	int limit2 = std::visit([](const auto& c) { return c.satisfy_num; },bond_condition.con2);
 	if(pos1.size()*limit1 < bond_condition.satisfy_num || pos2.size()*limit2 < bond_condition.satisfy_num)
@@ -37,7 +35,7 @@ static bool check_bond_position(vector<VectorLF3> pos1,vector<VectorLF3> pos2,co
 }
 
 template<typename T>
-static bool check_veins(const array<T,14>& need_veins,const T* has_veins)
+static bool check_veins(const std::array<T,14>& need_veins,const T* has_veins)
 {
 	for(int i = 0; i < need_veins.size(); i++) {
 		if(need_veins[i] > has_veins[i])
@@ -154,19 +152,21 @@ int get_need_generate_planet_num(const GalaxyClassSimple& galaxy_data,const Gala
 	return result;
 }
 
-static bool check_planet_level_2(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_planet_level_2(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
-	if(planet_condition.dsp_level > planet_data.dsp_level)
-		return false;
-	if(!(planet_condition.type & planet_data.type_mask))
-		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
+	if(planet_condition.dsp_level || planet_condition.type != 0xFFFFFFFF || planet_condition.need_veins)
+		planet_data.SetPlanetTheme();
+	if(planet_condition.dsp_level && planet_condition.dsp_level > planet_data.dsp_level)
+		return false;
+	if(planet_condition.type != 0xFFFFFFFF && !(planet_condition.type & planet_data.type_mask))
 		return false;
 	if((planet_condition.need_veins & planet_data.has_veins) != planet_condition.need_veins)
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
-		for(const PlanetClassSimple& moon: planet_data.moons) {
+		for(PlanetClassSimple& moon: planet_data.moons) {
 			if(check_planet_level_2(moon,moon_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -179,7 +179,7 @@ static bool check_planet_level_2(const PlanetClassSimple& planet_data,const Plan
 	return true;
 }
 
-static bool check_star_level_2(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_2(StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(!(star_condition.type & star_data.type_mask))
 		return false;
@@ -187,11 +187,13 @@ static bool check_star_level_2(const StarClassSimple& star_data,const StarCondit
 		return false;
 	if(star_condition.dyson_lumino > star_data.luminosity)
 		return false;
+	if(star_condition.need_veins)
+		star_data.SetPlanetThemes();
 	if((star_condition.need_veins & star_data.has_veins) != star_condition.need_veins)
 		return false;
 	for(const PlanetCondition& planet_condition: star_condition.planets) {
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetClassSimple& planet_data: star_data.planets) {
+		for(PlanetClassSimple& planet_data: star_data.planets) {
 			if(check_planet_level_2(planet_data,planet_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num <= 0)
@@ -204,11 +206,11 @@ static bool check_star_level_2(const StarClassSimple& star_data,const StarCondit
 	return true;
 }
 
-bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+bool check_galaxy_level_2(GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
 		int left_satisfy_num = star_condition.satisfy_num;
-		for(const StarClassSimple& star_data: galaxy_data.stars) {
+		for(StarClassSimple& star_data: galaxy_data.stars) {
 			if(check_star_level_2(star_data,star_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -220,7 +222,7 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	}
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetClassSimple& planet: galaxy_data.planets) {
+		for(PlanetClassSimple& planet: galaxy_data.planets) {
 			if(check_planet_level_2(planet,planet_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -231,25 +233,25 @@ bool check_galaxy_level_2(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 			return false;
 	}
 	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
-		vector<VectorLF3> pos1,pos2;
+		std::vector<VectorLF3> pos1,pos2;
 		pos1.reserve(galaxy_data.planetCount);
 		pos2.reserve(galaxy_data.planetCount);
-		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
-			for(const PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_2(planet_data,get<PlanetCondition>(bond_condition.con1)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con1)) {
+			for(PlanetClassSimple& planet_data : galaxy_data.planets)
+				if(check_planet_level_2(planet_data,std::get<PlanetCondition>(bond_condition.con1)))
 					pos1.push_back(planet_data.star->position);
 		} else {
-			for(const StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_2(star_data,get<StarCondition>(bond_condition.con1)))
+			for(StarClassSimple& star_data : galaxy_data.stars)
+				if(check_star_level_2(star_data,std::get<StarCondition>(bond_condition.con1)))
 					pos1.push_back(star_data.position);
 		}
-		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
-			for(const PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_2(planet_data,get<PlanetCondition>(bond_condition.con2)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con2)) {
+			for(PlanetClassSimple& planet_data : galaxy_data.planets)
+				if(check_planet_level_2(planet_data,std::get<PlanetCondition>(bond_condition.con2)))
 					pos2.push_back(planet_data.star->position);
 		} else {
-			for(const StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_2(star_data,get<StarCondition>(bond_condition.con2)))
+			for(StarClassSimple& star_data : galaxy_data.stars)
+				if(check_star_level_2(star_data,std::get<StarCondition>(bond_condition.con2)))
 					pos2.push_back(star_data.position);
 		}
 		if(!check_bond_position(pos1,pos2,bond_condition))
@@ -293,6 +295,7 @@ void tag_need_veins_star(StarClassSimple& star_data,const StarCondition& star_co
 void tag_need_veins_galaxy(GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition) {
 	if(galaxy_condition.need_veins) {
 		for(PlanetClassSimple& planet_data: galaxy_data.planets) {
+			planet_data.SetPlanetTheme();
 			if(galaxy_condition.need_veins & planet_data.has_veins) {
 				planet_data.need_generate_veins = true;
 				if(galaxy_condition.need_veins_amount)
@@ -310,40 +313,42 @@ void tag_need_veins_galaxy(GalaxyClassSimple& galaxy_data,const GalaxyCondition&
 			tag_need_veins_planet(planet_data,planet_condition);
 	}
 	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
-		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con1)) {
 			for(PlanetClassSimple& planet_data: galaxy_data.planets) {
-				tag_need_veins_planet(planet_data,get<PlanetCondition>(bond_condition.con1));
+				tag_need_veins_planet(planet_data,std::get<PlanetCondition>(bond_condition.con1));
 			}
 		} else {
 			for(StarClassSimple& star_data: galaxy_data.stars) {
-				tag_need_veins_star(star_data,get<StarCondition>(bond_condition.con1));
+				tag_need_veins_star(star_data,std::get<StarCondition>(bond_condition.con1));
 			}
 		}
-		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con2)) {
 			for(PlanetClassSimple& planet_data: galaxy_data.planets) {
-				tag_need_veins_planet(planet_data,get<PlanetCondition>(bond_condition.con2));
+				tag_need_veins_planet(planet_data,std::get<PlanetCondition>(bond_condition.con2));
 			}
 		} else {
 			for(StarClassSimple& star_data: galaxy_data.stars) {
-				tag_need_veins_star(star_data,get<StarCondition>(bond_condition.con2));
+				tag_need_veins_star(star_data,std::get<StarCondition>(bond_condition.con2));
 			}
 		}
 	}
 }
 
-static bool check_planet_level_3(const PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
+static bool check_planet_level_3(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
-	if(planet_condition.dsp_level > planet_data.dsp_level)
-		return false;
-	if(!(planet_condition.type & planet_data.type_mask))
-		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
+	if(planet_condition.dsp_level || planet_condition.type != 0xFFFFFFFF || planet_condition.need_veins)
+		planet_data.SetPlanetTheme();
+	if(planet_condition.dsp_level && planet_condition.dsp_level > planet_data.dsp_level)
+		return false;
+	if(planet_condition.type != 0xFFFFFFFF && !(planet_condition.type & planet_data.type_mask))
 		return false;
 	if(planet_condition.need_veins && !check_planet_veins(planet_data,planet_condition))
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
-		for(const PlanetClassSimple& moon: planet_data.moons) {
+		for(PlanetClassSimple& moon: planet_data.moons) {
 			if(check_planet_level_3(moon,moon_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -356,7 +361,7 @@ static bool check_planet_level_3(const PlanetClassSimple& planet_data,const Plan
 	return true;
 }
 
-static bool check_star_level_3(const StarClassSimple& star_data,const StarCondition& star_condition)
+static bool check_star_level_3(StarClassSimple& star_data,const StarCondition& star_condition)
 {
 	if(!(star_condition.type & star_data.type_mask))
 		return false;
@@ -368,7 +373,7 @@ static bool check_star_level_3(const StarClassSimple& star_data,const StarCondit
 		return false;
 	for(const PlanetCondition& planet_condition: star_condition.planets) {
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetClassSimple& planet_data: star_data.planets) {
+		for(PlanetClassSimple& planet_data: star_data.planets) {
 			if(check_planet_level_3(planet_data,planet_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -381,13 +386,13 @@ static bool check_star_level_3(const StarClassSimple& star_data,const StarCondit
 	return true;
 }
 
-bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
+bool check_galaxy_level_3(GalaxyClassSimple& galaxy_data,const GalaxyCondition& galaxy_condition)
 {
 	if(galaxy_condition.need_veins && !check_galaxy_veins(galaxy_data,galaxy_condition))
 		return false;
 	for(const StarCondition& star_condition: galaxy_condition.stars) {
 		int left_satisfy_num = star_condition.satisfy_num;
-		for(const StarClassSimple& star_data: galaxy_data.stars) {
+		for(StarClassSimple& star_data: galaxy_data.stars) {
 			if(check_star_level_3(star_data,star_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -399,7 +404,7 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 	}
 	for(const PlanetCondition& planet_condition: galaxy_condition.planets) {
 		int left_satisfy_num = planet_condition.satisfy_num;
-		for(const PlanetClassSimple& planet_data: galaxy_data.planets) {
+		for(PlanetClassSimple& planet_data: galaxy_data.planets) {
 			if(check_planet_level_3(planet_data,planet_condition)) {
 				left_satisfy_num--;
 				if(left_satisfy_num<=0)
@@ -410,25 +415,25 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 			return false;
 	}
 	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
-		vector<VectorLF3> pos1,pos2;
+		std::vector<VectorLF3> pos1,pos2;
 		pos1.reserve(galaxy_data.planetCount);
 		pos2.reserve(galaxy_data.planetCount);
-		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
-			for(const PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_3(planet_data,get<PlanetCondition>(bond_condition.con1)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con1)) {
+			for(PlanetClassSimple& planet_data : galaxy_data.planets)
+				if(check_planet_level_3(planet_data,std::get<PlanetCondition>(bond_condition.con1)))
 					pos1.push_back(planet_data.star->position);
 		} else {
-			for(const StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_3(star_data,get<StarCondition>(bond_condition.con1)))
+			for(StarClassSimple& star_data : galaxy_data.stars)
+				if(check_star_level_3(star_data,std::get<StarCondition>(bond_condition.con1)))
 					pos1.push_back(star_data.position);
 		}
-		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
-			for(const PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_3(planet_data,get<PlanetCondition>(bond_condition.con2)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con2)) {
+			for(PlanetClassSimple& planet_data : galaxy_data.planets)
+				if(check_planet_level_3(planet_data,std::get<PlanetCondition>(bond_condition.con2)))
 					pos2.push_back(planet_data.star->position);
 		} else {
-			for(const StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_3(star_data,get<StarCondition>(bond_condition.con2)))
+			for(StarClassSimple& star_data : galaxy_data.stars)
+				if(check_star_level_3(star_data,std::get<StarCondition>(bond_condition.con2)))
 					pos2.push_back(star_data.position);
 		}
 		if(!check_bond_position(pos1,pos2,bond_condition))
@@ -439,11 +444,13 @@ bool check_galaxy_level_3(const GalaxyClassSimple& galaxy_data,const GalaxyCondi
 
 static bool check_planet_level_4(PlanetClassSimple& planet_data,const PlanetCondition& planet_condition)
 {
-	if(planet_condition.dsp_level > planet_data.dsp_level)
-		return false;
-	if(!(planet_condition.type & planet_data.type_mask))
-		return false;
 	if((planet_condition.singularity & planet_data.singularity) != planet_condition.singularity)
+		return false;
+	if(planet_condition.dsp_level || planet_condition.type != 0xFFFFFFFF || planet_condition.need_veins)
+		planet_data.SetPlanetTheme();
+	if(planet_condition.dsp_level && planet_condition.dsp_level > planet_data.dsp_level)
+		return false;
+	if(planet_condition.type != 0xFFFFFFFF && !(planet_condition.type & planet_data.type_mask))
 		return false;
 	for(const PlanetCondition& moon_condition: planet_condition.moons) {
 		int left_satisfy_num = moon_condition.satisfy_num;
@@ -555,25 +562,25 @@ bool check_galaxy_level_4(GalaxyClassSimple& galaxy_data,const GalaxyCondition& 
 	}
 	end_veins_check_label:
 	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
-		vector<VectorLF3> pos1,pos2;
+		std::vector<VectorLF3> pos1,pos2;
 		pos1.reserve(galaxy_data.planetCount);
 		pos2.reserve(galaxy_data.planetCount);
-		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con1)) {
 			for(PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_4(planet_data,get<PlanetCondition>(bond_condition.con1)))
+				if(check_planet_level_4(planet_data,std::get<PlanetCondition>(bond_condition.con1)))
 					pos1.push_back(planet_data.star->position);
 		} else {
 			for(StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_4(star_data,get<StarCondition>(bond_condition.con1)))
+				if(check_star_level_4(star_data,std::get<StarCondition>(bond_condition.con1)))
 					pos1.push_back(star_data.position);
 		}
-		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con2)) {
 			for(PlanetClassSimple& planet_data : galaxy_data.planets)
-				if(check_planet_level_4(planet_data,get<PlanetCondition>(bond_condition.con2)))
+				if(check_planet_level_4(planet_data,std::get<PlanetCondition>(bond_condition.con2)))
 					pos2.push_back(planet_data.star->position);
 		} else {
 			for(StarClassSimple& star_data : galaxy_data.stars)
-				if(check_star_level_4(star_data,get<StarCondition>(bond_condition.con2)))
+				if(check_star_level_4(star_data,std::get<StarCondition>(bond_condition.con2)))
 					pos2.push_back(star_data.position);
 		}
 		if(!check_bond_position(pos1,pos2,bond_condition))

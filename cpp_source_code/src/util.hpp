@@ -3,6 +3,7 @@
 
 #include <math.h>
 #include <cmath>
+#include <type_traits>
 
 template<class T>
 class Math_s
@@ -19,10 +20,11 @@ public:
 		return (int)floor(a);
 	}
 	inline T Round(T a) const {
-		return (T)round(a);
+		return (T)std::nearbyint((double)a);
 	}
 	inline T Sign(T a) const {
-		return (a >= (T)0) ? (T)1 : (T)-1;
+		if constexpr(std::is_same_v<T,float>) return (a >= (T)0) ? (T)1 : (T)-1;
+		return a > (T)0 ? (T)1 : a < (T)0 ? (T)-1 : (T)0;
 	}
 	inline T Clamp(T a,T min,T max) const {
 		if(a < min)return min;
@@ -35,31 +37,31 @@ public:
 		return a;
 	}
 	inline T Lerp(T a,T b,T t) const {
-		return a + (b - a) * Clamp01(t);
+		return (T)((double)a + ((double)b - a) * (double)Clamp01(t));
 	}
 	inline T Abs(T a) const {
 		return (T)abs(a);
 	}
 	inline T Sqrt(T a) const {
-		return (T)sqrt(a);
+		return (T)std::sqrt((double)a);
 	}
 	inline T Pow(T base,T exp) const {
-		return (T)pow(base,exp);
+		return (T)std::pow((double)base,(double)exp);
 	}
 	inline T Sin(T a) const {
-		return (T)sin(a);
+		return (T)std::sin((double)a);
 	}
 	inline T Cos(T a) const {
-		return (T)cos(a);
+		return (T)std::cos((double)a);
 	}
 	inline T Ceil(T a) const {
 		return (T)ceil(a);
 	}
 	inline T Log10(T v) const {
-		return (T)log10(v);
+		return (T)std::log10((double)v);
 	}
 	inline T Log(T v) const {
-		return (T)log(v);
+		return (T)std::log((double)v);
 	}
 	inline T Min(T a,T b) const {
 		return a < b ? a : b;
@@ -68,10 +70,10 @@ public:
 		return a > b ? a : b;
 	}
 	inline T Asin(T a) const {
-		return (T)asin(a);
+		return (T)std::asin((double)a);
 	}
 	inline T Acos(T a) const {
-		return (T)acos(a);
+		return (T)std::acos((double)a);
 	}
 };
 

@@ -83,12 +83,12 @@ public:
 		v.x *= 2.0f;
 		v.y *= 2.0f;
 		v.z *= 2.0f;
-		float num = q.w * q.w - 0.5f;
-		float num2 = q.x * v.x + q.y * v.y + q.z * v.z;
+		float num = static_cast<float>(static_cast<double>(q.w) * q.w - static_cast<double>(0.5f));
+		float num2 = static_cast<float>((static_cast<double>(q.x) * v.x + static_cast<double>(q.y) * v.y) + static_cast<double>(q.z) * v.z);
 		return Vector3{
-			v.x * num + (q.y * v.z - q.z * v.y) * q.w + q.x * num2,
-			v.y * num + (q.z * v.x - q.x * v.z) * q.w + q.y * num2,
-			v.z * num + (q.x * v.y - q.y * v.x) * q.w + q.z * num2
+			static_cast<float>((static_cast<double>(v.x) * num + (static_cast<double>(q.y) * v.z - static_cast<double>(q.z) * v.y) * q.w) + static_cast<double>(q.x) * num2),
+			static_cast<float>((static_cast<double>(v.y) * num + (static_cast<double>(q.z) * v.x - static_cast<double>(q.x) * v.z) * q.w) + static_cast<double>(q.y) * num2),
+			static_cast<float>((static_cast<double>(v.z) * num + (static_cast<double>(q.x) * v.y - static_cast<double>(q.y) * v.x) * q.w) + static_cast<double>(q.z) * num2)
 		};
 	}
 
@@ -97,7 +97,7 @@ public:
 		v.x *= 2.0;
 		v.y *= 2.0;
 		v.z *= 2.0;
-		double num = (double)(q.w * q.w) - 0.5;
+		double num = (double)q.w * q.w - 0.5;
 		double num2 = (double)q.x * v.x + (double)q.y * v.y + (double)q.z * v.z;
 		return VectorLF3{
 			v.x * num - ((double)q.y * v.z - (double)q.z * v.y) * (double)q.w + (double)q.x * num2,

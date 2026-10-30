@@ -4,9 +4,6 @@
     "description": "WoW!",
     "dependencies": [
         {
-            "name": "glm"
-        },
-        {
             "name": "opencl"
         }
     ]

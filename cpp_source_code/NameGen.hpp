@@ -11,7 +11,7 @@
 #include <utility>
 
 #include "defines.hpp"
-#include "util.hpp"
+#include "src/util.hpp"
 
 template<typename... Args>
 inline std::string vformat(std::string_view format,Args... args) {
@@ -385,7 +385,8 @@ struct NameGen_t
         char c = static_cast<char>('A' + num2);
         char c2 = static_cast<char>('A' + num3);
         const std::string letters{c,c2};
-        return {letters + " " + std::string(constellations[num % constellations.size()]),
+        // The game's English expression adds two chars as integers.
+        return {std::to_string(static_cast<int>(c) + static_cast<int>(c2)) + " " + std::string(constellations[num % constellations.size()]),
             std::string(constellations_zhcn[num % constellations_zhcn.size()]) + letters};
     }
 

@@ -17,16 +17,14 @@
 #include "defines.hpp"
 #include "LDB.hpp"
 
-using namespace std;
-
 GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 	GalaxyClass g;
 	float resource_rate = resource_rates[seed.resource_index];
 	g.CreateStars(seed.seed_id,seed.star_num,resource_rate);
 	g.CreatePlanets();
-	thread_num = clamp(thread_num,1,8);
+	thread_num = std::clamp(thread_num,1,8);
 
-	vector<pair<StarClass*,PlanetClass*>> planet_tasks;
+	std::vector<std::pair<StarClass*,PlanetClass*>> planet_tasks;
 	for(StarClass& star : g.stars) {
 		for(PlanetClass& planet : star.planets) {
 			if(planet.gasItems.empty())
@@ -35,10 +33,10 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 	}
 
 	if(!planet_tasks.empty()) {
-		atomic<size_t> next_task = 0;
+		std::atomic<std::size_t> next_task = 0;
 		auto worker = [&]() {
 			while(true) {
-				size_t task_index = next_task.fetch_add(1);
+				std::size_t task_index = next_task.fetch_add(1);
 				if(task_index >= planet_tasks.size())
 					break;
 
@@ -47,13 +45,13 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 			}
 		};
 
-		size_t worker_num = min<size_t>(thread_num,planet_tasks.size());
+		std::size_t worker_num = std::min<std::size_t>(thread_num,planet_tasks.size());
 		if(worker_num == 1) {
 			worker();
 		} else {
-			vector<jthread> workers;
+			std::vector<std::jthread> workers;
 			workers.reserve(worker_num);
-			for(size_t i=0;i<worker_num;i++)
+			for(std::size_t i=0;i<worker_num;i++)
 				workers.emplace_back(worker);
 		}
 	}
@@ -80,7 +78,7 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 		star_data.pos_ly[1] = star.position.y;
 		star_data.pos_ly[2] = star.position.z;
 		star_data.dyson_lumino = star.dysonLumino();
-		star_data.dyson_radius = round(star.dysonRadius * 800) * 100;
+		star_data.dyson_radius = std::round(star.dysonRadius * 800) * 100;
 		//star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
 		star_data.distance = (star.position - g.stars[0].position).magnitude();
 		star_data.planets.reserve(star.planets.size());
@@ -112,14 +110,14 @@ GalaxyData get_galaxy_data_para(const SeedStruct& seed,int thread_num) {
 			else if(need_dot > 0.0f)
 				planet_data.raw_dsp_degree = 90.0f;
 			else
-				planet_data.raw_dsp_degree = min(acos(-need_dot) * 57.2957795f + abs(planet.obliquity),90.0f);
+				planet_data.raw_dsp_degree = std::min(Mathf.Acos(-need_dot) * 57.2957795f + std::abs(planet.obliquity),90.0f);
 			need_dot -= planet.get_ion_enhance();
 			if(need_dot <= -1.0f)
 				planet_data.enhance_dsp_degree = 0.0f;
 			else if(need_dot > 0.0f)
 				planet_data.enhance_dsp_degree = 90.0f;
 			else
-				planet_data.enhance_dsp_degree = min(acos(-need_dot) * 57.2957795f + abs(planet.obliquity),90.0f);
+				planet_data.enhance_dsp_degree = std::min(Mathf.Acos(-need_dot) * 57.2957795f + std::abs(planet.obliquity),90.0f);
 			if(planet_data.raw_dsp_degree <= 0.0f)
 				planet_data.dsp_level = 2;
 			else if(planet_data.enhance_dsp_degree <= 0.0f)
@@ -204,7 +202,7 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 		star_data.pos_ly[1] = star.position.y;
 		star_data.pos_ly[2] = star.position.z;
 		star_data.dyson_lumino = star.dysonLumino();
-		star_data.dyson_radius = round(star.dysonRadius * 800) * 100;
+		star_data.dyson_radius = std::round(star.dysonRadius * 800) * 100;
 		//star_data.distance = (float)(star.uPosition - g.stars[0].uPosition).magnitude() / 2400000.0f;
 		star_data.distance = (star.position - g.stars[0].position).magnitude();
 		star_data.planets.reserve(star.planets.size());
@@ -236,14 +234,14 @@ GalaxyData get_galaxy_data(const SeedStruct& seed,bool quick)
 			else if(need_dot > 0.0f)
 				planet_data.raw_dsp_degree = 90.0f;
 			else
-				planet_data.raw_dsp_degree = min(acos(-need_dot) * 57.2957795f + abs(planet.obliquity),90.0f);
+				planet_data.raw_dsp_degree = std::min(Mathf.Acos(-need_dot) * 57.2957795f + std::abs(planet.obliquity),90.0f);
 			need_dot -= planet.get_ion_enhance();
 			if(need_dot <= -1.0f)
 				planet_data.enhance_dsp_degree = 0.0f;
 			else if(need_dot > 0.0f)
 				planet_data.enhance_dsp_degree = 90.0f;
 			else
-				planet_data.enhance_dsp_degree = min(acos(-need_dot) * 57.2957795f + abs(planet.obliquity),90.0f);
+				planet_data.enhance_dsp_degree = std::min(Mathf.Acos(-need_dot) * 57.2957795f + std::abs(planet.obliquity),90.0f);
 			if(planet_data.raw_dsp_degree <= 0.0f)
 				planet_data.dsp_level = 2;
 			else if(planet_data.enhance_dsp_degree <= 0.0f)
@@ -313,6 +311,8 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 	galaxy.CreateStars(seed.seed_id,seed.star_num,resource_rates[seed.resource_index]);
 	galaxy.gen_star_position();
 	galaxy.CreatePlanets((gen_planet_num<0)?seed.star_num:gen_planet_num);
+	for(StarClassSimple& star: galaxy.stars)
+		star.SetPlanetThemes();
 	if(quick) {
 		for(PlanetClassSimple& planet: galaxy.planets) {
 			if(planet.has_veins & vein_mask) {
@@ -322,20 +322,20 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 		}
 		galaxy.GenerateUpperVeins();
 		for(StarClassSimple& star: galaxy.stars) {
-			memcpy(star.real_veins_point,star.upper_veins_point,sizeof(star.upper_veins_point));
-			memcpy(star.real_veins_amount,star.upper_veins_amount,sizeof(star.upper_veins_amount));
+			std::memcpy(star.real_veins_point,star.upper_veins_point,sizeof(star.upper_veins_point));
+			std::memcpy(star.real_veins_amount,star.upper_veins_amount,sizeof(star.upper_veins_amount));
 		}
 	} else {
 		for(PlanetClassSimple& planet: galaxy.planets)
 			if(planet.has_veins & vein_mask)
 				planet.generate_real_veins();
 		for(StarClassSimple& star: galaxy.stars) {
-			memcpy(star.upper_veins_point,star.real_veins_point,sizeof(star.real_veins_point));
-			memcpy(star.upper_veins_amount,star.real_veins_amount,sizeof(star.real_veins_amount));
+			std::memcpy(star.upper_veins_point,star.real_veins_point,sizeof(star.real_veins_point));
+			std::memcpy(star.upper_veins_amount,star.real_veins_amount,sizeof(star.real_veins_amount));
 		}
 	}
 	
-	GalaxyData galaxy_data;
+	GalaxyData galaxy_data{};
 	galaxy_data.seed_id = seed.seed_id;
 	galaxy_data.star_num = seed.star_num;
 	galaxy_data.resource_index = seed.resource_index;
@@ -346,7 +346,8 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 	}
 	galaxy_data.stars.reserve(seed.star_num);
 	for(const StarClassSimple& star: galaxy.stars) {
-		StarData star_data;
+		StarData star_data{};
+		star_data.star_index = star.index;
 		star_data.type_id = star.typeId();
 		star_data.type = StarClass::type_names[star_data.type_id];
 		star_data.seed = star.seed;
@@ -365,7 +366,9 @@ GalaxyData get_galaxy_data_fast(const SeedStruct& seed,bool quick,int gen_planet
 		}
 		star_data.planets.reserve(star.planets.size());
 		for(const PlanetClassSimple& planet: star.planets) {
-			PlanetData planet_data;
+			PlanetData planet_data{};
+			planet_data.star_index = star.index;
+			planet_data.planet_index = planet.index;
 			const ThemeProto& theme = LDB.Select(planet.theme);
 			planet_data.type = theme.DisplayName;
 			planet_data.type_id = theme.TypeId;
@@ -432,8 +435,8 @@ bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,i
 		return galaxy_condition.valid_state;
 
 	//cout << seed.seed_id << " " << (int)seed.star_num << " level4 check start" << endl;
-	memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
-	memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
+	std::memset(galaxy.veins_point,0,sizeof(galaxy.veins_point));
+	std::memset(galaxy.veins_amount,0,sizeof(galaxy.veins_amount));
 	if(!check_galaxy_level_4(galaxy,galaxy_condition))
 		return !galaxy_condition.valid_state;
 	return galaxy_condition.valid_state;

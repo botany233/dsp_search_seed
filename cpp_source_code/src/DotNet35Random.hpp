@@ -1,11 +1,11 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
 #pragma once
 #include <cmath>
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 #include <immintrin.h>
 #endif
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 class DotNet35Random
 {
 public:
@@ -207,7 +207,7 @@ public:
 };
 #endif
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 class DotNet35RandomLong
 {
 public:

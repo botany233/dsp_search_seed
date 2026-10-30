@@ -11,12 +11,11 @@
 #include "check_batch.hpp"
 #include "check_seed.hpp"
 #include "data_struct.hpp"
-#include "RandomTable.hpp"
+#include "src/RandomTable.hpp"
 #include "PlanetAlgorithm.hpp"
 #include "condition_to_struct.hpp"
 #include "gpu_benchmark.hpp"
 
-using namespace std;
 namespace py = pybind11;
 
 void do_init()
@@ -63,18 +62,18 @@ static bool is_need_veins(const GalaxyCondition& galaxy_condition)
 			return true;
 	}
 	for(const BondCondition& bond_condition: galaxy_condition.bonds) {
-		if(holds_alternative<PlanetCondition>(bond_condition.con1)) {
-			if(is_planet_need_veins(get<PlanetCondition>(bond_condition.con1)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con1)) {
+			if(is_planet_need_veins(std::get<PlanetCondition>(bond_condition.con1)))
 				return true;
 		} else {
-			if(is_star_need_veins(get<StarCondition>(bond_condition.con1)))
+			if(is_star_need_veins(std::get<StarCondition>(bond_condition.con1)))
 				return true;
 		}
-		if(holds_alternative<PlanetCondition>(bond_condition.con2)) {
-			if(is_planet_need_veins(get<PlanetCondition>(bond_condition.con2)))
+		if(std::holds_alternative<PlanetCondition>(bond_condition.con2)) {
+			if(is_planet_need_veins(std::get<PlanetCondition>(bond_condition.con2)))
 				return true;
 		} else {
-			if(is_star_need_veins(get<StarCondition>(bond_condition.con2)))
+			if(is_star_need_veins(std::get<StarCondition>(bond_condition.con2)))
 				return true;
 		}
 	}
@@ -106,22 +105,22 @@ int get_condition_level(const GalaxyCondition& galaxy_condition,bool quick) {
 	}
 }
 
-vector<string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
+std::vector<std::string> check_batch(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const GalaxyCondition& galaxy_condition,int check_level)
 {
-	vector<string> result;
+	std::vector<std::string> result;
 	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
 	{
 		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
 		{
 			if(check_seed(SeedStruct(seed_id,star_num,resource_index),galaxy_condition,check_level))
-				result.push_back(to_string(seed_id) + "," + to_string(star_num));
+				result.push_back(std::to_string(seed_id) + "," + std::to_string(star_num));
 		}
 	}
 	return result;
 }
 
-vector<string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
+std::vector<std::string> check_batch_c(int start_seed,int end_seed,int start_star_num,int end_star_num,uint8_t resource_index,
 	const py::dict& galaxy_condition_dict,bool quick)
 {
 	GalaxyCondition galaxy_condition = galaxy_condition_to_struct(galaxy_condition_dict);
@@ -286,5 +285,7 @@ PYBIND11_MODULE(search_seed,m) {
 	m.def("galaxy_condition_to_struct",&galaxy_condition_to_struct,py::arg("galaxy_condition"));
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
 	m.def("get_galaxy_data_fast_c",&get_galaxy_data_fast,py::arg("seed"),py::arg("quick"),py::arg("gen_planet_num")=-1,py::arg("vein_mask")=0x3FFF);
-	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
+	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),
+		py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),
+		py::arg("galaxy_condition"),py::arg("quick"));
 }

@@ -7,12 +7,12 @@
 
 #include "defines.hpp"
 #include "LDB.hpp"
-#include "util.hpp"
+#include "src/util.hpp"
 #include "NameGen.hpp"
-#include "quaternion.hpp"
-#include "Vector3.hpp"
-#include "VectorLF3.hpp"
-#include "DotNet35Random.hpp"
+#include "src/quaternion.hpp"
+#include "src/Vector3.hpp"
+#include "src/VectorLF3.hpp"
+#include "src/DotNet35Random.hpp"
 
 class GalaxyClass
 {
@@ -27,7 +27,6 @@ public:
 	int birthPlanetId;
 	std::set<std::string> starnames_enus;
 	std::set<std::string> starnames_zhcn;
-	
 protected:
 	void SetPlanetTheme(StarClass& star,PlanetClass& planet,double rand1,double rand2,double rand3,double rand4,int theme_seed)
 	{
@@ -45,9 +44,9 @@ protected:
 					flag1 = true;
 			} else
 			{
-				bool flag2 = (double)themeProto.Temperature * (double)planet.temperatureBias >= -0.100000001490116;
-				if((double)Mathf.Abs(themeProto.Temperature) < 0.5 && themeProto.PlanetType == EPlanetType::Desert)
-					flag2 = (double)Mathf.Abs(planet.temperatureBias) < (double)Mathf.Abs(themeProto.Temperature) + 0.100000001490116;
+				bool flag2 = ((double)themeProto.Temperature * (double)planet.temperatureBias >= -static_cast<double>(0.1f));
+				if(((double)Mathf.Abs(themeProto.Temperature) < 0.5) && themeProto.PlanetType == EPlanetType::Desert)
+					flag2 = ((double)Mathf.Abs(planet.temperatureBias) < (double)Mathf.Abs(themeProto.Temperature) + static_cast<double>(0.1f));
 				if((themeProto.PlanetType == planet.type) && flag2)
 				{
 					if(star.index == 0)
@@ -127,7 +126,9 @@ protected:
 		DotNet35Random dotNet35Random(theme_seed);
 		for(int index = 0; index < themeProto1.GasSpeeds.size(); ++index)
 		{
-			float num2 = themeProto1.GasSpeeds[index] * (float)(dotNet35Random.NextDouble() * 0.190909147262573 + 0.909090876579285);
+			float num2 = static_cast<float>(static_cast<double>(themeProto1.GasSpeeds[index])
+				* (static_cast<double>(static_cast<float>(dotNet35Random.NextDouble())) * static_cast<double>(0.19090915f)
+					+ static_cast<double>(0.9090909f)));
 			num2 *= (is_rare_resource?0.8f:1.0f);
 			planet.gasItems.push_back(themeProto1.GasItems[index]);
 			planet.gasSpeeds.push_back(num2 * Mathf.Pow(star.resourceCoef,0.3f));
@@ -209,9 +210,12 @@ protected:
 			else
 				planet.orbitInclination -= 3.0f;
 		}
-		planet.orbitalPeriod = planet.orbitAroundPlanet != NULL ? Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / 1.08308421068537E-08) : Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / (1.35385519905204E-06 * (double)star.mass));
+		planet.orbitalPeriod = planet.orbitAroundPlanet != NULL
+			? Math.Sqrt(39.47841760435743 * (double)f1 * (double)f1 * (double)f1 / 1.0830842106853677E-08)
+			: Math.Sqrt(39.47841760435743 * (double)f1 * (double)f1 * (double)f1
+				/ (1.3538551990520382E-06 * (double)star.mass));
 		planet.orbitPhase = (float)(num7 * 360.0);
-		if(num15 < 0.0399999991059303)
+		if((num15 < static_cast<double>(0.04f)))
 		{
 			planet.obliquity = (float)(num8 * (num9 - 0.5) * 39.9);
 			if((double)planet.obliquity < 0.0)
@@ -219,7 +223,7 @@ protected:
 			else
 				planet.obliquity += 70.0f;
 			planet.singularity |= EPlanetSingularity::LaySide;
-		} else if(num15 < 0.100000001490116)
+		} else if(num15 < static_cast<double>(0.1f))
 		{
 			planet.obliquity = (float)(num8 * (num9 - 0.5) * 80.0);
 			if((double)planet.obliquity < 0.0)
@@ -228,15 +232,15 @@ protected:
 				planet.obliquity += 30.0f;
 		} else
 			planet.obliquity = (float)(num8 * (num9 - 0.5) * 60.0);
-		planet.rotationPeriod = (num10 * num11 * 1000.0 + 400.0) * (orbitAround == 0 ? (double)Mathf.Pow(f1,0.25f) : 1.0) * (gasGiant ? 0.200000002980232 : 1.0);
+		planet.rotationPeriod = (num10 * num11 * 1000.0 + 400.0) * (orbitAround == 0 ? (double)Mathf.Pow(f1,0.25f) : 1.0) * (gasGiant ? static_cast<double>(0.2f) : 1.0);
 		if(!gasGiant)
 		{
 			if(star.type == EStarType::WhiteDwarf)
 				planet.rotationPeriod *= 0.5;
 			else if(star.type == EStarType::NeutronStar)
-				planet.rotationPeriod *= 0.200000002980232;
+				planet.rotationPeriod *= static_cast<double>(0.2f);
 			else if(star.type == EStarType::BlackHole)
-				planet.rotationPeriod *= 0.150000005960464;
+				planet.rotationPeriod *= static_cast<double>(0.15f);
 		}
 		planet.rotationPhase = (float)(num12 * 360.0);
 		planet.sunDistance = orbitAround == 0 ? planet.orbitRadius : planet.orbitAroundPlanet->orbitRadius;
@@ -247,24 +251,24 @@ protected:
 		planet.rotationPeriod = 1.0 / (1.0 / num17 + 1.0 / planet.rotationPeriod);
 		if(orbitAround == 0 && orbitIndex <= 4 && !gasGiant)
 		{
-			if(num15 > 0.959999978542328)
+			if((num15 > static_cast<double>(0.96f)))
 			{
 				planet.obliquity *= 0.01f;
 				planet.rotationPeriod = planet.orbitalPeriod;
 				planet.singularity |= EPlanetSingularity::TidalLocked;
-			} else if(num15 > 0.930000007152557)
+			} else if((num15 > static_cast<double>(0.93f)))
 			{
 				planet.obliquity *= 0.1f;
 				planet.rotationPeriod = planet.orbitalPeriod * 0.5;
 				planet.singularity |= EPlanetSingularity::TidalLocked2;
-			} else if(num15 > 0.899999976158142)
+			} else if((num15 > static_cast<double>(0.9f)))
 			{
 				planet.obliquity *= 0.2f;
 				planet.rotationPeriod = planet.orbitalPeriod * 0.25;
 				planet.singularity |= EPlanetSingularity::TidalLocked4;
 			}
 		}
-		if(num15 > 0.85 && num15 <= 0.9)
+		if((num15 > 0.85) && (num15 <= 0.9))
 		{
 			planet.rotationPeriod = -planet.rotationPeriod;
 			planet.singularity |= EPlanetSingularity::ClockwiseRotate;
@@ -285,43 +289,43 @@ protected:
 		} else
 		{
 			float num18 = Mathf.Ceil(starCount * 0.29f);
-			if((double)num18 < 11.0)
+			if(((double)num18 < 11.0))
 				num18 = 11.0f;
 			double num19 = (double)num18 - (double)habitableCount;
 			float num20 = (float)(starCount - star.index);
 			float sunDistance = planet.sunDistance;
 			float num21 = 1000.0f;
 			float f2 = 1000.0f;
-			if((double)habitableRadius > 0.0 && (double)sunDistance > 0.0)
+			if(((double)habitableRadius > 0.0) && ((double)sunDistance > 0.0))
 			{
 				f2 = sunDistance / habitableRadius;
 				num21 = Mathf.Abs(Mathf.Log(f2));
 			}
 			float num22 = Mathf.Clamp(Mathf.Sqrt(habitableRadius),1.0f,2.0f) - 0.04f;
 			double num23 = (double)num20;
-			float num24 = Mathf.Clamp(Mathf.Lerp((float)(num19 / num23),0.35f,0.5f),0.08f,0.8f);
+			float habitableFraction = (float)(num19 / num23); float habitableLerp = Mathf.Lerp(habitableFraction,0.35f,0.5f); float num24 = Mathf.Clamp(habitableLerp,0.08f,0.8f);
 			planet.habitableBias = num21 * num22;
-			planet.temperatureBias = (float)(1.20000004768372 / ((double)f2 + 0.200000002980232) - 1.0);
-			float num25 = Mathf.Pow(Mathf.Clamp01(planet.habitableBias / num24),num24 * 10.0f);
-			if(num13 > (double)num25 && star.index > 0 || planet.orbitAround > 0 && planet.orbitIndex == 1 && star.index == 0)
+			planet.temperatureBias = (float)(static_cast<double>(1.2f) / ((double)f2 + static_cast<double>(0.2f)) - 1.0);
+			float probabilityBase = Mathf.Clamp01(planet.habitableBias / num24); float probabilityExponent = num24 * 10.0f; float num25 = Mathf.Pow(probabilityBase,probabilityExponent);
+			if((num13 > (double)num25) && star.index > 0 || planet.orbitAround > 0 && planet.orbitIndex == 1 && star.index == 0)
 			{
 				planet.type = EPlanetType::Ocean;
 				++habitableCount;
-			} else if((double)f2 < 0.833333015441895)
+			} else if(((double)f2 < static_cast<double>(0.833333f)))
 			{
-				float num26 = Mathf.Max(0.15f,(float)((double)f2 * 2.5 - 0.850000023841858));
-				planet.type = num14 >= (double)num26 ? EPlanetType::Vocano : EPlanetType::Desert;
-			} else if((double)f2 < 1.20000004768372)
+				float num26 = Mathf.Max(0.15f,(float)((double)f2 * 2.5 - static_cast<double>(0.85f)));
+				planet.type = (num14 >= (double)num26) ? EPlanetType::Vocano : EPlanetType::Desert;
+			} else if(((double)f2 < static_cast<double>(1.2f)))
 			{
 				planet.type = EPlanetType::Desert;
 			} else
 			{
-				float num27 = (float)(0.899999976158142 / (double)f2 - 0.100000001490116);
-				planet.type = num14 >= (double)num27 ? EPlanetType::Ice : EPlanetType::Desert;
+				float num27 = (float)(static_cast<double>(0.9f) / (double)f2 - static_cast<double>(0.1f));
+				planet.type = (num14 >= (double)num27) ? EPlanetType::Ice : EPlanetType::Desert;
 			}
 			planet.radius = 200.0f;
 		}
-		planet.luminosity = Mathf.Pow(star.lightBalanceRadius / (planet.sunDistance + 0.01f),0.6f);
+		planet.luminosity = Mathf.Pow(static_cast<float>(static_cast<double>(star.lightBalanceRadius) / (static_cast<double>(planet.sunDistance) + static_cast<double>(0.01f))),0.6f);
 		if((double)planet.luminosity > 1.0)
 		{
 			planet.luminosity = Mathf.Log(planet.luminosity) + 1.0f;
@@ -364,7 +368,7 @@ protected:
 			star.planets[0] = CreatePlanet(star,0,0,3,1,false,info_seed,gen_seed);
 		} else if(star.type == EStarType::WhiteDwarf)
 		{
-			if(num1 < 0.699999988079071)
+			if(num1 < static_cast<double>(0.7f))
 			{
 				star.planetCount = 1;
 				star.planets.resize(star.planetCount);
@@ -375,7 +379,7 @@ protected:
 			{
 				star.planetCount = 2;
 				star.planets.resize(star.planetCount);
-				if(num2 < 0.300000011920929)
+				if(num2 < static_cast<double>(0.3f))
 				{
 					int info_seed1 = dotNet35Random2.Next();
 					int gen_seed1 = dotNet35Random2.Next();
@@ -395,7 +399,7 @@ protected:
 			}
 		} else if(star.type == EStarType::GiantStar)
 		{
-			if(num1 < 0.300000011920929)
+			if(num1 < static_cast<double>(0.3f))
 			{
 				star.planetCount = 1;
 				star.planets.resize(star.planetCount);
@@ -427,7 +431,7 @@ protected:
 			{
 				star.planetCount = 3;
 				star.planets.resize(star.planetCount);
-				if(num2 < 0.150000005960464)
+				if(num2 < static_cast<double>(0.15f))
 				{
 					int info_seed9 = dotNet35Random2.Next();
 					int gen_seed9 = dotNet35Random2.Next();
@@ -581,7 +585,7 @@ protected:
 				if(orbitAround == 0)
 				{
 					++num8;
-					if(index < star.planetCount - 1 && num11 < pGas[index])
+					if(index < star.planetCount - 1 && (num11 < pGas[index]))
 					{
 						gasGiant = true;
 						if(num10 < 3)
@@ -595,7 +599,7 @@ protected:
 						{
 							float a = (float)num13 / (float)num14;
 							float num15 = num10 <= 3 ? Mathf.Lerp(a,1.0f,0.15f) + 0.01f : Mathf.Lerp(a,1.0f,0.45f) + 0.01f;
-							if(dotNet35Random2.NextDouble() < (double)num15)
+							const double orbitRoll = dotNet35Random2.NextDouble(); if((orbitRoll < (double)num15))
 								goto label_62;
 						} else
 							goto label_62;
@@ -614,7 +618,7 @@ protected:
 					orbitAround = num8;
 					num9 = 0;
 				}
-				if(num9 >= 1 && num12 < 0.8)
+				if(num9 >= 1 && (num12 < 0.8))
 				{
 					orbitAround = 0;
 					num9 = 0;
@@ -659,15 +663,15 @@ protected:
 		star.asterBelt1OrbitIndex = (float)index1;
 		star.asterBelt2OrbitIndex = (float)index5;
 		if(index1 > 0)
-			star.asterBelt1Radius = orbitRadius[index1] * (float)num6 * star.orbitScaler;
+			star.asterBelt1Radius = static_cast<float>(static_cast<double>(orbitRadius[index1]) * (float)num6 * star.orbitScaler);
 		if(index5 <= 0)
 			return;
-		star.asterBelt2Radius = orbitRadius[index5] * (float)num7 * star.orbitScaler;
+		star.asterBelt2Radius = static_cast<float>(static_cast<double>(orbitRadius[index5]) * (float)num7 * star.orbitScaler);
 	}
 
 	float RandNormal(float averageValue,float standardDeviation,double r1,double r2)
 	{
-		return averageValue + standardDeviation * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2));
+		return static_cast<float>(static_cast<double>(averageValue) + static_cast<double>(standardDeviation) * (float)(Math.Sqrt(-2.0 * Math.Log(1.0 - r1)) * Math.Sin(2.0 * Math.PI * r2)));
 	}
 
 	void SetStarAge(StarClass& star,float age,double rn,double rt)
@@ -676,52 +680,52 @@ protected:
 		float num2 = (float)(rt * 0.4 + 0.8);
 		float num3 = (float)(rt * 9.0 + 1.0);
 		star.age = age;
-		if((double)age >= 1.0)
+		if(((double)age >= 1.0))
 		{
-			if((double)star.mass >= 18.0)
+			if(((double)star.mass >= 18.0))
 			{
 				star.type = EStarType::BlackHole;
 				star.spectr = ESpectrType::X;
-				star.mass *= 2.5f * num2;
+				star.mass = static_cast<float>(static_cast<double>(star.mass) * (static_cast<double>(2.5f) * num2));
 				star.radius *= 1.0f;
 				star.acdiskRadius = star.radius * 5.0f;
 				star.temperature = 0.0f;
-				star.luminosity *= 1.0f / 1000.0f * num1;
+				star.luminosity = static_cast<float>(static_cast<double>(star.luminosity) * (static_cast<double>(0.001f) * num1));
 				star.habitableRadius = 0.0f;
-				star.lightBalanceRadius *= 0.4f * num1;
+				star.lightBalanceRadius = static_cast<float>(static_cast<double>(star.lightBalanceRadius) * (static_cast<double>(0.4f) * num1));
 				star.color = 1.0f;
-			} else if((double)star.mass >= 7.0)
+			} else if(((double)star.mass >= 7.0))
 			{
 				star.type = EStarType::NeutronStar;
 				star.spectr = ESpectrType::X;
-				star.mass *= 0.2f * num1;
+				star.mass = static_cast<float>(static_cast<double>(star.mass) * (static_cast<double>(0.2f) * num1));
 				star.radius *= 0.15f;
 				star.acdiskRadius = star.radius * 9.0f;
 				star.temperature = num3 * 1E+07f;
-				star.luminosity *= 0.1f * num1;
+				star.luminosity = static_cast<float>(static_cast<double>(star.luminosity) * (static_cast<double>(0.1f) * num1));
 				star.habitableRadius = 0.0f;
-				star.lightBalanceRadius *= 3.0f * num1;
-				star.orbitScaler *= 1.5f * num1;
+				star.lightBalanceRadius = static_cast<float>(static_cast<double>(star.lightBalanceRadius) * (static_cast<double>(3.0f) * num1));
+				star.orbitScaler = static_cast<float>(static_cast<double>(star.orbitScaler) * (static_cast<double>(1.5f) * num1));
 				star.color = 1.0f;
 			} else
 			{
 				star.type = EStarType::WhiteDwarf;
 				star.spectr = ESpectrType::X;
-				star.mass *= 0.2f * num1;
+				star.mass = static_cast<float>(static_cast<double>(star.mass) * (static_cast<double>(0.2f) * num1));
 				star.radius *= 0.2f;
 				star.acdiskRadius = 0.0f;
 				star.temperature = num2 * 150000.0f;
-				star.luminosity *= 0.04f * num2;
-				star.habitableRadius *= 0.15f * num2;
-				star.lightBalanceRadius *= 0.2f * num1;
+				star.luminosity = static_cast<float>(static_cast<double>(star.luminosity) * (static_cast<double>(0.04f) * num2));
+				star.habitableRadius = static_cast<float>(static_cast<double>(star.habitableRadius) * (static_cast<double>(0.15f) * num2));
+				star.lightBalanceRadius = static_cast<float>(static_cast<double>(star.lightBalanceRadius) * (static_cast<double>(0.2f) * num1));
 				star.color = 0.7f;
 			}
 		} else
 		{
-			if((double)age < 0.959999978542328)
+			if(((double)age < static_cast<double>(0.96f)))
 				return;
 			float num4 = (float)(Math.Pow(5.0,Math.Abs(Math.Log10((double)star.mass) - 0.7)) * 5.0);
-			if((double)num4 > 10.0)
+			if(((double)num4 > 10.0))
 				num4 = (float)(((double)Mathf.Log(num4 * 0.1f) + 1.0) * 10.0);
 			float num5 = (float)(1.0 - (double)Mathf.Pow(star.age,30.0f) * 0.5);
 			star.type = EStarType::GiantStar;
@@ -762,11 +766,11 @@ protected:
 		double y = dotNet35Random2.NextDouble() * 0.4 - 0.2;
 		double num5 = Math.Pow(2.0,y);
 		float num6 = Mathf.Lerp(-0.98f,0.88f,star.level);
-		float averageValue = (double)num6 >= 0.0 ? num6 + 0.65f : num6 - 0.65f;
+		float averageValue = ((double)num6 >= 0.0) ? num6 + 0.65f : num6 - 0.65f;
 		float standardDeviation = 0.33f;
 		if(needtype == EStarType::GiantStar)
 		{
-			averageValue = y > -0.08 ? -1.5f : 1.6f;
+			averageValue = (y > -0.08) ? -1.5f : 1.6f;
 			standardDeviation = 0.3f;
 		}
 		float num7 = RandNormal(averageValue,standardDeviation,r1,r2);
@@ -779,36 +783,37 @@ protected:
 		num7 = 3.0f;
 		break;
 		}
-		float p1 = (float)((double)Mathf.Clamp((double)num7 <= 0.0 ? num7 * 1.0f : num7 * 2.0f,-2.4f,4.65f) + num3 + 1.0);
+		float scaledNormal = ((double)num7 <= 0.0) ? num7 * 1.0f : num7 * 2.0f;
+		float p1 = (float)((double)Mathf.Clamp(scaledNormal,-2.4f,4.65f) + static_cast<double>(static_cast<float>(num3)) + 1.0);
 		switch(needtype)
 		{
 		case EStarType::WhiteDwarf:
-		star.mass = (float)(1.0 + r2 * 5.0);
+		star.mass = static_cast<float>(1.0 + static_cast<double>(static_cast<float>(r2)) * 5.0);
 		break;
 		case EStarType::NeutronStar:
-		star.mass = (float)(7.0 + r1 * 11.0);
+		star.mass = static_cast<float>(7.0 + static_cast<double>(static_cast<float>(r1)) * 11.0);
 		break;
 		case EStarType::BlackHole:
-		star.mass = (float)(18.0 + r1 * r2 * 30.0);
+		star.mass = static_cast<float>(18.0 + static_cast<double>(static_cast<float>(r1 * r2)) * 30.0);
 		break;
 		default:
 		star.mass = Mathf.Pow(2.0f,p1);
 		break;
 		}
 		double d = 5.0;
-		if((double)star.mass < 2.0)
+		if(((double)star.mass < 2.0))
 			d = 2.0 + 0.4 * (1.0 - (double)star.mass);
 		star.lifetime = (float)(10000.0 * Math.Pow(0.1,Math.Log10((double)star.mass * 0.5) / Math.Log10(d) + 1.0) * num4);
 		switch(needtype)
 		{
 		case EStarType::GiantStar:
 		star.lifetime = (float)(10000.0 * Math.Pow(0.1,Math.Log10((double)star.mass * 0.58) / Math.Log10(d) + 1.0) * num4);
-		star.age = (float)(num2 * 0.0399999991059303 + 0.959999978542328);
+		star.age = (float)(static_cast<double>(static_cast<float>(num2)) * static_cast<double>(0.04f) + static_cast<double>(0.96f));
 		break;
 		case EStarType::WhiteDwarf:
 		case EStarType::NeutronStar:
 		case EStarType::BlackHole:
-		star.age = (float)(num2 * 0.400000005960464 + 1.0);
+		star.age = (float)(static_cast<double>(static_cast<float>(num2)) * static_cast<double>(0.4f) + 1.0);
 		if(needtype == EStarType::WhiteDwarf)
 		{
 			star.lifetime += 10000.0f;
@@ -821,26 +826,30 @@ protected:
 		}
 		break;
 		default:
-		star.age = (double)star.mass >= 0.5 ? ((double)star.mass >= 0.8 ? (float)(num2 * 0.699999988079071 + 0.200000002980232) : (float)(num2 * 0.400000005960464 + 0.100000001490116)) : (float)(num2 * 0.119999997317791 + 0.0199999995529652);
+		star.age = ((double)star.mass >= 0.5)
+			? (((double)star.mass >= 0.8)
+				? (float)(static_cast<double>(static_cast<float>(num2)) * static_cast<double>(0.7f) + static_cast<double>(0.2f))
+				: (float)(static_cast<double>(static_cast<float>(num2)) * static_cast<double>(0.4f) + static_cast<double>(0.1f)))
+			: (float)(static_cast<double>(static_cast<float>(num2)) * static_cast<double>(0.12f) + static_cast<double>(0.02f));
 		break;
 		}
 		float num8 = star.lifetime * star.age;
-		if((double)num8 > 5000.0)
+		if(((double)num8 > 5000.0))
 			num8 = (float)(((double)Mathf.Log(num8 / 5000.0f) + 1.0) * 5000.0);
-		if((double)num8 > 8000.0)
+		if(((double)num8 > 8000.0))
 			num8 = (float)(((double)Mathf.Log(Mathf.Log(Mathf.Log(num8 / 8000.0f) + 1.0f) + 1.0f) + 1.0) * 8000.0);
 		star.lifetime = num8 / star.age;
-		float num9 = (float)(1.0 - (double)Mathf.Pow(Mathf.Clamp01(star.age),20.0f) * 0.5) * star.mass;
+		float num9 = static_cast<float>((1.0 - (double)Mathf.Pow(Mathf.Clamp01(star.age),20.0f) * 0.5) * star.mass);
 		star.temperature = (float)(Math.Pow((double)num9,0.56 + 0.14 / (Math.Log10((double)num9 + 4.0) / Math.Log10(5.0))) * 4450.0 + 1300.0);
 		double num10 = Math.Log10(((double)star.temperature - 1300.0) / 4500.0) / Math.Log10(2.6) - 0.5;
-		if(num10 < 0.0)
+		if((num10 < 0.0))
 			num10 *= 4.0;
-		if(num10 > 2.0)
+		if((num10 > 2.0))
 			num10 = 2.0;
-		else if(num10 < -4.0)
+		else if((num10 < -4.0))
 			num10 = -4.0;
 		star.spectr = (ESpectrType)Mathf.RoundToInt((float)num10 + 4.0f);
-		star.color = Mathf.Clamp01((float)((num10 + 3.5) * 0.200000002980232));
+		star.color = Mathf.Clamp01((float)((static_cast<double>(static_cast<float>(num10)) + 3.5) * static_cast<double>(0.2f)));
 		star.classFactor = (float)num10;
 		star.luminosity = Mathf.Pow(num9,0.7f);
 		star.radius = (float)(Math.Pow((double)star.mass,0.4) * num5);
@@ -849,11 +858,11 @@ protected:
 		star.habitableRadius = Mathf.Pow(1.7f,p2) + 0.25f * Mathf.Min(1.0f,star.orbitScaler);
 		star.lightBalanceRadius = Mathf.Pow(1.7f,p2);
 		star.orbitScaler = Mathf.Pow(1.35f,p2);
-		if((double)star.orbitScaler < 1.0)
+		if(((double)star.orbitScaler < 1.0))
 			star.orbitScaler = Mathf.Lerp(star.orbitScaler,1.0f,0.6f);
 		SetStarAge(star,star.age,rn,rt);
 		star.dysonRadius = star.orbitScaler * 0.28f;
-		if((double)star.dysonRadius * 40000.0 < (double)star.physicsRadius() * 1.5)
+		if(((double)star.dysonRadius * 40000.0 < (double)star.physicsRadius() * 1.5))
 			star.dysonRadius = (float)((double)star.physicsRadius() * 1.5 / 40000.0);
 		star.uPosition = star.position * 2400000.0;
 		std::tie(star.name_enus,star.name_zhcn) = NameGen.RandomStarName(seed1,star,starnames_enus,starnames_zhcn);
@@ -882,22 +891,22 @@ protected:
 		double rt = dotNet35Random2.NextDouble();
 		double num2 = dotNet35Random2.NextDouble() * 0.2 + 0.9;
 		double num3 = Math.Pow(2.0,dotNet35Random2.NextDouble() * 0.4 - 0.2);
-		float p1 = Mathf.Clamp(RandNormal(0.0f,0.08f,r1,r2),-0.2f,0.2f);
+		float p1 = Mathf.Clamp((RandNormal(0.0f,0.08f,r1,r2)),-0.2f,0.2f);
 		birthStar.mass = Mathf.Pow(2.0f,p1);
 		double d = 2.0 + 0.4 * (1.0 - (double)birthStar.mass);
 		birthStar.lifetime = (float)(10000.0 * Math.Pow(0.1,Math.Log10((double)birthStar.mass * 0.5) / Math.Log10(d) + 1.0) * num2);
 		birthStar.age = (float)(num1 * 0.4 + 0.3);
-		float num4 = (float)(1.0 - (double)Mathf.Pow(Mathf.Clamp01(birthStar.age),20.0f) * 0.5) * birthStar.mass;
+		float num4 = static_cast<float>((1.0 - (double)Mathf.Pow(Mathf.Clamp01(birthStar.age),20.0f) * 0.5) * birthStar.mass);
 		birthStar.temperature = (float)(Math.Pow((double)num4,0.56 + 0.14 / (Math.Log10((double)num4 + 4.0) / Math.Log10(5.0))) * 4450.0 + 1300.0);
 		double num5 = Math.Log10(((double)birthStar.temperature - 1300.0) / 4500.0) / Math.Log10(2.6) - 0.5;
-		if(num5 < 0.0)
+		if((num5 < 0.0))
 			num5 *= 4.0;
-		if(num5 > 2.0)
+		if((num5 > 2.0))
 			num5 = 2.0;
-		else if(num5 < -4.0)
+		else if((num5 < -4.0))
 			num5 = -4.0;
 		birthStar.spectr = (ESpectrType)Mathf.RoundToInt((float)num5 + 4.0f);
-		birthStar.color = Mathf.Clamp01((float)((num5 + 3.5) * 0.200000002980232));
+		birthStar.color = Mathf.Clamp01((float)((static_cast<double>(static_cast<float>(num5)) + 3.5) * static_cast<double>(0.2f)));
 		birthStar.classFactor = (float)num5;
 		birthStar.luminosity = Mathf.Pow(num4,0.7f);
 		birthStar.radius = (float)(Math.Pow((double)birthStar.mass,0.4) * num3);
@@ -906,11 +915,11 @@ protected:
 		birthStar.habitableRadius = Mathf.Pow(1.7f,p2) + 0.2f * Mathf.Min(1.0f,birthStar.orbitScaler);
 		birthStar.lightBalanceRadius = Mathf.Pow(1.7f,p2);
 		birthStar.orbitScaler = Mathf.Pow(1.35f,p2);
-		if((double)birthStar.orbitScaler < 1.0)
+		if(((double)birthStar.orbitScaler < 1.0))
 			birthStar.orbitScaler = Mathf.Lerp(birthStar.orbitScaler,1.0f,0.6f);
 		SetStarAge(birthStar,birthStar.age,rn,rt);
 		birthStar.dysonRadius = birthStar.orbitScaler * 0.28f;
-		if((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5)
+		if(((double)birthStar.dysonRadius * 40000.0 < (double)birthStar.physicsRadius() * 1.5))
 			birthStar.dysonRadius = (float)((double)birthStar.physicsRadius() * 1.5 / 40000.0);
 		birthStar.uPosition = VectorLF3::zero();
 		std::tie(birthStar.name_enus,birthStar.name_zhcn) = NameGen.RandomStarName(seed1,birthStar,starnames_enus,starnames_zhcn);
@@ -937,7 +946,8 @@ protected:
 			double num2 = pt.x - pt1.x;
 			double num3 = pt.y - pt1.y;
 			double num4 = pt.z - pt1.z;
-			if(num2 * num2 + num3 * num3 + num4 * num4 < num1)
+			double distance = (num2 * num2 + num3 * num3) + num4 * num4;
+			if(distance < num1)
 				return true;
 		}
 		return false;
@@ -1031,16 +1041,14 @@ public:
         this->stars.resize(tempPoses);
         this->habitableCount = 0;
         //NameGen.starnames.clear();
-		
         float num1 = (float)dotNet35Random.NextDouble();
         float num2 = (float)dotNet35Random.NextDouble();
         float num3 = (float)dotNet35Random.NextDouble();
         float num4 = (float)dotNet35Random.NextDouble();
-        
-        int num5 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)tempPoses + (double)num1 * 0.300000011920929));
-        int num6 = Mathf.CeilToInt((float)(0.00999999977648258 * (double)tempPoses + (double)num2 * 0.300000011920929));
-        int num7 = Mathf.CeilToInt((float)(0.0160000007599592 * (double)tempPoses + (double)num3 * 0.400000005960464));
-        int num8 = Mathf.CeilToInt((float)(0.0130000002682209 * (double)tempPoses + (double)num4 * 1.39999997615814));
+        int num5 = Mathf.CeilToInt((float)(static_cast<double>(0.01f) * (double)tempPoses + (double)num1 * static_cast<double>(0.3f)));
+        int num6 = Mathf.CeilToInt((float)(static_cast<double>(0.01f) * (double)tempPoses + (double)num2 * static_cast<double>(0.3f)));
+        int num7 = Mathf.CeilToInt((float)(static_cast<double>(0.016f) * (double)tempPoses + (double)num3 * static_cast<double>(0.4f)));
+        int num8 = Mathf.CeilToInt((float)(static_cast<double>(0.013f) * (double)tempPoses + (double)num4 * static_cast<double>(1.4f)));
         int num9 = tempPoses - num5;
         int num10 = num9 - num6;
         int num11 = num10 - num7;
@@ -1078,7 +1086,6 @@ public:
 		for(StarClass& star : stars)
 			CreateStarPlanets(star);
 	}
-	
     void MyGenerateVeins(const StarClass& star, PlanetClass& planet)
     {
         ThemeProto themeProto = LDB.Select(planet.theme);
@@ -1089,18 +1096,15 @@ public:
         dotNet35Random1.Next();
         dotNet35Random1.Next();
         dotNet35Random1.Next();
-	
 		uint16_t veins_group[14] = {0};
 		float veins_count_percent[14] = {0};
 		float veins_amount_percent[14] = {0};
-        
 		for(int i = 0; i < themeProto.VeinSpot.size(); i++)
 			veins_group[i] = themeProto.VeinSpot[i];
 		for(int i = 0; i < themeProto.VeinCount.size(); i++)
 			veins_count_percent[i] = themeProto.VeinCount[i];
 		for(int i = 0; i < themeProto.VeinOpacity.size(); i++)
 			veins_amount_percent[i] = themeProto.VeinOpacity[i];
-	
 		float p = 1.0f;
 		ESpectrType spectr = star.spectr;
 		switch(star.type)
@@ -1171,7 +1175,6 @@ public:
 		veins_amount_percent[13] = 0.3f;
 		break;
 		}
-	
 		for(int index1 = 0; index1 < themeProto.RareVeins.size(); ++index1)
 		{
 			int rareVein = themeProto.RareVeins[index1];

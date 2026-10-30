@@ -6,18 +6,17 @@
 #include <chrono>
 
 #include "check_seed.hpp"
-#include "DotNet35Random.hpp"
+#include "src/DotNet35Random.hpp"
 
-using namespace std;
 namespace py = pybind11;
 
 class GPUBenchmark {
 protected:
-	vector<thread> threads{};
-	atomic<bool> stop = false;
-	atomic<int> num = 0;
+	std::vector<std::thread> threads{};
+	std::atomic<bool> stop = false;
+	std::atomic<int> num = 0;
 
-	chrono::steady_clock::time_point tag;
+	std::chrono::steady_clock::time_point tag;
 
 	int max_thread;
 	bool heavy;
@@ -52,31 +51,31 @@ public:
 	}
 
 	void run() {
-		int seed = static_cast<int>(time(nullptr));
+		int seed = static_cast<int>(std::time(nullptr));
 		DotNet35Random rand_gen = DotNet35Random(seed);
 		for(int i=0;i<max_thread;i++) {
-			threads.push_back(thread(&GPUBenchmark::main_func,this,rand_gen.Next()));
+			threads.push_back(std::thread(&GPUBenchmark::main_func,this,rand_gen.Next()));
 		}
 	}
 
 	void shutdown() {
 		stop.store(true);
 		for(int i=0;i<max_thread;i++) {
-			thread& main_thread = threads[i];
+			std::thread& main_thread = threads[i];
 			if(main_thread.joinable())
 				main_thread.join();
 		}
 	}
 
 	void reset() {
-		tag = chrono::steady_clock::now();
+		tag = std::chrono::steady_clock::now();
 		num.store(0);
 	}
 
 	double get_speed() {
-		auto now = chrono::steady_clock::now();
+		auto now = std::chrono::steady_clock::now();
 		double cur_num = (double)num.load();
-		double use_time = (double)chrono::duration_cast<chrono::microseconds>(now-tag).count();
+		double use_time = (double)std::chrono::duration_cast<std::chrono::microseconds>(now-tag).count();
 		double speed = 1000000 * cur_num / use_time;
 		return speed;
 	}

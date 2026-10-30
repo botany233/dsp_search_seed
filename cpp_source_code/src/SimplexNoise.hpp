@@ -6,9 +6,14 @@
 
 #include "DotNet35Random.hpp"
 
-using namespace std;
+// The game Mono evaluates each double operation separately. In particular,
+// neither contraction nor reassociation is valid for this deterministic noise.
+#ifdef _MSC_VER
+#pragma float_control(precise,on,push)
+#pragma fp_contract(off)
+#endif
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 class SimplexNoise
 {
 public:
@@ -44,28 +49,30 @@ protected:
 	}
 
 	static __forceinline __m256d Contribution(__m256d x,__m256d y,__m256d z,__m128i gradientIndices32) {
-		__m256d squaredLength = _mm256_mul_pd(z,z);
-		squaredLength = _mm256_fmadd_pd(y,y,squaredLength);
-		squaredLength = _mm256_fmadd_pd(x,x,squaredLength);
-		__m256d attenuation = _mm256_sub_pd(_mm256_set1_pd(0.6),squaredLength);
+		// C#: ((0.6 - x*x) - y*y) - z*z, with rounding after each operation.
+		__m256d attenuation = _mm256_sub_pd(_mm256_set1_pd(0.6),_mm256_mul_pd(x,x));
+		attenuation = _mm256_sub_pd(attenuation,_mm256_mul_pd(y,y));
+		attenuation = _mm256_sub_pd(attenuation,_mm256_mul_pd(z,z));
+		const __m256d inactive = _mm256_cmp_pd(attenuation,_mm256_setzero_pd(),_CMP_LT_OQ);
 
-		__m256i gradientIndices = _mm256_cvtepi32_epi64(gradientIndices32);
-		__m256i useX = _mm256_cmpgt_epi64(_mm256_set1_epi64x(8),gradientIndices);
-		__m256i useY = _mm256_cmpgt_epi64(_mm256_set1_epi64x(4),gradientIndices);
-		__m256d gradientA = _mm256_blendv_pd(y,x,_mm256_castsi256_pd(useX));
-		__m256d gradientB = _mm256_blendv_pd(z,y,_mm256_castsi256_pd(useY));
+		// Each gradient has two +/-1 coefficients and one +0 coefficient.
+		// For finite coordinates the two nonzero terms may be added first:
+		// adding the omitted signed zero last gives the same rounded value and
+		// zero sign as (gx*x + gy*y) + gz*z. Do not simply discard that zero.
+		const __m256i g = _mm256_cvtepi32_epi64(gradientIndices32);
+		const __m256d useX = _mm256_castsi256_pd(_mm256_cmpgt_epi64(_mm256_set1_epi64x(8),g));
+		const __m256d useY = _mm256_castsi256_pd(_mm256_cmpgt_epi64(_mm256_set1_epi64x(4),g));
+		__m256d a = _mm256_blendv_pd(y,x,useX);
+		__m256d b = _mm256_blendv_pd(z,y,useY);
+		const __m256d omitted = _mm256_blendv_pd(_mm256_blendv_pd(x,y,useX),z,useY);
+		a = _mm256_xor_pd(a,_mm256_castsi256_pd(_mm256_slli_epi64(g,63)));
+		b = _mm256_xor_pd(b,_mm256_castsi256_pd(_mm256_slli_epi64(_mm256_and_si256(g,_mm256_set1_epi64x(2)),62)));
+		const __m256d dot = _mm256_add_pd(_mm256_add_pd(a,b),_mm256_and_pd(omitted,_mm256_set1_pd(-0.0)));
 
-		__m256i signA = _mm256_slli_epi64(gradientIndices,63);
-		__m256i signB = _mm256_slli_epi64(
-			_mm256_and_si256(gradientIndices,_mm256_set1_epi64x(2)),62);
-		gradientA = _mm256_xor_pd(gradientA,_mm256_castsi256_pd(signA));
-		gradientB = _mm256_xor_pd(gradientB,_mm256_castsi256_pd(signB));
-		__m256d gradientDot = _mm256_add_pd(gradientA,gradientB);
-
-		attenuation = _mm256_max_pd(_mm256_setzero_pd(),attenuation);
 		attenuation = _mm256_mul_pd(attenuation,attenuation);
 		attenuation = _mm256_mul_pd(attenuation,attenuation);
-		return _mm256_mul_pd(attenuation,gradientDot);
+		// C# returns literal +0 for inactive corners, irrespective of dot's sign.
+		return _mm256_andnot_pd(inactive,_mm256_mul_pd(attenuation,dot));
 	}
 
 public:
@@ -87,17 +94,14 @@ public:
 		double y0 = y - ((double)j - unskew);
 		double z0 = z - ((double)k - unskew);
 
-		// Rank comparisons preserve the original tie ordering without branches.
-		int rankX = (int)(x0 >= y0) + (int)(x0 >= z0);
-		int rankY = (int)(y0 > x0) + (int)(y0 >= z0);
-		int rankZ = (int)(z0 > x0) + (int)(z0 > y0);
-
-		int i1 = (int)(rankX == 2);
-		int j1 = (int)(rankY == 2);
-		int k1 = (int)(rankZ == 2);
-		int i2 = (int)(rankX >= 1);
-		int j2 = (int)(rankY >= 1);
-		int k2 = (int)(rankZ >= 1);
+		// Three comparisons retain the C# branch tree's tie ordering.
+		const bool xy = x0 >= y0,xz = x0 >= z0,yz = y0 >= z0;
+		int i1 = xy & xz;
+		int j1 = !xy & yz;
+		int k1 = 1 - i1 - j1;
+		int i2 = xy | xz;
+		int j2 = !xy | yz;
+		int k2 = 2 - i2 - j2;
 
 		int ii = i & 0xFF;
 		int jj = j & 0xFF;
@@ -134,29 +138,11 @@ public:
 			_mm256_sub_pd(_mm256_set1_pd(z0),_mm256_cvtepi32_pd(kOffsets)),
 			cornerUnskew);
 
-		__m256d squaredLength = _mm256_mul_pd(z_,z_);
-		squaredLength = _mm256_fmadd_pd(y_,y_,squaredLength);
-		squaredLength = _mm256_fmadd_pd(x_,x_,squaredLength);
-		__m256d attenuation = _mm256_sub_pd(_mm256_set1_pd(0.6),squaredLength);
-
-		// grad3[gi] always selects two coordinates; gi bits encode their signs.
-		__m256i gradientIndices = _mm256_cvtepi32_epi64(gradientIndices32);
-		__m256i useX = _mm256_cmpgt_epi64(_mm256_set1_epi64x(8),gradientIndices);
-		__m256i useY = _mm256_cmpgt_epi64(_mm256_set1_epi64x(4),gradientIndices);
-		__m256d gradientA = _mm256_blendv_pd(y_,x_,_mm256_castsi256_pd(useX));
-		__m256d gradientB = _mm256_blendv_pd(z_,y_,_mm256_castsi256_pd(useY));
-
-		__m256i signA = _mm256_slli_epi64(gradientIndices,63);
-		__m256i signB = _mm256_slli_epi64(
-			_mm256_and_si256(gradientIndices,_mm256_set1_epi64x(2)),62);
-		gradientA = _mm256_xor_pd(gradientA,_mm256_castsi256_pd(signA));
-		gradientB = _mm256_xor_pd(gradientB,_mm256_castsi256_pd(signB));
-		__m256d gradientDot = _mm256_add_pd(gradientA,gradientB);
-
-		attenuation = _mm256_max_pd(_mm256_setzero_pd(),attenuation);
-		attenuation = _mm256_mul_pd(attenuation,attenuation);
-		attenuation = _mm256_mul_pd(attenuation,attenuation);
-		__m256d result = _mm256_mul_pd(attenuation,gradientDot);
+		// Corner zero uses x0/y0/z0 directly, including their zero sign.
+		x_ = _mm256_blend_pd(x_,_mm256_set1_pd(x0),1);
+		y_ = _mm256_blend_pd(y_,_mm256_set1_pd(y0),1);
+		z_ = _mm256_blend_pd(z_,_mm256_set1_pd(z0),1);
+		__m256d result = Contribution(x_,y_,z_,gradientIndices32);
 
 		// Keep the same left-to-right reduction order as the scalar version.
 		__m128d result01 = _mm256_castpd256_pd128(result);
@@ -180,6 +166,17 @@ public:
 			if(remaining == 1)
 			{
 				total += Noise(x,y,z) * initialAmp;
+				break;
+			}
+
+			if(remaining == 2) {
+				__m128d values = Noise_batch2(
+					_mm_setr_pd(x,x * deltaWLen),
+					_mm_setr_pd(y,y * deltaWLen),
+					_mm_setr_pd(z,z * deltaWLen));
+				values = _mm_mul_pd(values,_mm_setr_pd(initialAmp,initialAmp * deltaAmp));
+				total += _mm_cvtsd_f64(values);
+				total += _mm_cvtsd_f64(_mm_unpackhi_pd(values,values));
 				break;
 			}
 
@@ -238,6 +235,18 @@ public:
 			if(remaining == 1)
 			{
 				total += std::abs(Noise(x,y,z) * initialAmp);
+				break;
+			}
+
+			if(remaining == 2) {
+				__m128d values = Noise_batch2(
+					_mm_setr_pd(x,x * deltaWLen),
+					_mm_setr_pd(y,y * deltaWLen),
+					_mm_setr_pd(z,z * deltaWLen));
+				values = _mm_mul_pd(values,_mm_setr_pd(initialAmp,initialAmp * deltaAmp));
+				values = _mm_andnot_pd(_mm_set1_pd(-0.0),values);
+				total += _mm_cvtsd_f64(values);
+				total += _mm_cvtsd_f64(_mm_unpackhi_pd(values,values));
 				break;
 			}
 
@@ -346,9 +355,9 @@ public:
 		const __m256d unskew01 = _mm256_setr_pd(0.0,0.0,G3,G3);
 		const __m256d unskew23 = _mm256_setr_pd(2.0 * G3,2.0 * G3,3.0 * G3,3.0 * G3);
 		const __m256d result01 = Contribution(
-			_mm256_add_pd(_mm256_sub_pd(xx,_mm256_cvtepi32_pd(i01)),unskew01),
-			_mm256_add_pd(_mm256_sub_pd(yy,_mm256_cvtepi32_pd(j01)),unskew01),
-			_mm256_add_pd(_mm256_sub_pd(zz,_mm256_cvtepi32_pd(k01)),unskew01),gradient01);
+			_mm256_blend_pd(_mm256_add_pd(_mm256_sub_pd(xx,_mm256_cvtepi32_pd(i01)),unskew01),xx,3),
+			_mm256_blend_pd(_mm256_add_pd(_mm256_sub_pd(yy,_mm256_cvtepi32_pd(j01)),unskew01),yy,3),
+			_mm256_blend_pd(_mm256_add_pd(_mm256_sub_pd(zz,_mm256_cvtepi32_pd(k01)),unskew01),zz,3),gradient01);
 		const __m256d result23 = Contribution(
 			_mm256_add_pd(_mm256_sub_pd(xx,_mm256_cvtepi32_pd(i23)),unskew23),
 			_mm256_add_pd(_mm256_sub_pd(yy,_mm256_cvtepi32_pd(j23)),unskew23),
@@ -490,7 +499,10 @@ public:
 		result = _mm256_add_pd(result,Contribution(x2,y2,z2,gradient2));
 
 		__m256d half = _mm256_set1_pd(0.5);
-		result = _mm256_add_pd(result,Contribution(_mm256_sub_pd(x0,half),_mm256_sub_pd(y0,half),_mm256_sub_pd(z0,half),gradient3));
+		result = _mm256_add_pd(result,Contribution(
+			_mm256_add_pd(_mm256_sub_pd(x0,one),half),
+			_mm256_add_pd(_mm256_sub_pd(y0,one),half),
+			_mm256_add_pd(_mm256_sub_pd(z0,one),half),gradient3));
 
 		return _mm256_mul_pd(result,_mm256_set1_pd(32.696434));
 	}
@@ -701,7 +713,7 @@ public:
 		double num2 = initialAmp;
 		for(int i = 0; i < nOctaves; i++)
 		{
-			num += abs(Noise(x,y,z) * num2);
+			num += std::abs(Noise(x,y,z) * num2);
 			num2 *= deltaAmp;
 			x *= deltaWLen;
 			y *= deltaWLen;
@@ -710,4 +722,8 @@ public:
 		return num;
 	}
 };
+#endif
+
+#ifdef _MSC_VER
+#pragma float_control(pop)
 #endif

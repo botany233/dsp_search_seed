@@ -297,9 +297,9 @@ kernel void GenerateTerrain1(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * planet_radius;
-	double num13 = vertices[index+1] * planet_radius;
-	double num14 = vertices[index+2] * planet_radius;
+	double num12 = (double)vertices[index] * planet_radius;
+	double num13 = (double)vertices[index+1] * planet_radius;
+	double num14 = (double)vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.01,num13 * 0.012,num14 * 0.01,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -390,9 +390,9 @@ kernel void GenerateTerrain3(
 		return;
 	}
 	int index = gid * 3;
-	double num6 = vertices[index] * planet_radius;
-	double num7 = vertices[index+1] * planet_radius;
-	double num8 = vertices[index+2] * planet_radius;
+	double num6 = (double)vertices[index] * planet_radius;
+	double num7 = (double)vertices[index+1] * planet_radius;
+	double num8 = (double)vertices[index+2] * planet_radius;
 	num6 += sin(num7 * 0.15) * 3.0;
 	num7 += sin(num8 * 0.15) * 3.0;
 	num8 += sin(num6 * 0.15) * 3.0;
@@ -535,9 +535,9 @@ kernel void GenerateTerrain5(
 		return;
 	}
 	int index = gid * 3;
-	double num3 = vertices[index] * planet_radius;
-	double num4 = vertices[index+1] * planet_radius;
-	double num5 = vertices[index+2] * planet_radius;
+	double num3 = (double)vertices[index] * planet_radius;
+	double num4 = (double)vertices[index+1] * planet_radius;
+	double num5 = (double)vertices[index+2] * planet_radius;
 	double num6 = 0.0;
 	double num8 = Levelize_1arg(num3 * 0.007);
 	double num9 = Levelize_1arg(num4 * 0.007);
@@ -672,9 +672,9 @@ kernel void GenerateTerrain7(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * planet_radius;
-	double num13 = vertices[index+1] * planet_radius;
-	double num14 = vertices[index+2] * planet_radius;
+	double num12 = (double)vertices[index] * planet_radius;
+	double num13 = (double)vertices[index+1] * planet_radius;
+	double num14 = (double)vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.008,num13 * 0.01,num14 * 0.01,6,localPerm_1,localPermMod12_1) * 3.0 - 2.4;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -715,23 +715,24 @@ kernel void GenerateTerrain8(
 		return;
 	}
 	int index = gid * 3;
-	double num4 = vertices[index] * planet_radius;
-	double num5 = vertices[index+1] * planet_radius;
-	double num6 = vertices[index+2] * planet_radius;
-	float num9 = clamp(Noise3DFBM_6arg(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8,localPerm_1,localPermMod12_1) + 1.0 + modY * 0.01,0.0,2.0);
+	double num4 = (double)vertices[index] * planet_radius;
+	double num5 = (double)vertices[index+1] * planet_radius;
+	double num6 = (double)vertices[index+2] * planet_radius;
+	float noise = (float)Noise3DFBM_6arg(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8,localPerm_1,localPermMod12_1);
+	float num9 = clamp((float)((double)noise + 1.0 + (double)(float)modY * (double)0.01f),0.0f,2.0f);
 	float num10 = 0.0;
 	if(num9 < 1.0)
 	{
 		float f = cos(num9 * MATHF_PI) * 1.1f;
 		f = sign(f) * pow(f,4.0f);
 		f = clamp(f,-1.0f,1.0f);
-		num10 = 1.0f - (f + 1.0f) * 0.5f;
+		num10 = (float)(1.0 - ((double)f + 1.0) * 0.5);
 	} else
 	{
 		float f2 = cos((num9 - 1.0f) * MATHF_PI) * 1.1f;
 		f2 = sign(f2) * pow(f2,4.0f);
 		f2 = clamp(f2,-1.0f,1.0f);
-		num10 = 2.0f - (f2 + 1.0f) * 0.5f;
+		num10 = (float)(2.0 - ((double)f2 + 1.0) * 0.5);
 	}
 	heightData[gid] = (unsigned short)((planet_radius + (double)num10 + 0.1) * 100.0);
 }
@@ -771,9 +772,9 @@ kernel void GenerateTerrain9(
 		return;
 	}
 	int index = gid * 3;
-	double num12 = vertices[index] * planet_radius;
-	double num13 = vertices[index+1] * planet_radius;
-	double num14 = vertices[index+2] * planet_radius;
+	double num12 = (double)vertices[index] * planet_radius;
+	double num13 = (double)vertices[index+1] * planet_radius;
+	double num14 = (double)vertices[index+2] * planet_radius;
 	double num17 = Noise3DFBM_4arg(num12 * 0.01 * 0.75,num13 * 0.012 * 0.5,num14 * 0.01 * 0.75,6,localPerm_1,localPermMod12_1) * 3.0 - 0.2;
 	double num18 = Noise3DFBM_4arg(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3,localPerm_2,localPermMod12_2) * 3.0 * 0.9 + 0.5;
 	double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -851,9 +852,9 @@ kernel void GenerateTerrain10(
 		return;
 	}
 	int index = gid * 3;
-	double num9 = vertices[index] * planet_radius;
-	double num10 = vertices[index+1] * planet_radius;
-	double num11 = vertices[index+2] * planet_radius;
+	double num9 = (double)vertices[index] * planet_radius;
+	double num10 = (double)vertices[index+1] * planet_radius;
+	double num11 = (double)vertices[index+2] * planet_radius;
 	double num12 = Levelize_1arg(num9 * 0.007);
 	double num13 = Levelize_1arg(num10 * 0.007);
 	double num14 = Levelize_1arg(num11 * 0.007);
@@ -960,9 +961,9 @@ kernel void GenerateTerrain11(
 		return;
 	}
 	int index = gid * 3;
-	double num10 = vertices[index] * planet_radius;
-	double num11 = vertices[index+1] * planet_radius;
-	double num12 = vertices[index+2] * planet_radius;
+	double num10 = (double)vertices[index] * planet_radius;
+	double num11 = (double)vertices[index+1] * planet_radius;
+	double num12 = (double)vertices[index+2] * planet_radius;
 	double num15 = Noise3DFBM_4arg(num10 * 0.007 * 4.0,num11 * 0.007 * 8.0,num12 * 0.007 * 4.0,3,localPerm_2,localPermMod12_2);
 	double x = Noise3DFBM_6arg(num10 * 0.007 * 0.6,num11 * 0.007 * 1.5 * 2.5,num12 * 0.007 * 0.6,6,0.45,1.8,localPerm_1,localPermMod12_1) * 0.95 + num15 * 0.05;
 	x = Remap(-1.0,1.0,0.0,1.0,x);
@@ -1065,9 +1066,9 @@ kernel void GenerateTerrain13(
 		return;
 	}
 	int index = gid * 3;
-	double num4 = vertices[index] * planet_radius;
-	double num5 = vertices[index+1] * planet_radius;
-	double num6 = vertices[index+2] * planet_radius;
+	double num4 = (double)vertices[index] * planet_radius;
+	double num5 = (double)vertices[index+1] * planet_radius;
+	double num6 = (double)vertices[index+2] * planet_radius;
 	double x = Remap(-1.0,1.0,0.0,1.0,Noise3DFBM_4arg(num4 * num,num5 * num2,num6 * num3,6,localPerm_1,localPermMod12_1));
 	x = pow(x,modY) * 3.0625;
 	x = Remap(0.0,2.0,0.0,4.0,x);

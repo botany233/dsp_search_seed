@@ -1,130 +1,68 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="源文件">
-      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
-      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
-    </Filter>
-    <Filter Include="头文件">
-      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
-      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
-    </Filter>
-    <Filter Include="资源文件">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
+    <Filter Include="源文件"><UniqueIdentifier>{C14210BE-0C20-51B5-9CFB-80FF27789955}</UniqueIdentifier></Filter>
+    <Filter Include="头文件"><UniqueIdentifier>{1DB89FCA-E646-50ED-A931-2C066545E7EB}</UniqueIdentifier></Filter>
+    <Filter Include="资源文件"><UniqueIdentifier>{BA9DBF1B-56D3-5D68-A387-8E447A1AEDEC}</UniqueIdentifier></Filter>
+    <Filter Include="src"><UniqueIdentifier>{CCF3351D-9E47-5FDD-8D94-BC0A053C32F1}</UniqueIdentifier></Filter>
+    <Filter Include="tests"><UniqueIdentifier>{4DA1646B-7CEF-57A1-9795-C8A7A5486FEC}</UniqueIdentifier></Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="check_seed_util.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="python_api.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="check_seed_util.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="check_seed.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="PlanetAlgorithm.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="condition_to_struct.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="check_batch.hpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="static_value.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="astro_class.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="PlanetAlgorithm.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="defines.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DSPGen.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="NameGen.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="util.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="LDB.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="check_seed.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="python_api.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="data_struct.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SimplexNoise.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="const_value.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Vector3.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="RandomTable.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="SystemRandom.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Vector4.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="condition_to_struct.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="seed_manager.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="quaternion.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="VectorLF3.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Vector2.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="DotNet35Random.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="Maths.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="astro_class.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="gpu_benchmark.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="max_flow.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
+    <ClCompile Include="astro_class.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="check_seed.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="check_seed_util.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="condition_to_struct.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="PlanetAlgorithm.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="python_api.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="static_value.cpp"><Filter>源文件</Filter></ClCompile>
+    <ClCompile Include="src\Vector3.cpp"><Filter>src</Filter></ClCompile>
+    <ClInclude Include="astro_class.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="check_seed.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="condition_to_struct.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="const_value.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="defines.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="src\DotNet35Random.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="DSPGen.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="data_struct.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="gpu_benchmark.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="LDB.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="src\Maths.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\max_flow.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="NameGen.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="python_api.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="src\quaternion.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\RandomTable.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="seed_manager.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="src\SimplexNoise.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\SystemRandom.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\util.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\Vector2.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\Vector3.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\Vector4.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="src\VectorLF3.hpp"><Filter>src</Filter></ClInclude>
+    <ClInclude Include="check_seed_util.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="PlanetAlgorithm.hpp"><Filter>头文件</Filter></ClInclude>
+    <ClInclude Include="check_batch.hpp"><Filter>头文件</Filter></ClInclude>
+    <None Include="assets\generate_terrain_double.cl"><Filter>资源文件</Filter></None>
     <None Include="packages.config" />
     <None Include="vcpkg.json" />
-    <None Include="assets\generate_terrain_double.cl">
-      <Filter>资源文件</Filter>
-    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="tests\config.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\galaxy_consistency_tests.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\galaxy_consistency_tests.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\galaxy_dump.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\galaxy_dump.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\galaxy_truth_tests.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\galaxy_truth_tests.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\main.cpp"><Filter>tests</Filter></ClCompile>
+    <ClCompile Include="tests\math.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\math.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\math_tests.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\math_tests.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\planet_tests.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\planet_tests.hpp"><Filter>tests</Filter></ClInclude>
+    <ClCompile Include="tests\utils.cpp"><Filter>tests</Filter></ClCompile>
+    <ClInclude Include="tests\utils.hpp"><Filter>tests</Filter></ClInclude>
   </ItemGroup>
 </Project>

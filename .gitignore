@@ -4,6 +4,7 @@
 test.py
 *.json
 !assets/language/*.json
+AGENTS.md
 
 .venv/
 logs/

@@ -5,8 +5,6 @@
 #include <variant>
 #include <cstdint>
 
-using namespace std;
-
 struct SeedStruct {
 	int seed_id;
 	uint8_t star_num;
@@ -22,9 +20,9 @@ struct PlanetCondition {
 	uint8_t singularity = 0;
 	bool need_veins_amount = false;
 	uint16_t need_veins = 0;
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	vector<PlanetCondition> moons = vector<PlanetCondition>();
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::vector<PlanetCondition> moons = std::vector<PlanetCondition>();
 };
 
 struct StarCondition {
@@ -34,9 +32,9 @@ struct StarCondition {
 	uint16_t satisfy_num = 1;
 	uint16_t need_veins = 0;
 	bool need_veins_amount = false;
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	vector<PlanetCondition> planets = vector<PlanetCondition>();
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::vector<PlanetCondition> planets = std::vector<PlanetCondition>();
 };
 
 struct BondCondition {
@@ -52,19 +50,19 @@ struct GalaxyCondition {
 	bool valid_state = true;
 	bool need_gen_position = true;
 	bool need_veins_amount = false;
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	vector<StarCondition> stars{};
-	vector<PlanetCondition> planets{};
-	vector<BondCondition> bonds{};
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::vector<StarCondition> stars{};
+	std::vector<PlanetCondition> planets{};
+	std::vector<BondCondition> bonds{};
 };
 
 struct PlanetData {
 	int star_index;
 	int planet_index;
-	string name_enus;
-	string name_zhcn;
-	string type;
+	std::string name_enus;
+	std::string name_zhcn;
+	std::string type;
 	int type_id;
 	uint8_t singularity;
 	bool is_gas;
@@ -76,34 +74,34 @@ struct PlanetData {
 	int dsp_level;
 	float raw_dsp_degree;
 	float enhance_dsp_degree;
-	float obliquity;
+	float obliquity = 0.0f;
 	float land_percent = 0.0f;
-	array<double,3> pos_m = {};
-	array<double,3> pos_ly = {};
-	vector<string> singularity_str = vector<string>();
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	array<float,3> gas_veins = {};
-	vector<PlanetData> moons = vector<PlanetData>();
+	std::array<double,3> pos_m = {};
+	std::array<double,3> pos_ly = {};
+	std::vector<std::string> singularity_str = std::vector<std::string>();
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::array<float,3> gas_veins = {};
+	std::vector<PlanetData> moons = std::vector<PlanetData>();
 };
 
 struct StarData {
 	int star_index;
-	string name_enus;
-	string name_zhcn;
-	string type;
+	std::string name_enus;
+	std::string name_zhcn;
+	std::string type;
 	int type_id;
 	int seed;
 	float dyson_lumino;
 	float dyson_radius;
 	float distance;
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	array<float,3> gas_veins = {};
-	array<int,3> liquid = {};
-	array<double,3> pos_m = {};
-	array<double,3> pos_ly = {};
-	vector<PlanetData> planets;
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::array<float,3> gas_veins = {};
+	std::array<int,3> liquid = {};
+	std::array<double,3> pos_m = {};
+	std::array<double,3> pos_ly = {};
+	std::vector<PlanetData> planets;
 };
 
 struct GalaxyData {
@@ -111,9 +109,9 @@ struct GalaxyData {
 	uint8_t star_num;
 	uint8_t resource_index;
 	float resource_rate;
-	array<uint16_t,14> veins_point = {};
-	array<uint64_t,14> veins_amount = {};
-	array<float,3> gas_veins = {};
-	array<int,3> liquid = {};
-	vector<StarData> stars;
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+	std::array<float,3> gas_veins = {};
+	std::array<int,3> liquid = {};
+	std::vector<StarData> stars;
 };

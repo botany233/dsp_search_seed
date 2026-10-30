@@ -23,68 +23,72 @@ public:
 
 	// 成员函数
 	float magnitude() const {
-		return std::sqrt(x * x + y * y + z * z);
+		return Magnitude(*this);
 	};
 
 	float sqrMagnitude() const {
-		return x * x + y * y + z * z;
+		return static_cast<float>((static_cast<double>(x) * x + static_cast<double>(y) * y) + static_cast<double>(z) * z);
 	};
 
 	void Normalize() {
-		float num = magnitude();
+		float num = Magnitude(*this);
 		if(num > 1e-05f) {
-			x /= num;
-			y /= num;
-			z /= num;
+			*this = *this / num;
 		} else {
-			x = 0.0f;
-			y = 0.0f;
-			z = 0.0f;
+			*this = zero();
 		}
 	}
 
 	float dot(const Vector3& other) const {
-		return x * other.x + y * other.y + z * other.z;
+		return Dot(*this,other);
 	};
 
 	Vector3 lerp(const Vector3& target,float t) const {
 		t = Mathf.Clamp01(t); // 限制t在[0,1]范围内
 		return Vector3(
-			x + (target.x - x) * t,
-			y + (target.y - y) * t,
-			z + (target.z - z) * t
+			static_cast<float>(static_cast<double>(x) + (static_cast<double>(target.x) - x) * t),
+			static_cast<float>(static_cast<double>(y) + (static_cast<double>(target.y) - y) * t),
+			static_cast<float>(static_cast<double>(z) + (static_cast<double>(target.z) - z) * t)
 		);
 	};
 
 	// 静态方法
 	static float dot(const Vector3& a,const Vector3& b) {
-		return a.x * b.x + a.y * b.y + a.z * b.z;
+		return Dot(a,b);
 	}
 
 	static Vector3 Cross(const Vector3& a,const Vector3& b) {
 		return Vector3(
-			a.y * b.z - a.z * b.y,
-			a.z * b.x - a.x * b.z,
-			a.x * b.y - a.y * b.x
+			static_cast<float>(static_cast<double>(a.y) * b.z - static_cast<double>(a.z) * b.y),
+			static_cast<float>(static_cast<double>(a.z) * b.x - static_cast<double>(a.x) * b.z),
+			static_cast<float>(static_cast<double>(a.x) * b.y - static_cast<double>(a.y) * b.x)
 		);
 	};
 
 	static Vector3 lerp(const Vector3& a,const Vector3& b,float t) {
-		return a + (b - a) * t;
+		return Vector3(
+			static_cast<float>(static_cast<double>(a.x) + (static_cast<double>(b.x) - a.x) * t),
+			static_cast<float>(static_cast<double>(a.y) + (static_cast<double>(b.y) - a.y) * t),
+			static_cast<float>(static_cast<double>(a.z) + (static_cast<double>(b.z) - a.z) * t)
+		);
 	}
 
 	static float Magnitude(const Vector3& vector) {
-		return (float)std::sqrt(vector.x * vector.x + vector.y * vector.y + vector.z * vector.z);
+		// Match the intermediate precision observed in the game's Vector3.Magnitude.
+		const double x = vector.x;
+		const double y = vector.y;
+		const double z = vector.z;
+		return static_cast<float>(std::sqrt((x * x + y * y) + z * z));
 	};
 
 	static float Dot(const Vector3& a,const Vector3& b) {
-		return a.x * b.x + a.y * b.y + a.z * b.z;
+		return static_cast<float>((static_cast<double>(a.x) * b.x + static_cast<double>(a.y) * b.y) + static_cast<double>(a.z) * b.z);
 	};
 
 	static Vector3 Normalize(const Vector3& value) {
 		float num = Magnitude(value);
 		if(num > 1e-05f) {
-			return Vector3(value.x / num,value.y / num,value.z / num);
+			return value / num;
 		}
 		return zero();
 	};
@@ -171,10 +175,8 @@ public:
 		return *this;
 	};
 	bool operator==(const Vector3& other) const {
-		const float epsilon = 1e-6f;
-		return (std::abs(x - other.x) < epsilon) &&
-			(std::abs(y - other.y) < epsilon) &&
-			(std::abs(z - other.z) < epsilon);
+		const float dx = x - other.x,dy = y - other.y,dz = z - other.z;
+		return (static_cast<double>(dx) * dx + static_cast<double>(dy) * dy) + static_cast<double>(dz) * dz < static_cast<double>(9.99999944E-11f);
 	};
 	bool operator!=(const Vector3& other) const {
 		return !(*this == other);

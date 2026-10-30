@@ -89,7 +89,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -103,7 +103,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -117,14 +117,14 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;SUPPORT_AVX2;GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <Optimization>MaxSpeed</Optimization>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <AdditionalIncludeDirectories>D:\vcpkg\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)src;D:\vcpkg\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,12 +139,12 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>NDEBUG;_CONSOLE;SUPPORT_AVX2;GLM_ENABLE_EXPERIMENTAL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
-      <AdditionalIncludeDirectories>D:\vcpkg\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)src;D:\vcpkg\vcpkg\installed\x64-windows\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,13 +159,11 @@
     <ClCompile Include="astro_class.cpp" />
     <ClCompile Include="check_seed.cpp" />
     <ClCompile Include="check_seed_util.cpp" />
-    <ClCompile Include="check_seed_util.hpp" />
     <ClCompile Include="condition_to_struct.cpp" />
     <ClCompile Include="PlanetAlgorithm.cpp" />
-    <ClCompile Include="PlanetAlgorithm.hpp" />
     <ClCompile Include="python_api.cpp" />
-    <ClCompile Include="check_batch.hpp" />
     <ClCompile Include="static_value.cpp" />
+    <ClCompile Include="src\Vector3.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="astro_class.hpp" />
@@ -173,25 +171,28 @@
     <ClInclude Include="condition_to_struct.hpp" />
     <ClInclude Include="const_value.hpp" />
     <ClInclude Include="defines.hpp" />
-    <ClInclude Include="DotNet35Random.hpp" />
+    <ClInclude Include="src\DotNet35Random.hpp" />
     <ClInclude Include="DSPGen.hpp" />
     <ClInclude Include="data_struct.hpp" />
     <ClInclude Include="gpu_benchmark.hpp" />
     <ClInclude Include="LDB.hpp" />
-    <ClInclude Include="Maths.hpp" />
-    <ClInclude Include="max_flow.hpp" />
+    <ClInclude Include="src\Maths.hpp" />
+    <ClInclude Include="src\max_flow.hpp" />
     <ClInclude Include="NameGen.hpp" />
     <ClInclude Include="python_api.hpp" />
-    <ClInclude Include="quaternion.hpp" />
-    <ClInclude Include="RandomTable.hpp" />
+    <ClInclude Include="src\quaternion.hpp" />
+    <ClInclude Include="src\RandomTable.hpp" />
     <ClInclude Include="seed_manager.hpp" />
-    <ClInclude Include="SimplexNoise.hpp" />
-    <ClInclude Include="SystemRandom.hpp" />
-    <ClInclude Include="util.hpp" />
-    <ClInclude Include="Vector2.hpp" />
-    <ClInclude Include="Vector3.hpp" />
-    <ClInclude Include="Vector4.hpp" />
-    <ClInclude Include="VectorLF3.hpp" />
+    <ClInclude Include="src\SimplexNoise.hpp" />
+    <ClInclude Include="src\SystemRandom.hpp" />
+    <ClInclude Include="src\util.hpp" />
+    <ClInclude Include="src\Vector2.hpp" />
+    <ClInclude Include="src\Vector3.hpp" />
+    <ClInclude Include="src\Vector4.hpp" />
+    <ClInclude Include="src\VectorLF3.hpp" />
+    <ClInclude Include="check_seed_util.hpp" />
+    <ClInclude Include="PlanetAlgorithm.hpp" />
+    <ClInclude Include="check_batch.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="assets\generate_terrain_double.cl" />
@@ -209,4 +210,46 @@
     <Error Condition="!Exists('packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.props'))" />
     <Error Condition="!Exists('packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.targets'))" />
   </Target>
+  <ItemGroup>
+    <ClInclude Include="tests\config.hpp" />
+    <ClCompile Include="tests\galaxy_consistency_tests.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\galaxy_consistency_tests.hpp" />
+    <ClCompile Include="tests\galaxy_dump.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\galaxy_dump.hpp" />
+    <ClCompile Include="tests\galaxy_truth_tests.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\galaxy_truth_tests.hpp" />
+    <ClCompile Include="tests\main.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClCompile Include="tests\math.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\math.hpp" />
+    <ClCompile Include="tests\math_tests.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\math_tests.hpp" />
+    <ClCompile Include="tests\planet_tests.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\planet_tests.hpp" />
+    <ClCompile Include="tests\utils.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\utils.hpp" />
+  </ItemGroup>
 </Project>

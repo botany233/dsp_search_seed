@@ -5,30 +5,25 @@
 #include <memory>
 #include <string>
 #include <iostream>
-#include <iomanip>
 #include <fstream>
-#include <sstream>
 #include <cstdint>
+#include <cstddef>
 #include <mutex>
-#include <glm/glm.hpp>
 #include <CL/opencl.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
 
 #include "astro_class.hpp"
 #include "DSPGen.hpp"
-#include "util.hpp"
-#include "Maths.hpp"
-#include "Vector3.hpp"
-#include "Vector4.hpp"
-#include "DotNet35Random.hpp"
+#include "src/util.hpp"
+#include "src/Maths.hpp"
+#include "src/Vector3.hpp"
+#include "src/Vector4.hpp"
+#include "src/DotNet35Random.hpp"
 #include "const_value.hpp"
-#include "SimplexNoise.hpp"
-#include "RandomTable.hpp"
+#include "src/SimplexNoise.hpp"
+#include "src/RandomTable.hpp"
 #include "LDB.hpp"
 #include "defines.hpp"
 
-using namespace std;
 
 #pragma warning(disable:4267)
 #pragma warning(disable:4244)
@@ -47,7 +42,7 @@ public:
 	static cl::Program program;
 	static cl::Buffer vertices_buffer;
 	static size_t cfg_version;
-	static mutex lock;
+	static std::mutex lock;
 	static int max_worker;
 	static int cur_worker;
 
@@ -63,9 +58,9 @@ public:
 	}
 
 	static bool set_device_id(int input_device_id);
-	
+
 	static int get_device_id() {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		if(SUPPORT_GPU)
 			return device_id;
 		else
@@ -73,38 +68,38 @@ public:
 	}
 
 	static void set_local_size(int size = 32) {
-		lock_guard<mutex> lck(lock);
-		local_size = max(size,32);
+		std::lock_guard<std::mutex> lck(lock);
+		local_size = std::max(size,32);
 	}
 
 	static int get_local_size() {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		return local_size;
 	}
 
-	static vector<string> get_devices_info() {
-		lock_guard<mutex> lck(lock);
+	static std::vector<std::string> get_devices_info() {
+		std::lock_guard<std::mutex> lck(lock);
 		return devices_info;
 	}
 
-	static void AddSources(cl::Program::Sources& sources,const string& file_name) {
-		ifstream file(file_name);
-		string* source_code = new string(istreambuf_iterator<char>(file),(istreambuf_iterator<char>()));
+	static void AddSources(cl::Program::Sources& sources,const std::string& file_name) {
+		std::ifstream file(file_name);
+		std::string* source_code = new std::string(std::istreambuf_iterator<char>(file),(std::istreambuf_iterator<char>()));
 		sources.push_back((*source_code).c_str());
 	}
 
 	static void set_max_worker(int num) {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		max_worker = num;
 	}
 
 	static int get_max_worker() {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		return max_worker;
 	}
 
 	static bool get_worker() {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		if(!SUPPORT_GPU)
 			return false;
 		if(cur_worker>=max_worker)
@@ -114,7 +109,7 @@ public:
 	}
 
 	static void return_worker() {
-		lock_guard<mutex> lck(lock);
+		std::lock_guard<std::mutex> lck(lock);
 		cur_worker--;
 	}
 };
@@ -124,8 +119,8 @@ public:
 	static constexpr size_t PERM_BUF_SIZE = sizeof(int) * PERM_LENGTH;
 	static constexpr size_t DOUBLE_BUF_SIZE = sizeof(double) * 80;
 	static constexpr size_t FLOAT_BUF_SIZE = sizeof(float) * 320;
-	
-	static constexpr size_t ALIGN = alignof(std::max_align_t);
+
+	static constexpr size_t ALIGN = alignof(max_align_t);
 
 	static constexpr size_t OFF_DOUBLE = PERM_BUF_SIZE * 8;
 	static constexpr size_t OFF_FLOAT = OFF_DOUBLE + DOUBLE_BUF_SIZE;
@@ -133,7 +128,7 @@ public:
 
 	static constexpr size_t RESULT_SIZE = sizeof(unsigned short) * LAND_DATALENGTH;
 
-	alignas(std::max_align_t) std::byte cache[CACHE_SIZE];
+	alignas(max_align_t) std::byte cache[CACHE_SIZE];
 
 	int* perm_buffer_1() { return reinterpret_cast<int*>(cache); }
 	int* perm_buffer_2() { return reinterpret_cast<int*>(cache + PERM_BUF_SIZE * 2); }
@@ -153,9 +148,9 @@ public:
 	//cl::Buffer debugData_buffer;
 
 	size_t local_cfg_version = 0;
-	
+
 	void check_init() {
-		lock_guard<mutex> lck(OpenCLManager::lock);
+		std::lock_guard<std::mutex> lck(OpenCLManager::lock);
 		if(local_cfg_version != OpenCLManager::cfg_version) {
 			queue = cl::CommandQueue(OpenCLManager::context,OpenCLManager::device);
 			buffer = cl::Buffer(OpenCLManager::context,CL_MEM_READ_ONLY,CACHE_SIZE);
@@ -170,7 +165,9 @@ public:
 	}
 
 	void download_buffer(unsigned short *dst) {
-		queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,RESULT_SIZE,dst);
+		cl_int err = queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,RESULT_SIZE,dst);
+		if(err != CL_SUCCESS)
+			throw std::runtime_error("Terrain download failed: " + std::to_string(err));
 	}
 };
 
@@ -220,6 +217,57 @@ static PlanetClassSimple planet_to_simple(const PlanetClass& planet) {
 class PlanetAlgorithm
 {
 protected:
+	// PlanetAuxData.RawSnap uses the default latitude/longitude grid during generation.
+	static Vector3 SnapOilPosition(Vector3 position) {
+		position.Normalize();
+		const int segment = static_cast<int>(NORMAL_PLANET_RADIUS / 4.0f + 0.1f) * 4;
+		const double turn = static_cast<double>(Mathf.PI) * 2.0;
+		const float latitude = static_cast<float>(std::asin(static_cast<double>(position.y)));
+		float longitude = static_cast<float>(std::atan2(static_cast<double>(position.x),static_cast<double>(-position.z)));
+		float latIndex = static_cast<float>(static_cast<double>(latitude) / turn * segment);
+		const int row = static_cast<int>(std::floor(std::max(0.0,std::abs(static_cast<double>(latIndex)) - static_cast<double>(0.1f))));
+		const double angle = static_cast<double>(row) / (static_cast<double>(segment) / 4.0) * Mathf.PI * 0.5;
+		const float cosine = static_cast<float>(std::cos(angle));
+		const int count = static_cast<int>(std::ceil(std::abs(static_cast<double>(cosine)) * segment));
+		// Run-length representation of PlanetGrid.segmentTable (exclusive upper bounds).
+		static constexpr int bounds[] = {1,8,16,20,28,40,54,73,91,114,140,177,221,271,351,451,512};
+		static constexpr int counts[] = {1,4,8,16,20,32,40,60,80,100,120,160,200,240,300,400,500};
+		int longitudeSegments = (count + 49) / 100 * 100;
+		if(count < 500) {
+			for(int i=0;i<17;++i) {
+				if(count < bounds[i]) { longitudeSegments = counts[i]; break; }
+			}
+		}
+		float lonIndex = static_cast<float>(static_cast<double>(longitude) / turn * longitudeSegments);
+		latIndex = static_cast<float>(std::nearbyint(static_cast<double>(latIndex) * 5.0) / 5.0);
+		lonIndex = static_cast<float>(std::nearbyint(static_cast<double>(lonIndex) * 5.0) / 5.0);
+		const float snappedLatitude = static_cast<float>(static_cast<double>(latIndex) / segment * turn);
+		longitude = static_cast<float>(static_cast<double>(lonIndex) / longitudeSegments * turn);
+		const float y = static_cast<float>(std::sin(static_cast<double>(snappedLatitude)));
+		const float cosLatitude = static_cast<float>(std::cos(static_cast<double>(snappedLatitude)));
+		const float sinLongitude = static_cast<float>(std::sin(static_cast<double>(longitude)));
+		const float cosLongitude = static_cast<float>(std::cos(static_cast<double>(longitude)));
+		return Vector3(cosLatitude * sinLongitude,y,cosLatitude * -cosLongitude);
+	}
+
+	// GPU heights are temporary land samples and never enter the CPU height cache.
+	static float DownloadLandPercent(ThreadLocalBuffers& tls) {
+		unsigned short heights[LAND_DATALENGTH];
+		tls.download_buffer(heights);
+		const float threshold = NORMAL_PLANET_RADIUS * 100.0f - 20.0f;
+		int count = 0;
+		for(unsigned short height : heights) {
+			if((float)height >= threshold)
+				count++;
+		}
+		return (float)count / (float)LAND_DATALENGTH;
+	}
+
+	// A negative result selects the existing CPU path for unsupported algorithms.
+	virtual float CalcLandPercentGPU() {
+		return -1.0f;
+	}
+
 	static int trans(float x,int pr) {
 		int num = (int)((Mathf.Sqrt(x + 0.23f) - 0.4795832f) / 0.6294705f * (float)pr);
 		if(num >= pr)
@@ -361,7 +409,7 @@ public:
 	static Vector3 vertices[VERTICES_DATALENGTH];
 	static int indexMap[INDEXMAP_DATALENGTH];
 	static int landIndex[LAND_DATALENGTH];
-	vector<unsigned short> heightData;
+	std::vector<unsigned short> heightData; // CPU-generated heights only.
 	//vector<float> debugData;
 
 	virtual ~PlanetAlgorithm() = default;
@@ -384,14 +432,7 @@ public:
 				landIndex[index++] = i;
 		}
 	}
-	
-	glm::vec3 vector3_to_glm(const Vector3& vec) {
-		return glm::vec3(vec.x,vec.y,vec.z);
-	}
 
-	Vector3 glm_to_vector3(const glm::vec3& vec) {
-		return Vector3(vec.x,vec.y,vec.z);
-	}
 
 	// Temporary birth state; parent motion needs only its orbit, not its spin.
 	struct BirthMotion {
@@ -399,7 +440,7 @@ public:
 		Quaternion orbitRotation;
 		Pose pose;
 	};
-	
+
 	static BirthMotion PredictBirthMotion(const PlanetClassSimple& planet,const double time,bool includeRotation) {
 		const StarClassSimple& star = *planet.star;
 		DotNet35Random random(planet.info_seed);
@@ -425,7 +466,10 @@ public:
 				inclination -= 3.0f;
 		}
 		float f1 = planet.orbitRadius;
-		motion.orbitalPeriod = planet.orbitAroundPlanet != nullptr ? Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / 1.08308421068537E-08) : Math.Sqrt(39.4784176043574 * (double)f1 * (double)f1 * (double)f1 / (1.35385519905204E-06 * (double)star.mass));
+		motion.orbitalPeriod = planet.orbitAroundPlanet != nullptr
+			? Math.Sqrt(39.47841760435743 * (double)f1 * (double)f1 * (double)f1 / 1.0830842106853677E-08)
+			: Math.Sqrt(39.47841760435743 * (double)f1 * (double)f1 * (double)f1
+				/ (1.3538551990520382E-06 * (double)star.mass));
 		float orbitPhase = (float)(num7 * 360.0);
 		motion.orbitRotation = Quaternion::AngleAxis((float)(num6 * 360.0),Vector3::up()) * Quaternion::AngleAxis(inclination,Vector3::forward());
 		if(planet.orbitAroundPlanet != nullptr)
@@ -455,14 +499,14 @@ public:
 		random.NextDouble(); // rand1
 		double num15 = random.NextDouble();
 		float obliquity;
-		if(num15 < 0.0399999991059303)
+		if(num15 < static_cast<double>(0.04f))
 		{
 			obliquity = (float)(num8 * (num9 - 0.5) * 39.9);
 			if((double)obliquity < 0.0)
 				obliquity -= 70.0f;
 			else
 				obliquity += 70.0f;
-		} else if(num15 < 0.100000001490116)
+		} else if(num15 < static_cast<double>(0.1f))
 		{
 			obliquity = (float)(num8 * (num9 - 0.5) * 80.0);
 			if((double)obliquity < 0.0)
@@ -472,30 +516,30 @@ public:
 		} else
 			obliquity = (float)(num8 * (num9 - 0.5) * 60.0);
 		bool gasGiant = planet.type == EPlanetType::Gas;
-		double rotationPeriod = (num10 * num11 * 1000.0 + 400.0) * (planet.orbitAround == 0 ? (double)Mathf.Pow(f1,0.25f) : 1.0) * (gasGiant ? 0.200000002980232 : 1.0);
+		double rotationPeriod = (num10 * num11 * 1000.0 + 400.0) * (planet.orbitAround == 0 ? (double)Mathf.Pow(f1,0.25f) : 1.0) * (gasGiant ? static_cast<double>(0.2f) : 1.0);
 		if(!gasGiant)
 		{
 			if(star.type == EStarType::WhiteDwarf)
 				rotationPeriod *= 0.5;
 			else if(star.type == EStarType::NeutronStar)
-				rotationPeriod *= 0.200000002980232;
+				rotationPeriod *= static_cast<double>(0.2f);
 			else if(star.type == EStarType::BlackHole)
-				rotationPeriod *= 0.150000005960464;
+				rotationPeriod *= static_cast<double>(0.15f);
 		}
 		float rotationPhase = (float)(num12 * 360.0);
 		double num17 = planet.orbitAround == 0 ? motion.orbitalPeriod : parent.orbitalPeriod;
 		rotationPeriod = 1.0 / (1.0 / num17 + 1.0 / rotationPeriod);
 		if(planet.orbitAround == 0 && planet.orbitIndex <= 4 && !gasGiant)
 		{
-			if(num15 > 0.959999978542328)
+			if(num15 > static_cast<double>(0.96f))
 			{
 				obliquity *= 0.01f;
 				rotationPeriod = motion.orbitalPeriod;
-			} else if(num15 > 0.930000007152557)
+			} else if(num15 > static_cast<double>(0.93f))
 			{
 				obliquity *= 0.1f;
 				rotationPeriod = motion.orbitalPeriod * 0.5;
-			} else if(num15 > 0.899999976158142)
+			} else if(num15 > static_cast<double>(0.9f))
 			{
 				obliquity *= 0.2f;
 				rotationPeriod = motion.orbitalPeriod * 0.25;
@@ -510,11 +554,11 @@ public:
 		motion.pose.rotation = systemRotation * Quaternion::AngleAxis((float)num3,Vector3::down());
 		return motion;
 	}
-	
-	tuple<Vector3,Vector3,Vector3> GenBirthPoints(const PlanetClassSimple& planet,const int _birthSeed,const VectorLF3& star_uPosition) {
+
+	std::tuple<Vector3,Vector3,Vector3> GenBirthPoints(const PlanetClassSimple& planet,const int _birthSeed,const VectorLF3& star_uPosition) {
 		DotNet35Random dotNet35Random = DotNet35Random(_birthSeed);
 		Pose pose = PredictBirthMotion(planet,85.0,true).pose;
-		Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - pose.position * 40000.0);
+		Vector3 vector = Maths::QInvRotateLF(pose.rotation,star_uPosition - VectorLF3(pose.position) * 40000.0);
 		vector.Normalize();
 		Vector3 normalized = Vector3::Normalize(Vector3::Cross(vector,Vector3::up()));
 		Vector3 normalized2 = Vector3::Normalize(Vector3::Cross(normalized,vector));
@@ -556,7 +600,10 @@ public:
 					Vector3 vpos6 = normalized4 - normalized * 0.03f;
 					Vector3 vpos7 = normalized4 + normalized2 * 0.03f;
 					Vector3 vpos8 = normalized4 - normalized2 * 0.03f;
-					if(QueryHeight(vpos) > num6 && QueryHeight(vpos2) > num6 && QueryHeight(vpos3) > num6 && QueryHeight(vpos4) > num6 && QueryHeight(vpos5) > num6 && QueryHeight(vpos6) > num6 && QueryHeight(vpos7) > num6 && QueryHeight(vpos8) > num6)
+					if(QueryHeight(vpos) > num6 && QueryHeight(vpos2) > num6
+						&& QueryHeight(vpos3) > num6 && QueryHeight(vpos4) > num6
+						&& QueryHeight(vpos5) > num6 && QueryHeight(vpos6) > num6
+						&& QueryHeight(vpos7) > num6 && QueryHeight(vpos8) > num6)
 					{
 						flag = true;
 						break;
@@ -579,7 +626,9 @@ public:
 		vpos.Normalize();
 		int num = PositionHash(vpos);
 		int num2 = indexMap[num];
-		float num3 = Mathf.PI / (float)(PRECISION * 2) * 1.2f;
+		// Unity Mono without float32 keeps expression intermediates in double,
+		// then rounds at float local assignments. Keep those rounding boundaries.
+		float num3 = static_cast<float>(static_cast<double>(Mathf.PI) / (PRECISION * 2) * 1.2f);
 		float num4 = num3 * num3;
 		float num5 = 0.0f;
 		float num6 = 0.0f;
@@ -590,9 +639,12 @@ public:
 			for(int j = -1; j <= 3; j++) {
 				int num8 = num2 + i + j * STRIDE;
 				if((unsigned int)num8 < VERTICES_DATALENGTH) {
-					float sqrMagnitude = (vertices[num8] - vpos).sqrMagnitude();
+					const Vector3 delta = vertices[num8] - vpos;
+					float sqrMagnitude = static_cast<float>(
+						(static_cast<double>(delta.x) * delta.x + static_cast<double>(delta.y) * delta.y)
+						+ static_cast<double>(delta.z) * delta.z);
 					if(sqrMagnitude <= num4) {
-						float num9 = 1.0f - Mathf.Sqrt(sqrMagnitude) / num3;
+						float num9 = static_cast<float>(1.0 - static_cast<double>(Mathf.Sqrt(sqrMagnitude)) / num3);
 						num8_cache[count] = num8;
 						num9_cache[count] = num9;
 						count++;
@@ -608,17 +660,18 @@ public:
 			index_cache[cur_num++] = num8_cache[i];
 		}
 		GenerateHeights(index_cache,cur_num);
-		
+
 		for(int i=0;i<count;i++) {
 			num5 += num9_cache[i];
-			num6 += (int)heightData[num8_cache[i]] * num9_cache[i];
+			num6 = static_cast<float>(static_cast<double>(num6)
+				+ static_cast<double>(heightData[num8_cache[i]]) * num9_cache[i]);
 		}
 		if(num5 == 0.0f) {
 			if(heightData[0]==0)
 				GenerateHeight1(0);
 			return (float)(int)heightData[0] * 0.01f;
 		}
-		return num6 / num5 * 0.01f;
+		return static_cast<float>(static_cast<double>(num6) / num5 * 0.01f);
 	};
 
 	void get_veins(const GalaxyClass& galaxy,const StarClass& star,PlanetClass& planet) {
@@ -633,7 +686,7 @@ public:
 			planet_simple_orbit.star = &star_simple;
 			planet_simple.orbitAroundPlanet = &planet_simple_orbit;
 		}
-		this->GenerateTerrain(planet_simple,true);
+		this->GenerateTerrain(planet_simple);
 		float land_percent = CalcLandPercent(planet_simple);
 		this->GenerateVeins(planet_simple,galaxy.birthPlanetId);
 		for(int i=0; i < 14; i++) {
@@ -642,12 +695,23 @@ public:
 		}
 		planet.landPercent = land_percent;
 	}
-	
+
 	float CalcLandPercent(const PlanetClassSimple& planet) {
-		if(planet.theme == 16) //水世界
-			return 1.0f;
 		if(planet.type == EPlanetType::Gas)
 			return 0.0f;
+		// Game waterItemId == -2: scarlet ice lake. The packed liquid ID
+		// does not distinguish -2 from other noncollectable liquids.
+		if(planet.theme == 20)
+			return 1.0f;
+
+		if(OpenCLManager::get_worker()) {
+			struct WorkerGuard {
+				~WorkerGuard() { OpenCLManager::return_worker(); }
+			} worker;
+			float percent = CalcLandPercentGPU();
+			if(percent >= 0.0f)
+				return percent;
+		}
 
 		for(int i=0;i<LAND_DATALENGTH;i++) {
 			if(heightData[landIndex[i]] ==0) {
@@ -676,7 +740,7 @@ public:
 	}
 
 	void GenerateHeights(int* index,int count) {
-		#ifdef SUPPORT_AVX2
+		#ifdef __AVX2__
 		while(count >=4) {
 			GenerateHeight4(index);
 			count -= 4;
@@ -709,7 +773,7 @@ public:
 		}
 	}
 
-	virtual void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) = 0;
+	virtual void GenerateTerrain(const PlanetClassSimple& planet) = 0;
 
 	virtual void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) {
 		const ThemeProto& themeProto = LDB.Select(planet.theme);
@@ -719,338 +783,258 @@ public:
 		dotNet35Random.Next();
 		dotNet35Random.Next();
 		int birthSeed = dotNet35Random.Next();
-		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
+		int secondSeed = dotNet35Random.Next();
+		DotNet35Random dotNet35Random2 = DotNet35Random(secondSeed);
 		float num = 2.1f / NORMAL_PLANET_RADIUS;
 		int array[15] = {0};
 		float array2[15] = {0};
 		float array3[15] = {0};
 		if(!themeProto.VeinSpot.empty()) {
 			int copy_size = themeProto.VeinSpot.size();
-			for(int i = 0; i < copy_size; ++i) {
-				array[i + 1] = themeProto.VeinSpot[i];
-			}
+			for(int i = 0; i < copy_size; ++i) array[i + 1] = themeProto.VeinSpot[i];
 		}
 		if(!themeProto.VeinCount.empty()) {
 			int copy_size = themeProto.VeinCount.size();
-			for(int i = 0; i < copy_size; ++i) {
-				array2[i + 1] = themeProto.VeinCount[i];
-			}
+			for(int i = 0; i < copy_size; ++i) array2[i + 1] = themeProto.VeinCount[i];
 		}
 		if(!themeProto.VeinOpacity.empty()) {
 			int copy_size = themeProto.VeinOpacity.size();
-			for(int i = 0; i < copy_size; ++i) {
-				array3[i + 1] = themeProto.VeinOpacity[i];
-			}
+			for(int i = 0; i < copy_size; ++i) array3[i + 1] = themeProto.VeinOpacity[i];
 		}
 		float p = 1.0f;
 		StarClassSimple& star = *planet.star;
 		ESpectrType spectr = star.spectr;
-		switch(star.type)
-		{
+		switch(star.type) {
 		case EStarType::MainSeqStar:
-			switch(spectr)
-			{
-			case ESpectrType::M:
-				p = 2.5f;
-				break;
-			case ESpectrType::K:
-				p = 1.0f;
-				break;
-			case ESpectrType::G:
-				p = 0.7f;
-				break;
-			case ESpectrType::F:
-				p = 0.6f;
-				break;
-			case ESpectrType::A:
-				p = 1.0f;
-				break;
-			case ESpectrType::B:
-				p = 0.4f;
-				break;
-			case ESpectrType::O:
-				p = 1.6f;
-				break;
-			}
-			break;
-		case EStarType::GiantStar:
-			p = 2.5f;
-			break;
-		case EStarType::WhiteDwarf:
-		{
-			p = 3.5f;
-			array[9]++;
-			array[9]++;
-			for(int j = 1; j < 12; j++)
-			{
-				if(dotNet35Random.NextDouble() >= 0.44999998807907104)
-				{
-					break;
-				}
+		switch(spectr) {
+		case ESpectrType::M: p=2.5f;break;
+		case ESpectrType::K: p=1.0f;break;
+		case ESpectrType::G: p=0.7f;break;
+		case ESpectrType::F: p=0.6f;break;
+		case ESpectrType::A: p=1.0f;break;
+		case ESpectrType::B: p=0.4f;break;
+		case ESpectrType::O: p=1.6f;break;
+		}
+		break;
+		case EStarType::GiantStar: p=2.5f;break;
+		case EStarType::WhiteDwarf: {
+			p=3.5f;
+			array[9]++; array[9]++;
+			for(int j=1;j<12;j++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=0.44999998807907104) break;
 				array[9]++;
 			}
-			array2[9] = 0.7f;
-			array3[9] = 1.0f;
-			array[10]++;
-			array[10]++;
-			for(int k = 1; k < 12; k++)
-			{
-				if(dotNet35Random.NextDouble() >= 0.44999998807907104)
-				{
-					break;
-				}
+			array2[9]=0.7f;array3[9]=1.0f;
+			array[10]++;array[10]++;
+			for(int k=1;k<12;k++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=0.44999998807907104) break;
 				array[10]++;
 			}
-			array2[10] = 0.7f;
-			array3[10] = 1.0f;
+			array2[10]=0.7f;array3[10]=1.0f;
 			array[12]++;
-			for(int l = 1; l < 12; l++)
-			{
-				if(dotNet35Random.NextDouble() >= 0.5)
-				{
-					break;
-				}
+			for(int l=1;l<12;l++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=0.5) break;
 				array[12]++;
 			}
-			array2[12] = 0.7f;
-			array3[12] = 0.3f;
+			array2[12]=0.7f;array3[12]=0.3f;
 			break;
 		}
-		case EStarType::NeutronStar:
-		{
-			p = 4.5f;
-			array[14]++;
-			for(int m = 1; m < 12; m++)
-			{
-				if(dotNet35Random.NextDouble() >= 0.6499999761581421)
-				{
-					break;
-				}
+		case EStarType::NeutronStar: {
+			p=4.5f;array[14]++;
+			for(int m=1;m<12;m++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=0.6499999761581421) break;
 				array[14]++;
 			}
-			array2[14] = 0.7f;
-			array3[14] = 0.3f;
+			array2[14]=0.7f;array3[14]=0.3f;
 			break;
 		}
-		case EStarType::BlackHole:
-		{
-			p = 5.0f;
-			array[14]++;
-			for(int i = 1; i < 12; i++)
-			{
-				if(dotNet35Random.NextDouble() >= 0.6499999761581421)
-				{
-					break;
-				}
+		case EStarType::BlackHole: {
+			p=5.0f;array[14]++;
+			for(int i=1;i<12;i++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=0.6499999761581421) break;
 				array[14]++;
 			}
-			array2[14] = 0.7f;
-			array3[14] = 0.3f;
+			array2[14]=0.7f;array3[14]=0.3f;
 			break;
 		}
 		}
-		for(int n = 0; n < themeProto.RareVeins.size(); n++)
-		{
-			int num2 = themeProto.RareVeins[n];
-			float num3 = ((star.index == 0) ? themeProto.RareSettings[n * 4] : themeProto.RareSettings[n * 4 + 1]);
-			float num4 = themeProto.RareSettings[n * 4 + 2];
-			float num5 = themeProto.RareSettings[n * 4 + 3];
-			//float num6 = num5;
-			num3 = 1.0f - Mathf.Pow(1.0f - num3,p);
-			num5 = 1.0f - Mathf.Pow(1.0f - num5,p);
-			//num6 = 1.0f - Mathf.Pow(1.0f - num6,p);
-			if(!(dotNet35Random.NextDouble() < (double)num3))
-				continue;
-			array[num2]++;
-			array2[num2] = num5;
-			array3[num2] = num5;
-			for(int num7 = 1; num7 < 12; num7++)
-			{
-				if(dotNet35Random.NextDouble() >= (double)num4)
-					break;
+		for(int n=0;n<themeProto.RareVeins.size();n++) {
+			int num2=themeProto.RareVeins[n];
+			float num3=((star.index==0)?themeProto.RareSettings[n*4]:themeProto.RareSettings[n*4+1]);
+			float num4=themeProto.RareSettings[n*4+2];
+			float num5=themeProto.RareSettings[n*4+3];
+			num3=1.0f-Mathf.Pow(1.0f-num3,p);
+			num5=1.0f-Mathf.Pow(1.0f-num5,p);
+			double chanceRoll=dotNet35Random.NextDouble();
+			if(!(chanceRoll<(double)num3)) continue;
+			array[num2]++;array2[num2]=num5;array3[num2]=num5;
+			for(int num7=1;num7<12;num7++) {
+				double roll=dotNet35Random.NextDouble();
+				if(roll>=(double)num4) break;
 				array[num2]++;
 			}
 		}
-		float num8 = star.resourceCoef;
-		bool flag = birthPlanetId == planet.id;
-		if(flag)
-			num8 *= 2.0f/3.0f;
+		float num8=star.resourceCoef;
+		bool flag=birthPlanetId==planet.id;
+		if(flag) num8 *= 2.0f/3.0f;
 		else if(star.galaxy->is_rare_resource) {
-			if(num8 > 1.0f)
-				num8 = Mathf.Pow(num8,0.8f);
+			if(num8>1.0f) num8=Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		vector<Vector3> veinVectors(512);
-		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
-		vector<Vector2> tmp_vecs;
-		int veinVectorCount = 0;
+		std::vector<Vector3> veinVectors(512);
+		std::vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		std::vector<Vector2> tmp_vecs;
+		int veinVectorCount=0;
 		Vector3 birthPoint;
 		if(flag) {
-			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
-			birthPoint.Normalize();
-			birthPoint *= 0.75f;
-			veinVectorTypes[0] = EVeinType::Iron;
-			veinVectorTypes[1] = EVeinType::Copper;
-			veinVectorCount = 2;
+			std::tie(birthPoint,veinVectors[0],veinVectors[1])=GenBirthPoints(planet,birthSeed,star.uPosition);
+			birthPoint.Normalize(); birthPoint *= 0.75f;
+			veinVectorTypes[0]=EVeinType::Iron;
+			veinVectorTypes[1]=EVeinType::Copper;
+			veinVectorCount=2;
 		} else {
-			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
-			birthPoint.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
+			double vx=dotNet35Random2.NextDouble();
+			double vy=dotNet35Random2.NextDouble();
+			double vz=dotNet35Random2.NextDouble();
+			birthPoint.x=(float)vx*2.0f-1.0f;
+			birthPoint.y=(float)vy-0.5f;
+			birthPoint.z=(float)vz*2.0f-1.0f;
 			birthPoint.Normalize();
-			birthPoint *= (float)(dotNet35Random2.NextDouble() * 0.4 + 0.2);
+			double vr=dotNet35Random2.NextDouble();
+			birthPoint *= (float)(vr*0.4+0.2);
 		}
-		for(int vein_type_index = 1; vein_type_index < 15; vein_type_index++)
-		{
-			if(veinVectorCount >= veinVectors.size())
-				break;
-			EVeinType eVeinType = (EVeinType)vein_type_index;
-			int vein_group_num = array[vein_type_index];
-			if(vein_group_num > 1)
-				vein_group_num += dotNet35Random2.Next(-1,2);
-			int min_oil_num = 0;
-			if(eVeinType == EVeinType::Oil)
-				min_oil_num = (int)Math.Ceil((double)(vein_group_num*15)/100.0);
-			for(int vein_group_index = 0; vein_group_index < vein_group_num; vein_group_index++)
-			{
-				int try_num_1 = 0;
-				Vector3 target_pos = Vector3::zero();
-				bool flag2 = false;
-				while(try_num_1++ < 200)
-				{
-					target_pos.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-					target_pos.y = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-					target_pos.z = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
-					if(eVeinType != EVeinType::Oil)
-						target_pos += birthPoint;
+		for(int vein_type_index=1;vein_type_index<15;vein_type_index++) {
+			if(veinVectorCount>=veinVectors.size()) break;
+			EVeinType eVeinType=(EVeinType)vein_type_index;
+			int vein_group_num=array[vein_type_index];
+			int groupJitter=0;
+			if(vein_group_num>1) {
+				groupJitter=dotNet35Random2.Next(-1,2);
+				vein_group_num += groupJitter;
+			}
+			int min_oil_num=0;
+			if(eVeinType==EVeinType::Oil)
+				min_oil_num=(int)Math.Ceil((double)(vein_group_num*15)/100.0);
+			for(int vein_group_index=0;vein_group_index<vein_group_num;vein_group_index++) {
+				int try_num_1=0;
+				Vector3 target_pos=Vector3::zero();
+				bool flag2=false;
+				while(try_num_1++<200) {
+					double rx=dotNet35Random2.NextDouble();
+					double ry=dotNet35Random2.NextDouble();
+					double rz=dotNet35Random2.NextDouble();
+					target_pos.x=(float)rx*2.0f-1.0f;
+					target_pos.y=(float)ry*2.0f-1.0f;
+					target_pos.z=(float)rz*2.0f-1.0f;
+					if(eVeinType!=EVeinType::Oil) target_pos += birthPoint;
 					target_pos.Normalize();
-					float target_height = QueryHeight(target_pos);
-					if((target_height < NORMAL_PLANET_RADIUS && eVeinType != EVeinType::Oil)
-						|| (eVeinType == EVeinType::Oil && target_height < NORMAL_PLANET_RADIUS + 0.5f && (target_height > NORMAL_PLANET_RADIUS - 1.0f || min_oil_num <= 0)))
+					float target_height=QueryHeight(target_pos);
+					bool heightOK = !((target_height<NORMAL_PLANET_RADIUS && eVeinType!=EVeinType::Oil)
+						|| (eVeinType==EVeinType::Oil && target_height<NORMAL_PLANET_RADIUS+0.5f
+						&& (target_height>NORMAL_PLANET_RADIUS-1.0f || min_oil_num<=0)));
+					if(!heightOK) {
 						continue;
-					bool flag3 = false;
-					float num15 = ((eVeinType == EVeinType::Oil) ? 100.0f : 196.0f);
-					for(int num16 = 0; num16 < veinVectorCount; num16++)
-					{
-						if((veinVectors[num16] - target_pos).sqrMagnitude() < num * num * num15)
-						{
-							flag3 = true;
-							break;
+					}
+					bool flag3=false;
+					float num15=((eVeinType==EVeinType::Oil)?100.0f:196.0f);
+					for(int num16=0;num16<veinVectorCount;num16++) {
+						if((veinVectors[num16]-target_pos).sqrMagnitude()<num*num*num15) {
+							flag3=true;break;
 						}
 					}
-					if(!flag3)
-					{
-						if(eVeinType == EVeinType::Oil && target_height <= NORMAL_PLANET_RADIUS - 1.0f)
-						{
-							min_oil_num--;
-							vein_group_num++;
+					if(!flag3) {
+						if(eVeinType==EVeinType::Oil && target_height<=NORMAL_PLANET_RADIUS-1.0f) {
+							min_oil_num--;vein_group_num++;
 						}
-						flag2 = true;
-						break;
+						flag2=true;break;
 					}
 				}
-				if(flag2)
-				{
-					veinVectors[veinVectorCount] = target_pos;
-					veinVectorTypes[veinVectorCount] = eVeinType;
+				if(flag2) {
+					veinVectors[veinVectorCount]=target_pos;
+					veinVectorTypes[veinVectorCount]=eVeinType;
 					veinVectorCount++;
-					if(veinVectorCount == veinVectors.size())
-						break;
+					if(veinVectorCount==veinVectors.size()) break;
 				}
 			}
 		}
-		for(int vein_group_index = 0; vein_group_index < veinVectorCount; vein_group_index++)
-		{
+		for(int vein_group_index=0;vein_group_index<veinVectorCount;vein_group_index++) {
 			tmp_vecs.clear();
-			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
-			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
-			int vein_point_type = (int)eVeinType2;
-			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
-			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
-			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
+			Vector3 normalized=Vector3::Normalize(veinVectors[vein_group_index]);
+			EVeinType eVeinType2=veinVectorTypes[vein_group_index];
+			int vein_point_type=(int)eVeinType2;
+			const Quaternion quaternion = Quaternion::FromUpRotation(normalized);
+			Vector3 vector = quaternion * Vector3::right();
+			Vector3 vector2 = quaternion * Vector3::forward();
 			tmp_vecs.push_back(Vector2::zero());
-			int vein_point_num = Mathf.RoundToInt(array2[vein_point_type] * (float)dotNet35Random2.Next(20,25));
-			if(eVeinType2 == EVeinType::Oil)
-				vein_point_num = 1;
-			float num20 = array3[vein_point_type];
-			if(flag && vein_group_index < 2)
-			{
-				vein_point_num = 6;
-				num20 = 0.2f;
+			int pointRoll=dotNet35Random2.Next(20,25);
+			int vein_point_num=Mathf.RoundToInt(array2[vein_point_type]*(float)pointRoll);
+			if(eVeinType2==EVeinType::Oil) vein_point_num=1;
+			float num20=array3[vein_point_type];
+			if(flag && vein_group_index<2) {
+				vein_point_num=6;num20=0.2f;
 			}
-			int try_num_2 = 0;
-			while(try_num_2++ < 20)
-			{
-				int count = tmp_vecs.size();
-				for(int vein_point_index = 0; vein_point_index < count; vein_point_index++)
-				{
-					if(tmp_vecs.size() >= vein_point_num)
-						break;
-					if(tmp_vecs[vein_point_index].sqrMagnitude() > 36.0f)
-						continue;
-					double num23 = dotNet35Random2.NextDouble() * Math.PI * 2.0;
-					Vector2 vector3 = Vector2((float)Math.Cos(num23),(float)Math.Sin(num23));
-					vector3 += tmp_vecs[vein_point_index] * 0.2f;
+			int try_num_2=0;
+			while(try_num_2++<20) {
+				int count=tmp_vecs.size();
+				for(int vein_point_index=0;vein_point_index<count;vein_point_index++) {
+					if(tmp_vecs.size()>=vein_point_num) break;
+					if(tmp_vecs[vein_point_index].sqrMagnitude()>36.0f) continue;
+					double angleRoll=dotNet35Random2.NextDouble();
+					double num23=angleRoll*Math.PI*2.0;
+					Vector2 vector3=Vector2((float)Math.Cos(num23),(float)Math.Sin(num23));
+					vector3 += tmp_vecs[vein_point_index]*0.2f;
 					vector3.Normalize();
-					Vector2 new_vein_point_pos = tmp_vecs[vein_point_index] + vector3;
-					bool flag4 = false;
-					for(int num24 = 0; num24 < tmp_vecs.size(); num24++)
-					{
-						if((tmp_vecs[num24] - new_vein_point_pos).sqrMagnitude() < 0.85f)
-						{
-							flag4 = true;
-							break;
+					Vector2 new_vein_point_pos=tmp_vecs[vein_point_index]+vector3;
+					bool flag4=false;
+					for(int num24=0;num24<tmp_vecs.size();num24++) {
+						if((tmp_vecs[num24]-new_vein_point_pos).sqrMagnitude()<0.85f) {
+							flag4=true;break;
 						}
 					}
-					if(!flag4)
-						tmp_vecs.push_back(new_vein_point_pos);
+					if(!flag4) tmp_vecs.push_back(new_vein_point_pos);
 				}
-				if(tmp_vecs.size() >= vein_point_num)
-					break;
+				if(tmp_vecs.size()>=vein_point_num) break;
 			}
-			float num25 = num8;
-			if(eVeinType2 == EVeinType::Oil)
-				num25 = Mathf.Pow(num8,0.5f);
-			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
-			if(num26 < 20)
-				num26 = 20;
-			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
-			int minValue = num26 - num27;
-			int maxValue = num26 + num27 + 1;
-			for(int vein_point_index = 0; vein_point_index < tmp_vecs.size(); vein_point_index++)
-			{
-				Vector3 vector5 = (vector * tmp_vecs[vein_point_index].x + vector2 * tmp_vecs[vein_point_index].y) * num;
-				int vein_amount = Mathf.RoundToInt((float)dotNet35Random2.Next(minValue,maxValue) * 1.1f);
-				if(eVeinType2 != EVeinType::Oil)
-					vein_amount = Mathf.RoundToInt((float)vein_amount * star.galaxy->resource_multiplier);
-				else
-				{
-					float oil_resource_multiplier = (star.galaxy->resource_multiplier <= 0.1001f)?0.5f:1.0f;
-					vein_amount = Mathf.RoundToInt((float)vein_amount * oil_resource_multiplier);
-					if(vein_amount < 2500)
-						vein_amount = 2500;
+			float num25=num8;
+			if(eVeinType2==EVeinType::Oil) num25=Mathf.Pow(num8,0.5f);
+			// Mono keeps both products in double until the RoundToInt(float) call.
+			int num26=Mathf.RoundToInt(static_cast<float>(static_cast<double>(num20)*100000.0*static_cast<double>(num25)));
+			if(num26<20) num26=20;
+			int num27=((num26<16000)?Mathf.FloorToInt((float)num26*0.9375f):15000);
+			int minValue=num26-num27;
+			int maxValue=num26+num27+1;
+			for(int vein_point_index=0;vein_point_index<tmp_vecs.size();vein_point_index++) {
+				Vector3 vector5=(vector*tmp_vecs[vein_point_index].x+vector2*tmp_vecs[vein_point_index].y)*num;
+				int amountRoll=dotNet35Random2.Next(minValue,maxValue);
+				int vein_amount=Mathf.RoundToInt((float)amountRoll*1.1f);
+				if(eVeinType2!=EVeinType::Oil)
+					vein_amount=Mathf.RoundToInt((float)vein_amount*star.galaxy->resource_multiplier);
+				else {
+					float oil_resource_multiplier=(star.galaxy->resource_multiplier<=0.1001f)?0.5f:1.0f;
+					vein_amount=Mathf.RoundToInt((float)vein_amount*oil_resource_multiplier);
+					if(vein_amount<2500) vein_amount=2500;
 				}
-				if(vein_amount < 1)
-					vein_amount = 1;
-				if(star.galaxy->resource_multiplier >= 100.0f && eVeinType2 != EVeinType::Oil)
-					vein_amount = 1000000000;
-				//dotNet35Random2.Next();
+				if(vein_amount<1) vein_amount=1;
+				if(star.galaxy->resource_multiplier>=100.0f && eVeinType2!=EVeinType::Oil)
+					vein_amount=1000000000;
 				Vector3 vein_pos = normalized + vector5;
-				//TODO: 这里对油井坐标未变换！（先不管，目前不变换也是准的）
-				//if(vein.type == EVeinType::Oil)
-				//{
-				//	vein.pos = planet.aux.RawSnap(vein.pos);
-				//}
-				float num29 = QueryHeight(vein_pos);
-				if(planet.waterItemId == 0 || num29 >= NORMAL_PLANET_RADIUS || eVeinType2 == EVeinType::Oil)
-				{
+				if(eVeinType2 == EVeinType::Oil) vein_pos = SnapOilPosition(vein_pos);
+				float num29=QueryHeight(vein_pos);
+				bool added=planet.waterItemId==0 || num29>=NORMAL_PLANET_RADIUS || eVeinType2==EVeinType::Oil;
+				if(added) {
 					planet.veins_point[vein_point_type-1]++;
-					planet.veins_amount[vein_point_type-1] += vein_amount;
+					planet.veins_amount[vein_point_type-1]+=vein_amount;
 				}
 			}
 		}
-		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
 		tmp_vecs.clear();
 	};
+
 };
 
 class PlanetAlgorithm0: public PlanetAlgorithm
@@ -1060,7 +1044,7 @@ public:
 		heightData[index] = (unsigned short)((double)NORMAL_PLANET_RADIUS * 100.0);
 	}
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		heightData.assign(VERTICES_DATALENGTH,(unsigned short)((double)NORMAL_PLANET_RADIUS * 100.0));
 	}
 
@@ -1086,9 +1070,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num12 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num13 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num14 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num12 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num13 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num14 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
 		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
 		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -1098,12 +1082,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num22 + 0.2) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Mono retains the coordinate product in double until the double local assignment.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 		__m128d terrain = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_mul_pd(z,_mm_set1_pd(num3)),6);
 		terrain = _mm_add_pd(_mm_mul_pd(terrain,_mm_set1_pd(num4)),_mm_set1_pd(num5));
 		__m128d detail = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(0.0025)),_mm_mul_pd(y,_mm_set1_pd(0.0025)),_mm_mul_pd(z,_mm_set1_pd(0.0025)),3);
@@ -1131,10 +1115,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Mono retains the coordinate product in double until the double local assignment.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 		__m256d terrain = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_mul_pd(z,_mm256_set1_pd(num3)),6);
 		terrain = _mm256_add_pd(_mm256_mul_pd(terrain,_mm256_set1_pd(num4)),_mm256_set1_pd(num5));
 		__m256d detail = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.0025)),_mm256_mul_pd(y,_mm256_set1_pd(0.0025)),_mm256_mul_pd(z,_mm256_set1_pd(0.0025)),3);
@@ -1162,7 +1146,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
 		int num11 = dotNet35Random.Next();
@@ -1170,36 +1154,32 @@ public:
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.assign(VERTICES_DATALENGTH,0);
 		//debugData.resize(DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain1");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,tls.buffer);
-			kernel.setArg(3,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,tls.buffer);
+		kernel.setArg(3,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
@@ -1220,8 +1200,8 @@ public:
 		double num17 = ((num16 < 0.0) ? (num16 * 0.3) : num16);
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num17 + 0.1) * 100.0);
 	}
-	
-#ifdef SUPPORT_AVX2
+
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
 		// Preserve float coordinate multiplication before widening to double.
 		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
@@ -1259,7 +1239,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		double modX = planet.mod_x;
 		double modY = planet.mod_y;
 		modX = (3.0 - modX - modX) * modX * modX;
@@ -1277,39 +1257,35 @@ public:
 		simplexNoise = SimplexNoise(num6);
 		simplexNoise2 = SimplexNoise(num7);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
-			
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,num);
-			kernel.setArg(3,num2);
-			kernel.setArg(4,num3);
-			kernel.setArg(5,tls.buffer);
-			kernel.setArg(6,tls.heightData_buffer);
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain2");
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,num);
+		kernel.setArg(3,num2);
+		kernel.setArg(4,num3);
+		kernel.setArg(5,tls.buffer);
+		kernel.setArg(6,tls.heightData_buffer);
+
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	};
 };
 
@@ -1319,7 +1295,7 @@ private:
 	double Lerp(double a,double b,double t) {
 		return a + (b - a) * t;
 	}
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Lerp_batch2(__m128d a,__m128d b,__m128d t) {
 		return _mm_add_pd(a,_mm_mul_pd(_mm_sub_pd(b,a),t));
 	}
@@ -1337,9 +1313,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num6 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num7 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num8 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num6 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num7 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num8 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		num6 += Math.Sin(num7 * 0.15) * 3.0;
 		num7 += Math.Sin(num8 * 0.15) * 3.0;
 		num8 += Math.Sin(num6 * 0.15) * 3.0;
@@ -1358,19 +1334,31 @@ public:
 			num17 = Maths::Levelize2(num15);
 			num17 = Lerp(Maths::Levelize4(num17),num17,modX);
 		}
-		double b = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
-		double a = ((!(num17 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num17 + 1.0f)) : ((!(num17 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1) : ((num17 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num17 - 2.0f) + num13 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num17 - 1.0f) + num13 * 0.12))));
+		double b = ((!(num17 > 0.0))
+			? ((double)Mathf.Lerp(-1.0f,0.0f,(float)num17 + 1.0f))
+			: ((!(num17 > 1.0))
+				? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1)
+				: ((num17 > 2.0)
+					? ((double)Mathf.Lerp(1.2f,2.0f,(float)num17 - 2.0f) + num13 * 0.12)
+					: ((double)Mathf.Lerp(0.3f,1.2f,(float)num17 - 1.0f) + num13 * 0.12))));
+		double a = ((!(num17 > 0.0))
+			? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num17 + 1.0f))
+			: ((!(num17 > 1.0))
+				? ((double)Mathf.Lerp(0.0f,0.3f,(float)num17) + num13 * 0.1)
+				: ((num17 > 2.0)
+					? ((double)Mathf.Lerp(1.4f,2.7f,(float)num17 - 2.0f) + num13 * 0.12)
+					: ((double)Mathf.Lerp(0.3f,1.4f,(float)num17 - 1.0f) + num13 * 0.12))));
 		double num18 = Lerp(a,b,modX);
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num18 + 0.2) * 100.0);
 		//data.debugData[i] = num18;
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 
 		// AVX2 has no sine instruction. Keep the existing libm sine and warp order.
 		auto sine = [](__m128d value) {
@@ -1387,7 +1375,10 @@ public:
 		__m128d fy = _mm_mul_pd(y,_mm_set1_pd(num2));
 		__m128d fz = _mm_mul_pd(z,_mm_set1_pd(num3));
 		__m128d base = simplexNoise.Noise3DFBM_batch2(fx,_mm_mul_pd(fy,_mm_set1_pd(1.1)),fz,6,0.5,1.8);
-		__m128d detail = simplexNoise2.Noise3DFBM_batch2(_mm_add_pd(_mm_mul_pd(fx,_mm_set1_pd(1.3)),_mm_set1_pd(0.5)),_mm_add_pd(_mm_mul_pd(fy,_mm_set1_pd(2.8)),_mm_set1_pd(0.2)),_mm_add_pd(_mm_mul_pd(fz,_mm_set1_pd(1.3)),_mm_set1_pd(0.7)),3);
+		__m128d detail = simplexNoise2.Noise3DFBM_batch2(
+			_mm_add_pd(_mm_mul_pd(fx,_mm_set1_pd(1.3)),_mm_set1_pd(0.5)),
+			_mm_add_pd(_mm_mul_pd(fy,_mm_set1_pd(2.8)),_mm_set1_pd(0.2)),
+			_mm_add_pd(_mm_mul_pd(fz,_mm_set1_pd(1.3)),_mm_set1_pd(0.7)),3);
 		detail = _mm_mul_pd(detail,_mm_set1_pd(2.0));
 		__m128d roughness = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(fx,_mm_set1_pd(6.0)),_mm_mul_pd(fy,_mm_set1_pd(12.0)),_mm_mul_pd(fz,_mm_set1_pd(6.0)),2);
 		roughness = _mm_mul_pd(roughness,_mm_set1_pd(2.0));
@@ -1413,7 +1404,7 @@ public:
 		shaped = _mm_blendv_pd(shaped,interpolated,_mm_cmp_pd(shaped,_mm_setzero_pd(),_CMP_GT_OQ));
 		auto lerpFloat = [](float a,float b,__m128 t) {
 			t = _mm_min_ps(_mm_set1_ps(1.0f),_mm_max_ps(_mm_setzero_ps(),t));
-			return _mm_add_ps(_mm_set1_ps(a),_mm_mul_ps(_mm_set1_ps(b-a),t));
+			return _mm_cvtpd_ps(_mm_add_pd(_mm_set1_pd(a),_mm_mul_pd(_mm_set1_pd(static_cast<double>(b)-a),_mm_cvtps_pd(t))));
 		};
 		__m128 shapedFloat = _mm_cvtpd_ps(shaped);
 		__m128d lowA = _mm_cvtps_pd(lerpFloat(-4.0f,0.0f,_mm_add_ps(shapedFloat,_mm_set1_ps(1.0f))));
@@ -1437,11 +1428,11 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+
 		// AVX2 has no sine instruction. Keep the existing libm sine and warp order.
 		auto sine = [](__m256d value) {
 			double lanes[4];
@@ -1457,7 +1448,10 @@ public:
 		__m256d fy = _mm256_mul_pd(y,_mm256_set1_pd(num2));
 		__m256d fz = _mm256_mul_pd(z,_mm256_set1_pd(num3));
 		__m256d base = simplexNoise.Noise3DFBM_batch4(fx,_mm256_mul_pd(fy,_mm256_set1_pd(1.1)),fz,6,0.5,1.8);
-		__m256d detail = simplexNoise2.Noise3DFBM_batch4(_mm256_add_pd(_mm256_mul_pd(fx,_mm256_set1_pd(1.3)),_mm256_set1_pd(0.5)),_mm256_add_pd(_mm256_mul_pd(fy,_mm256_set1_pd(2.8)),_mm256_set1_pd(0.2)),_mm256_add_pd(_mm256_mul_pd(fz,_mm256_set1_pd(1.3)),_mm256_set1_pd(0.7)),3);
+		__m256d detail = simplexNoise2.Noise3DFBM_batch4(
+			_mm256_add_pd(_mm256_mul_pd(fx,_mm256_set1_pd(1.3)),_mm256_set1_pd(0.5)),
+			_mm256_add_pd(_mm256_mul_pd(fy,_mm256_set1_pd(2.8)),_mm256_set1_pd(0.2)),
+			_mm256_add_pd(_mm256_mul_pd(fz,_mm256_set1_pd(1.3)),_mm256_set1_pd(0.7)),3);
 		detail = _mm256_mul_pd(detail,_mm256_set1_pd(2.0));
 		__m256d roughness = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(fx,_mm256_set1_pd(6.0)),_mm256_mul_pd(fy,_mm256_set1_pd(12.0)),_mm256_mul_pd(fz,_mm256_set1_pd(6.0)),2);
 		roughness = _mm256_mul_pd(roughness,_mm256_set1_pd(2.0));
@@ -1483,7 +1477,7 @@ public:
 		shaped = _mm256_blendv_pd(shaped,interpolated,_mm256_cmp_pd(shaped,_mm256_setzero_pd(),_CMP_GT_OQ));
 		auto lerpFloat = [](float a,float b,__m128 t) {
 			t = _mm_min_ps(_mm_set1_ps(1.0f),_mm_max_ps(_mm_setzero_ps(),t));
-			return _mm_add_ps(_mm_set1_ps(a),_mm_mul_ps(_mm_set1_ps(b-a),t));
+			return _mm256_cvtpd_ps(_mm256_add_pd(_mm256_set1_pd(a),_mm256_mul_pd(_mm256_set1_pd(static_cast<double>(b)-a),_mm256_cvtps_pd(t))));
 		};
 		__m128 shapedFloat = _mm256_cvtpd_ps(shaped);
 		__m256d lowA = _mm256_cvtps_pd(lerpFloat(-4.0f,0.0f,_mm_add_ps(shapedFloat,_mm_set1_ps(1.0f))));
@@ -1507,7 +1501,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		modX = planet.mod_x;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
@@ -1516,37 +1510,33 @@ public:
 		simplexNoise2 = SimplexNoise(num5);
 		heightData.assign(VERTICES_DATALENGTH,0);
 		//data.debugData.resize(DATALENGTH);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain3");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,modX);
-			kernel.setArg(3,tls.buffer);
-			kernel.setArg(4,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,modX);
+		kernel.setArg(3,tls.buffer);
+		kernel.setArg(4,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
@@ -1596,7 +1586,7 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num10 + 0.1) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
 		// Preserve float coordinate multiplication before widening to double.
 		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
@@ -1626,7 +1616,14 @@ public:
 			t = _mm_max_pd(_mm_setzero_pd(),t);
 			__m128d squared = _mm_mul_pd(t,t);
 			__m128d cubed = _mm_mul_pd(squared,t);
-			__m128d value = _mm_add_pd(_mm_add_pd(_mm_sub_pd(_mm_add_pd(_mm_mul_pd(_mm_set1_pd(-15.0),cubed),_mm_mul_pd(_mm_set1_pd(21.833333333334),squared)),_mm_mul_pd(_mm_set1_pd(7.533333333333),t)),_mm_set1_pd(0.7)),detail);
+			__m128d value = _mm_add_pd(
+				_mm_add_pd(
+					_mm_sub_pd(
+						_mm_add_pd(_mm_mul_pd(_mm_set1_pd(-15.0),cubed),
+							_mm_mul_pd(_mm_set1_pd(21.833333333334),squared)),
+						_mm_mul_pd(_mm_set1_pd(7.533333333333),t)),
+					_mm_set1_pd(0.7)),
+				detail);
 			value = _mm_max_pd(_mm_setzero_pd(),value);
 			value = _mm_mul_pd(_mm_mul_pd(value,value),_mm_set1_pd(heights[k]));
 			peak = _mm_blendv_pd(peak,_mm_max_pd(peak,value),inside);
@@ -1668,7 +1665,14 @@ public:
 			t = _mm256_max_pd(_mm256_setzero_pd(),t);
 			__m256d squared = _mm256_mul_pd(t,t);
 			__m256d cubed = _mm256_mul_pd(squared,t);
-			__m256d value = _mm256_add_pd(_mm256_add_pd(_mm256_sub_pd(_mm256_add_pd(_mm256_mul_pd(_mm256_set1_pd(-15.0),cubed),_mm256_mul_pd(_mm256_set1_pd(21.833333333334),squared)),_mm256_mul_pd(_mm256_set1_pd(7.533333333333),t)),_mm256_set1_pd(0.7)),detail);
+			__m256d value = _mm256_add_pd(
+				_mm256_add_pd(
+					_mm256_sub_pd(
+						_mm256_add_pd(_mm256_mul_pd(_mm256_set1_pd(-15.0),cubed),
+							_mm256_mul_pd(_mm256_set1_pd(21.833333333334),squared)),
+						_mm256_mul_pd(_mm256_set1_pd(7.533333333333),t)),
+					_mm256_set1_pd(0.7)),
+				detail);
 			value = _mm256_max_pd(_mm256_setzero_pd(),value);
 			value = _mm256_mul_pd(_mm256_mul_pd(value,value),_mm256_set1_pd(heights[k]));
 			peak = _mm256_blendv_pd(peak,_mm256_max_pd(peak,value),inside);
@@ -1682,7 +1686,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
@@ -1701,45 +1705,41 @@ public:
 		}
 
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.double_buffer(),heights,sizeof(heights));
-			memcpy(tls.float_buffer(),circles,sizeof(circles));
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain4");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,tls.buffer);
-			kernel.setArg(3,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.double_buffer(),heights,sizeof(heights));
+		memcpy(tls.float_buffer(),circles,sizeof(circles));
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,tls.buffer);
+		kernel.setArg(3,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
 class PlanetAlgorithm5: public PlanetAlgorithm
 {
 private:
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Levelize_batch2(__m128d value,double level = 1.0) {
 		value = _mm_div_pd(value,_mm_set1_pd(level));
 		__m128d integral = _mm_floor_pd(value);
@@ -1760,9 +1760,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num3 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num4 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num5 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num3 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num4 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num5 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num8 = Maths::Levelize(num3 * 0.007);
 		double num9 = Maths::Levelize(num4 * 0.007);
 		double num10 = Maths::Levelize(num5 * 0.007);
@@ -1790,12 +1790,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num6 + 0.2) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 
 		__m128d warpedX = Levelize_batch2(_mm_mul_pd(x,_mm_set1_pd(0.007)));
 		__m128d warpedY = Levelize_batch2(_mm_mul_pd(y,_mm_set1_pd(0.007)));
@@ -1842,10 +1842,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 
 		__m256d warpedX = Levelize_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.007)));
 		__m256d warpedY = Levelize_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.007)));
@@ -1866,7 +1866,10 @@ public:
 		__m256d envelope = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.005)),_mm256_mul_pd(z,_mm256_set1_pd(0.005)),_mm256_mul_pd(x,_mm256_set1_pd(0.005)),4);
 		envelope = _mm256_mul_pd(_mm256_add_pd(envelope,_mm256_set1_pd(0.22)),_mm256_set1_pd(5.0));
 		envelope = _mm256_and_pd(_mm256_min_pd(envelope,one),_mm256_cmp_pd(envelope,zero,_CMP_GT_OQ));
-		__m256d detail = _mm256_andnot_pd(sign,simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
+		__m256d detail = _mm256_andnot_pd(sign,simplexNoise2.Noise3DFBM_batch4(
+			_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
 		__m256d height = _mm256_mul_pd(_mm256_mul_pd(ridge,_mm256_set1_pd(-1.2)),envelope);
 		__m256d raised = _mm256_add_pd(height,_mm256_add_pd(_mm256_mul_pd(noise,_mm256_set1_pd(0.25)),_mm256_mul_pd(detail,_mm256_set1_pd(0.6))));
 		height = _mm256_blendv_pd(height,raised,_mm256_cmp_pd(height,zero,_CMP_GE_OQ));
@@ -1892,50 +1895,46 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
 		simplexNoise = SimplexNoise(num);
 		simplexNoise2 = SimplexNoise(num2);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
-			
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	}
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,tls.buffer);
-			kernel.setArg(3,tls.heightData_buffer);
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain5");
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,tls.buffer);
+		kernel.setArg(3,tls.heightData_buffer);
+
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
 class PlanetAlgorithm6: public PlanetAlgorithm
 {
 private:
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Levelize_batch2(__m128d value,double level = 1.0) {
 		value = _mm_div_pd(value,_mm_set1_pd(level));
 		__m128d integral = _mm_floor_pd(value);
@@ -1956,9 +1955,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num3 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num4 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num5 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num3 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num4 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num5 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num8 = Maths::Levelize(num3 * 0.007);
 		double num9 = Maths::Levelize(num4 * 0.007);
 		double num10 = Maths::Levelize(num5 * 0.007);
@@ -1989,12 +1988,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num6 + 0.2) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Game Mono preserves the coordinate product in double before assigning it.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 
 		__m128d warpedX = Levelize_batch2(_mm_mul_pd(x,_mm_set1_pd(0.007)));
 		__m128d warpedY = Levelize_batch2(_mm_mul_pd(y,_mm_set1_pd(0.007)));
@@ -2039,10 +2038,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Preserve float coordinate multiplication before widening to double.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Game Mono preserves the coordinate product in double before assigning it.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 
 		__m256d warpedX = Levelize_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.007)));
 		__m256d warpedY = Levelize_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.007)));
@@ -2063,7 +2062,10 @@ public:
 		__m256d envelope = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.005)),_mm256_mul_pd(z,_mm256_set1_pd(0.005)),_mm256_mul_pd(x,_mm256_set1_pd(0.005)),4);
 		envelope = _mm256_mul_pd(_mm256_add_pd(envelope,_mm256_set1_pd(0.22)),_mm256_set1_pd(5.0));
 		envelope = _mm256_and_pd(_mm256_min_pd(envelope,one),_mm256_cmp_pd(envelope,zero,_CMP_GT_OQ));
-		__m256d detail = _mm256_andnot_pd(sign,simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
+		__m256d detail = _mm256_andnot_pd(sign,simplexNoise2.Noise3DFBM_batch4(
+			_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
 		__m256d height = _mm256_mul_pd(_mm256_mul_pd(ridge,_mm256_set1_pd(-1.2)),envelope);
 		__m256d raised = _mm256_add_pd(height,_mm256_add_pd(_mm256_mul_pd(noise,_mm256_set1_pd(0.25)),_mm256_mul_pd(detail,_mm256_set1_pd(0.6))));
 		height = _mm256_blendv_pd(height,raised,_mm256_cmp_pd(height,zero,_CMP_GE_OQ));
@@ -2087,43 +2089,39 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num = dotNet35Random.Next();
 		int num2 = dotNet35Random.Next();
 		simplexNoise = SimplexNoise(num);
 		simplexNoise2 = SimplexNoise(num2);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain6");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,tls.buffer);
-			kernel.setArg(3,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,tls.buffer);
+		kernel.setArg(3,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
@@ -2144,9 +2142,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num12 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num13 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num14 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num12 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num13 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num14 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num17 = simplexNoise.Noise3DFBM(num12 * num,num13 * num2,num14 * num3,6) * num4 + num5;
 		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
 		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -2156,12 +2154,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num22) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 		__m128d terrain = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_mul_pd(z,_mm_set1_pd(num3)),6);
 		terrain = _mm_add_pd(_mm_mul_pd(terrain,_mm_set1_pd(num4)),_mm_set1_pd(num5));
 		__m128d detail = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(0.0025)),_mm_mul_pd(y,_mm_set1_pd(0.0025)),_mm_mul_pd(z,_mm_set1_pd(0.0025)),3);
@@ -2189,10 +2187,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 		__m256d terrain = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_mul_pd(z,_mm256_set1_pd(num3)),6);
 		terrain = _mm256_add_pd(_mm256_mul_pd(terrain,_mm256_set1_pd(num4)),_mm256_set1_pd(num5));
 		__m256d detail = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.0025)),_mm256_mul_pd(y,_mm256_set1_pd(0.0025)),_mm256_mul_pd(z,_mm256_set1_pd(0.0025)),3);
@@ -2220,44 +2218,13 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num10 = dotNet35Random.Next();
 		int num11 = dotNet35Random.Next();
 		simplexNoise = SimplexNoise(num10);
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		//水世界不需要生成地形
-		//if(gen_terr && OpenCLManager::get_worker()) {
-		//	cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain7");
-
-		//	ThreadLocalBuffers& tls = get_tls_buffers();
-		//	memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-		//	memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-		//	memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-		//	memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-		//	tls.upload_buffer();
-
-		//	kernel.setArg(0,OpenCLManager::vertices_buffer);
-		//	kernel.setArg(1,planet.radius);
-		//	kernel.setArg(2,tls.buffer);
-		//	kernel.setArg(3,tls.heightData_buffer);
-
-		//	int local_size = OpenCLManager::local_size;
-		//	int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-		//	cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-		//	if(err != CL_SUCCESS){
-		//		std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-		//		throw std::runtime_error("Kernel execution failed");
-		//	}
-
-		//	tls.download_buffer(heightData.data());
-		//	OpenCLManager::return_worker();
-		//	for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-		//		heightData[landIndex[i]] = heightData[i];
-		//		heightData[i] = 0;
-		//	}
-		//}
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -2267,7 +2234,7 @@ public:
 		dotNet35Random.Next();
 		dotNet35Random.Next();
 		dotNet35Random.Next();
-		int birthSeed = dotNet35Random.Next();
+		dotNet35Random.Next();
 		DotNet35Random dotNet35Random2 = DotNet35Random(dotNet35Random.Next());
 		float num = 2.1f / NORMAL_PLANET_RADIUS;
 		int array[15] = {0};
@@ -2429,18 +2396,16 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		vector<Vector3> veinVectors(512);
-		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
-		vector<Vector2> tmp_vecs;
+		std::vector<Vector3> veinVectors(512);
+		std::vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		std::vector<Vector2> tmp_vecs;
 		int veinVectorCount = 0;
 		Vector3 birthPoint;
 		if(flag) {
-			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			const Pose pose = PredictBirthMotion(planet,120.0,true).pose;
+			birthPoint = Maths::QInvRotateLF(pose.rotation,star.uPosition - VectorLF3(pose.position) * 40000.0);
 			birthPoint.Normalize();
 			birthPoint *= 0.75f;
-			veinVectorTypes[0] = EVeinType::Iron;
-			veinVectorTypes[1] = EVeinType::Copper;
-			veinVectorCount = 2;
 		} else {
 			birthPoint.x = (float)dotNet35Random2.NextDouble() * 2.0f - 1.0f;
 			birthPoint.y = (float)dotNet35Random2.NextDouble() - 0.5f;
@@ -2504,19 +2469,14 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
-			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
-			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
+			const Quaternion quaternion = Quaternion::FromUpRotation(normalized);
+			Vector3 vector = quaternion * Vector3::right();
+			Vector3 vector2 = quaternion * Vector3::forward();
 			tmp_vecs.push_back(Vector2::zero());
 			int vein_point_num = Mathf.RoundToInt(array2[vein_point_type] * (float)dotNet35Random2.Next(20,25));
 			if(eVeinType2 == EVeinType::Oil)
 				vein_point_num = 1;
 			float num20 = array3[vein_point_type];
-			if(flag && vein_group_index < 2)
-			{
-				vein_point_num = 6;
-				num20 = 0.2f;
-			}
 			int try_num_2 = 0;
 			while(try_num_2++ < 20)
 			{
@@ -2550,7 +2510,7 @@ public:
 			float num25 = num8;
 			if(eVeinType2 == EVeinType::Oil)
 				num25 = Mathf.Pow(num8,0.5f);
-			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			int num26 = Mathf.RoundToInt(static_cast<float>(static_cast<double>(num20) * 100000.0 * static_cast<double>(num25)));
 			if(num26 < 20)
 				num26 = 20;
 			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
@@ -2585,7 +2545,7 @@ public:
 				planet.veins_amount[vein_point_type-1] += vein_amount;
 			}
 		}
-		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
+		//cout << "星球" << planet.id << "矿脉生成完成" << endl;
 		tmp_vecs.clear();
 	};
 };
@@ -2593,7 +2553,7 @@ public:
 class PlanetAlgorithm8: public PlanetAlgorithm
 {
 private:
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128 __vectorcall CosPower_batch2(__m128 angle) {
 		// Preserve Mathf.Cos/Pow rounding; two-point batches use the lower two lanes.
 		float lanes[4] = {};
@@ -2620,40 +2580,41 @@ public:
 	SimplexNoise simplexNoise;
 
 	void GenerateHeight1(int index) override {
-		double num4 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num5 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num6 = vertices[index].z * NORMAL_PLANET_RADIUS;
-		float num9 = Mathf.Clamp((float)simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8) + 1.0f + (float)modY * 0.01f,0.0f,2.0f);
+		double num4 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num5 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num6 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
+		const float noise = (float)simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6,0.45,1.8);
+		float num9 = Mathf.Clamp(static_cast<float>(static_cast<double>(noise) + 1.0 + static_cast<double>(static_cast<float>(modY)) * static_cast<double>(0.01f)),0.0f,2.0f);
 		float num10 = 0.0f;
 		if((double)num9 < 1.0) {
 			float f = Mathf.Cos(num9 * MATHF_PI) * 1.1f;
 			f = Mathf.Sign(f) * Mathf.Pow(f,4.0f);
 			f = Mathf.Clamp(f,-1.0f,1.0f);
-			num10 = 1.0f - (f + 1.0f) * 0.5f;
+			num10 = static_cast<float>(1.0 - (static_cast<double>(f) + 1.0) * 0.5);
 		} else {
 			float f2 = Mathf.Cos((num9 - 1.0f) * MATHF_PI) * 1.1f;
 			f2 = Mathf.Sign(f2) * Mathf.Pow(f2,4.0f);
 			f2 = Mathf.Clamp(f2,-1.0f,1.0f);
-			num10 = 2.0f - (f2 + 1.0f) * 0.5f;
+			num10 = static_cast<float>(2.0 - (static_cast<double>(f2) + 1.0) * 0.5);
 		}
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num10 + 0.1) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 		__m128d noise = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_mul_pd(z,_mm_set1_pd(num3)),6,0.45,1.8);
-		__m128 value = _mm_add_ps(_mm_add_ps(_mm_cvtpd_ps(noise),_mm_set1_ps(1.0f)),_mm_set1_ps((float)modY * 0.01f));
+		__m128 value = _mm_cvtpd_ps(_mm_add_pd(_mm_add_pd(_mm_cvtps_pd(_mm_cvtpd_ps(noise)),_mm_set1_pd(1.0)),_mm_set1_pd(static_cast<double>(static_cast<float>(modY)) * static_cast<double>(0.01f))));
 		value = _mm_min_ps(_mm_set1_ps(2.0f),_mm_max_ps(_mm_setzero_ps(),value));
 		__m128 lower = _mm_cmp_ps(value,_mm_set1_ps(1.0f),_CMP_LT_OQ);
 		__m128 phase = _mm_blendv_ps(_mm_sub_ps(value,_mm_set1_ps(1.0f)),value,lower);
 		__m128 curve = CosPower_batch2(_mm_mul_ps(phase,_mm_set1_ps(MATHF_PI)));
 		curve = _mm_min_ps(_mm_set1_ps(1.0f),_mm_max_ps(_mm_set1_ps(-1.0f),curve));
 		__m128 offset = _mm_blendv_ps(_mm_set1_ps(2.0f),_mm_set1_ps(1.0f),lower);
-		__m128 shaped = _mm_sub_ps(offset,_mm_mul_ps(_mm_add_ps(curve,_mm_set1_ps(1.0f)),_mm_set1_ps(0.5f)));
+		__m128 shaped = _mm_cvtpd_ps(_mm_sub_pd(_mm_cvtps_pd(offset),_mm_mul_pd(_mm_add_pd(_mm_cvtps_pd(curve),_mm_set1_pd(1.0)),_mm_set1_pd(0.5))));
 		__m128d height = _mm_mul_pd(_mm_add_pd(_mm_add_pd(_mm_set1_pd((double)NORMAL_PLANET_RADIUS),_mm_cvtps_pd(shaped)),_mm_set1_pd(0.1)),_mm_set1_pd(100.0));
 		double values[2];
 		_mm_storeu_pd(values,height);
@@ -2662,19 +2623,19 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 		__m256d noise = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_mul_pd(z,_mm256_set1_pd(num3)),6,0.45,1.8);
-		__m128 value = _mm_add_ps(_mm_add_ps(_mm256_cvtpd_ps(noise),_mm_set1_ps(1.0f)),_mm_set1_ps((float)modY * 0.01f));
+		__m128 value = _mm256_cvtpd_ps(_mm256_add_pd(_mm256_add_pd(_mm256_cvtps_pd(_mm256_cvtpd_ps(noise)),_mm256_set1_pd(1.0)),_mm256_set1_pd(static_cast<double>(static_cast<float>(modY)) * static_cast<double>(0.01f))));
 		value = _mm_min_ps(_mm_set1_ps(2.0f),_mm_max_ps(_mm_setzero_ps(),value));
 		__m128 lower = _mm_cmp_ps(value,_mm_set1_ps(1.0f),_CMP_LT_OQ);
 		__m128 phase = _mm_blendv_ps(_mm_sub_ps(value,_mm_set1_ps(1.0f)),value,lower);
 		__m128 curve = CosPower_batch4(_mm_mul_ps(phase,_mm_set1_ps(MATHF_PI)));
 		curve = _mm_min_ps(_mm_set1_ps(1.0f),_mm_max_ps(_mm_set1_ps(-1.0f),curve));
 		__m128 offset = _mm_blendv_ps(_mm_set1_ps(2.0f),_mm_set1_ps(1.0f),lower);
-		__m128 shaped = _mm_sub_ps(offset,_mm_mul_ps(_mm_add_ps(curve,_mm_set1_ps(1.0f)),_mm_set1_ps(0.5f)));
+		__m128 shaped = _mm256_cvtpd_ps(_mm256_sub_pd(_mm256_cvtps_pd(offset),_mm256_mul_pd(_mm256_add_pd(_mm256_cvtps_pd(curve),_mm256_set1_pd(1.0)),_mm256_set1_pd(0.5))));
 		__m256d height = _mm256_mul_pd(_mm256_add_pd(_mm256_add_pd(_mm256_set1_pd((double)NORMAL_PLANET_RADIUS),_mm256_cvtps_pd(shaped)),_mm256_set1_pd(0.1)),_mm256_set1_pd(100.0));
 		double values[4];
 		_mm256_storeu_pd(values,height);
@@ -2683,7 +2644,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		double modX = planet.mod_x;
 		modY = planet.mod_y;
 		num = 0.002 * modX;
@@ -2691,45 +2652,41 @@ public:
 		num3 = 0.002 * modX;
 		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain8");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,num);
-			kernel.setArg(3,num2);
-			kernel.setArg(4,num3);
-			kernel.setArg(5,modY);
-			kernel.setArg(6,tls.buffer);
-			kernel.setArg(7,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,num);
+		kernel.setArg(3,num2);
+		kernel.setArg(4,num3);
+		kernel.setArg(5,modY);
+		kernel.setArg(6,tls.buffer);
+		kernel.setArg(7,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
 class PlanetAlgorithm9: public PlanetAlgorithm
 {
 private:
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Pow_batch2(__m128d value,double exponent) {
 		// AVX2 has no pow instruction; preserve the existing libm result per lane.
 		double lanes[2];
@@ -2763,9 +2720,9 @@ public:
 	SimplexNoise simplexNoise2;
 
 	void GenerateHeight1(int index) override {
-		double num12 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num13 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num14 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num12 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num13 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num14 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num17 = simplexNoise.Noise3DFBM(num12 * num * 0.75,num13 * num2 * 0.5,num14 * num3 * 0.75,6) * num4 + num5;
 		double num18 = simplexNoise2.Noise3DFBM(num12 * 0.0025,num13 * 0.0025,num14 * 0.0025,3) * num4 * num6 + num7;
 		double num19 = ((num18 > 0.0) ? (num18 * 0.5) : num18);
@@ -2788,13 +2745,16 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num15 + 0.2) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d terrain = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(0.75)),_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(0.5)),_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(0.75)),6);
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d terrain = simplexNoise.Noise3DFBM_batch2(
+			_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(0.75)),
+			_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(0.5)),
+			_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(0.75)),6);
 		terrain = _mm_add_pd(_mm_mul_pd(terrain,_mm_set1_pd(num4)),_mm_set1_pd(num5));
 		__m128d detail = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(0.0025)),_mm_mul_pd(y,_mm_set1_pd(0.0025)),_mm_mul_pd(z,_mm_set1_pd(0.0025)),3);
 		detail = _mm_add_pd(_mm_mul_pd(_mm_mul_pd(detail,_mm_set1_pd(num4)),_mm_set1_pd(num6)),_mm_set1_pd(num7));
@@ -2816,7 +2776,10 @@ public:
 
 		height = _mm_add_pd(height,_mm_set1_pd(0.618));
 		height = _mm_mul_pd(height,_mm_blendv_pd(_mm_set1_pd(4.0),_mm_set1_pd(1.5),_mm_cmp_pd(height,_mm_set1_pd(-1.0),_CMP_GT_OQ)));
-		__m128d deep = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(modX)),_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(modX)),_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(modX)),6);
+		__m128d deep = simplexNoise.Noise3DFBM_batch2(
+			_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(modX)),
+			_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(modX)),
+			_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(modX)),6);
 		deep = _mm_add_pd(_mm_mul_pd(deep,_mm_set1_pd(num4)),_mm_set1_pd(num5));
 		// detail already contains the identical low-frequency noise and positive-lane scaling.
 		deep = _mm_mul_pd(_mm_add_pd(_mm_add_pd(deep,detail),_mm_set1_pd(5.0)),_mm_set1_pd(0.13));
@@ -2834,11 +2797,14 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply in float before converting, matching GenerateHeight1.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d terrain = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(0.75)),_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(0.5)),_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(0.75)),6);
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d terrain = simplexNoise.Noise3DFBM_batch4(
+			_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(0.75)),
+			_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(0.5)),
+			_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(0.75)),6);
 		terrain = _mm256_add_pd(_mm256_mul_pd(terrain,_mm256_set1_pd(num4)),_mm256_set1_pd(num5));
 		__m256d detail = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.0025)),_mm256_mul_pd(y,_mm256_set1_pd(0.0025)),_mm256_mul_pd(z,_mm256_set1_pd(0.0025)),3);
 		detail = _mm256_add_pd(_mm256_mul_pd(_mm256_mul_pd(detail,_mm256_set1_pd(num4)),_mm256_set1_pd(num6)),_mm256_set1_pd(num7));
@@ -2860,7 +2826,10 @@ public:
 
 		height = _mm256_add_pd(height,_mm256_set1_pd(0.618));
 		height = _mm256_mul_pd(height,_mm256_blendv_pd(_mm256_set1_pd(4.0),_mm256_set1_pd(1.5),_mm256_cmp_pd(height,_mm256_set1_pd(-1.0),_CMP_GT_OQ)));
-		__m256d deep = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(modX)),_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(modX)),_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(modX)),6);
+		__m256d deep = simplexNoise.Noise3DFBM_batch4(
+			_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(modX)),
+			_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(modX)),
+			_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(modX)),6);
 		deep = _mm256_add_pd(_mm256_mul_pd(deep,_mm256_set1_pd(num4)),_mm256_set1_pd(num5));
 		// detail already contains the identical low-frequency noise and positive-lane scaling.
 		deep = _mm256_mul_pd(_mm256_add_pd(_mm256_add_pd(deep,detail),_mm256_set1_pd(5.0)),_mm256_set1_pd(0.13));
@@ -2878,7 +2847,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		modX = planet.mod_x;
 		modY = planet.mod_y;
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
@@ -2887,38 +2856,34 @@ public:
 		simplexNoise = SimplexNoise(num10);
 		simplexNoise2 = SimplexNoise(num11);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain9");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,modX);
-			kernel.setArg(3,modY);
-			kernel.setArg(4,tls.buffer);
-			kernel.setArg(5,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,modX);
+		kernel.setArg(3,modY);
+		kernel.setArg(4,tls.buffer);
+		kernel.setArg(5,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
@@ -2937,7 +2902,7 @@ private:
 	{
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Levelize_batch2(__m128d value,int steps = 1,double level = 1.0) {
 		value = _mm_div_pd(value,_mm_set1_pd(level));
 		__m128d integral = _mm_floor_pd(value);
@@ -3012,9 +2977,9 @@ public:
 	SimplexNoise simplexNoise4;
 
 	void GenerateHeight1(int index) override {
-		double num9 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num10 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num11 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num9 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num10 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num11 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num12 = Maths::Levelize(num9 * 0.007);
 		double num13 = Maths::Levelize(num10 * 0.007);
 		double num14 = Maths::Levelize(num11 * 0.007);
@@ -3077,12 +3042,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num19 + 0.1) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 		__m128d warpedX = Levelize_batch2(_mm_mul_pd(x,_mm_set1_pd(0.007)));
 		__m128d warpedY = Levelize_batch2(_mm_mul_pd(y,_mm_set1_pd(0.007)));
 		__m128d warpedZ = Levelize_batch2(_mm_mul_pd(z,_mm_set1_pd(0.007)));
@@ -3104,7 +3069,10 @@ public:
 		envelope = _mm_and_pd(_mm_min_pd(envelope,one),_mm_cmp_pd(envelope,zero,_CMP_GT_OQ));
 		__m128d detail = _mm_andnot_pd(sign,simplexNoise4.Noise3DFBM_batch2(_mm_mul_pd(warpedX,_mm_set1_pd(1.5)),_mm_mul_pd(warpedY,_mm_set1_pd(1.5)),_mm_mul_pd(warpedZ,_mm_set1_pd(1.5)),2));
 
-		__m128d craterNoise = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(5.0)),_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(5.0)),_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(5.0)),4);
+		__m128d craterNoise = simplexNoise2.Noise3DFBM_batch2(
+			_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(5.0)),
+			_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(5.0)),
+			_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(5.0)),4);
 		__m128d craterDetail = _mm_mul_pd(craterNoise,_mm_set1_pd(0.2));
 		__m128d distanceScale = Remap_batch2(-1.0,1.0,0.2,5.0,craterNoise);
 		__m128d peak = zero;
@@ -3161,10 +3129,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 		__m256d warpedX = Levelize_batch4(_mm256_mul_pd(x,_mm256_set1_pd(0.007)));
 		__m256d warpedY = Levelize_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.007)));
 		__m256d warpedZ = Levelize_batch4(_mm256_mul_pd(z,_mm256_set1_pd(0.007)));
@@ -3184,9 +3152,15 @@ public:
 		__m256d envelope = simplexNoise3.Noise3DFBM_batch4(_mm256_mul_pd(y,_mm256_set1_pd(0.005)),_mm256_mul_pd(z,_mm256_set1_pd(0.005)),_mm256_mul_pd(x,_mm256_set1_pd(0.005)),4);
 		envelope = _mm256_mul_pd(_mm256_add_pd(envelope,_mm256_set1_pd(0.22)),_mm256_set1_pd(5.0));
 		envelope = _mm256_and_pd(_mm256_min_pd(envelope,one),_mm256_cmp_pd(envelope,zero,_CMP_GT_OQ));
-		__m256d detail = _mm256_andnot_pd(sign,simplexNoise4.Noise3DFBM_batch4(_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
+		__m256d detail = _mm256_andnot_pd(sign,simplexNoise4.Noise3DFBM_batch4(
+			_mm256_mul_pd(warpedX,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedY,_mm256_set1_pd(1.5)),
+			_mm256_mul_pd(warpedZ,_mm256_set1_pd(1.5)),2));
 
-		__m256d craterNoise = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(5.0)),_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(5.0)),_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(5.0)),4);
+		__m256d craterNoise = simplexNoise2.Noise3DFBM_batch4(
+			_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(5.0)),
+			_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(5.0)),
+			_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(5.0)),4);
 		__m256d craterDetail = _mm256_mul_pd(craterNoise,_mm256_set1_pd(0.2));
 		__m256d distanceScale = Remap_batch4(-1.0,1.0,0.2,5.0,craterNoise);
 		__m256d peak = zero;
@@ -3243,7 +3217,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		DotNet35Random dotNet35Random = DotNet35Random(planet.seed);
 		int num4 = dotNet35Random.Next();
 		int num5 = dotNet35Random.Next();
@@ -3273,59 +3247,55 @@ public:
 		}
 
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
+	}
 
-			float float_buffer[40];
-			double double_buffer[20];
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain10");
 
-			for(int i=0;i<10;i++) {
-				const Vector4& t = ellipses[i];
-				float_buffer[4*i] = t.x;
-				float_buffer[4*i+1] = t.y;
-				float_buffer[4*i+2] = t.z;
-				float_buffer[4*i+3] = t.w;
-			}
-			for(int i=0;i<10;i++)
-				double_buffer[i] = eccentricities[i];
-			for(int i=0;i<10;i++)
-				double_buffer[i+10] = heights[i];
+		float float_buffer[40];
+		double double_buffer[20];
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_4(),simplexNoise4.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_4(),simplexNoise4.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.float_buffer(),ellipses,sizeof(ellipses));
-			double* ptr = tls.double_buffer();
-			memcpy(ptr,eccentricities,sizeof(eccentricities));
-			memcpy(ptr+10,heights,sizeof(heights));
-			tls.upload_buffer();
-
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,tls.buffer);
-			kernel.setArg(3,tls.heightData_buffer);
-
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
-
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		for(int i=0;i<10;i++) {
+			const Vector4& t = ellipses[i];
+			float_buffer[4*i] = t.x;
+			float_buffer[4*i+1] = t.y;
+			float_buffer[4*i+2] = t.z;
+			float_buffer[4*i+3] = t.w;
 		}
+		for(int i=0;i<10;i++)
+			double_buffer[i] = eccentricities[i];
+		for(int i=0;i<10;i++)
+			double_buffer[i+10] = heights[i];
+
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_4(),simplexNoise4.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_4(),simplexNoise4.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.float_buffer(),ellipses,sizeof(ellipses));
+		double* ptr = tls.double_buffer();
+		memcpy(ptr,eccentricities,sizeof(eccentricities));
+		memcpy(ptr+10,heights,sizeof(heights));
+		tls.upload_buffer();
+
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,tls.buffer);
+		kernel.setArg(3,tls.heightData_buffer);
+
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
+		}
+
+		return DownloadLandPercent(tls);
 	}
 };
 
@@ -3336,7 +3306,7 @@ private:
 	{
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Levelize_batch2(__m128d value,int steps = 1,double level = 1.0) {
 		value = _mm_div_pd(value,_mm_set1_pd(level));
 		__m128d integral = _mm_floor_pd(value);
@@ -3387,9 +3357,9 @@ public:
 	SimplexNoise simplexNoise3;
 
 	void GenerateHeight1(int index) override {
-		double num10 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num11 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num12 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num10 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num11 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num12 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double num15 = simplexNoise2.Noise3DFBM(num10 * num * 4.0,num11 * num2 * 8.0,num12 * num3 * 4.0,3);
 		double x = simplexNoise.Noise3DFBM(num10 * num * 0.6,num11 * num * 1.5 * 2.5,num12 * num * 0.6,6,0.45,1.8) * 0.95 + num15 * 0.05;
 		x = Remap(-1.0,1.0,0.0,1.0,x);
@@ -3405,14 +3375,20 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num13) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d secondary = simplexNoise2.Noise3DFBM_batch2(_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(4.0)),_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(8.0)),_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(4.0)),3);
-		__m128d base = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(0.6)),_mm_mul_pd(_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num)),_mm_set1_pd(1.5)),_mm_set1_pd(2.5)),_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num)),_mm_set1_pd(0.6)),6,0.45,1.8);
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d secondary = simplexNoise2.Noise3DFBM_batch2(
+			_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(4.0)),
+			_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_set1_pd(8.0)),
+			_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num3)),_mm_set1_pd(4.0)),3);
+		__m128d base = simplexNoise.Noise3DFBM_batch2(
+			_mm_mul_pd(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_set1_pd(0.6)),
+			_mm_mul_pd(_mm_mul_pd(_mm_mul_pd(y,_mm_set1_pd(num)),_mm_set1_pd(1.5)),_mm_set1_pd(2.5)),
+			_mm_mul_pd(_mm_mul_pd(z,_mm_set1_pd(num)),_mm_set1_pd(0.6)),6,0.45,1.8);
 		base = _mm_add_pd(_mm_mul_pd(base,_mm_set1_pd(0.95)),_mm_mul_pd(secondary,_mm_set1_pd(0.05)));
 		base = Remap_batch2(-1.0,1.0,0.0,1.0,base);
 		base = Pow_batch2(base,modY);
@@ -3431,12 +3407,18 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d secondary = simplexNoise2.Noise3DFBM_batch4(_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(4.0)),_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(8.0)),_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(4.0)),3);
-		__m256d base = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(0.6)),_mm256_mul_pd(_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num)),_mm256_set1_pd(1.5)),_mm256_set1_pd(2.5)),_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num)),_mm256_set1_pd(0.6)),6,0.45,1.8);
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d secondary = simplexNoise2.Noise3DFBM_batch4(
+			_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(4.0)),
+			_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_set1_pd(8.0)),
+			_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num3)),_mm256_set1_pd(4.0)),3);
+		__m256d base = simplexNoise.Noise3DFBM_batch4(
+			_mm256_mul_pd(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_set1_pd(0.6)),
+			_mm256_mul_pd(_mm256_mul_pd(_mm256_mul_pd(y,_mm256_set1_pd(num)),_mm256_set1_pd(1.5)),_mm256_set1_pd(2.5)),
+			_mm256_mul_pd(_mm256_mul_pd(z,_mm256_set1_pd(num)),_mm256_set1_pd(0.6)),6,0.45,1.8);
 		base = _mm256_add_pd(_mm256_mul_pd(base,_mm256_set1_pd(0.95)),_mm256_mul_pd(secondary,_mm256_set1_pd(0.05)));
 		base = Remap_batch4(-1.0,1.0,0.0,1.0,base);
 		base = Pow_batch4(base,modY);
@@ -3455,7 +3437,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		double modX = planet.mod_x;
 		modY = planet.mod_y;
 		num4 = 0.002 * modX;
@@ -3469,42 +3451,38 @@ public:
 		simplexNoise2 = SimplexNoise(num8);
 		simplexNoise3 = SimplexNoise(num9);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain11");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,num4);
-			kernel.setArg(3,num5);
-			kernel.setArg(4,num6);
-			kernel.setArg(5,modY);
-			kernel.setArg(6,tls.buffer);
-			kernel.setArg(7,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_3(),simplexNoise3.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_3(),simplexNoise3.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,num4);
+		kernel.setArg(3,num5);
+		kernel.setArg(4,num6);
+		kernel.setArg(5,modY);
+		kernel.setArg(6,tls.buffer);
+		kernel.setArg(7,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -3676,13 +3654,13 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		vector<Vector3> veinVectors(512);
-		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
-		vector<Vector2> tmp_vecs;
+		std::vector<Vector3> veinVectors(512);
+		std::vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		std::vector<Vector2> tmp_vecs;
 		int veinVectorCount = 0;
 		Vector3 birthPoint;
 		if(flag) {
-			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			std::tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
 			birthPoint.Normalize();
 			birthPoint *= 0.75f;
 			veinVectorTypes[0] = EVeinType::Iron;
@@ -3754,9 +3732,9 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
-			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
-			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
+			const Quaternion quaternion = Quaternion::FromUpRotation(normalized);
+			Vector3 vector = quaternion * Vector3::right();
+			Vector3 vector2 = quaternion * Vector3::forward();
 			tmp_vecs.push_back(Vector2::zero());
 			int vein_point_num = Mathf.RoundToInt(array2[vein_point_type] * (float)dotNet35Random2.Next(20,25));
 			if(eVeinType2 == EVeinType::Oil)
@@ -3800,7 +3778,7 @@ public:
 			float num25 = num8;
 			if(eVeinType2 == EVeinType::Oil)
 				num25 = Mathf.Pow(num8,0.5f);
-			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			int num26 = Mathf.RoundToInt(static_cast<float>(static_cast<double>(num20) * 100000.0 * static_cast<double>(num25)));
 			if(num26 < 20)
 				num26 = 20;
 			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
@@ -3825,6 +3803,7 @@ public:
 					vein_amount = 1000000000;
 				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
+				if(eVeinType2 == EVeinType::Oil) vein_pos = SnapOilPosition(vein_pos);
 				//TODO: 这里对油井坐标未变换！（先不管，目前不变换也是准的）
 				//if(vein.type == EVeinType::Oil)
 				//{
@@ -3838,7 +3817,7 @@ public:
 				}
 			}
 		}
-		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
+		//cout << "星球" << planet.id << "矿脉生成完成" << endl;
 		tmp_vecs.clear();
 	};
 };
@@ -3859,7 +3838,7 @@ private:
 		}
 		return Math.Pow(1.0 - t,3.0) + Math.Pow(1.0 - t,2.0) * 3.0 * t;
 	}
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Remap_batch2(double sourceMin,double sourceMax,double targetMin,double targetMax,__m128d x) {
 		return _mm_add_pd(_mm_mul_pd(_mm_div_pd(_mm_sub_pd(x,_mm_set1_pd(sourceMin)),_mm_set1_pd(sourceMax-sourceMin)),_mm_set1_pd(targetMax-targetMin)),_mm_set1_pd(targetMin));
 	}
@@ -3938,7 +3917,7 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num7) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
 		// Widen raw coordinates.
 		__m128d x = _mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f));
@@ -4002,7 +3981,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		double modX = planet.mod_x;
 		modY = planet.mod_y;
 		num = 1.1 * modX;
@@ -4012,38 +3991,34 @@ public:
 		simplexNoise = SimplexNoise(num4);
 		simplexNoise2 = SimplexNoise(num5);
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain12");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,num);
-			kernel.setArg(3,modY);
-			kernel.setArg(4,tls.buffer);
-			kernel.setArg(5,tls.heightData_buffer);
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		memcpy(tls.perm_buffer_2(),simplexNoise2.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_2(),simplexNoise2.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,num);
+		kernel.setArg(3,modY);
+		kernel.setArg(4,tls.buffer);
+		kernel.setArg(5,tls.heightData_buffer);
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -4215,13 +4190,13 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		vector<Vector3> veinVectors(512);
-		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
-		vector<Vector2> tmp_vecs;
+		std::vector<Vector3> veinVectors(512);
+		std::vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		std::vector<Vector2> tmp_vecs;
 		int veinVectorCount = 0;
 		Vector3 birthPoint;
 		if(flag) {
-			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			std::tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
 			birthPoint.Normalize();
 			birthPoint *= 0.75f;
 			veinVectorTypes[0] = EVeinType::Iron;
@@ -4258,7 +4233,7 @@ public:
 					float target_height = QueryHeight(target_pos);
 					if(target_height < NORMAL_PLANET_RADIUS
 						|| (eVeinType == EVeinType::Oil && target_height < NORMAL_PLANET_RADIUS + 0.5f)
-						|| (eVeinType == EVeinType::Fireice && target_height < NORMAL_PLANET_RADIUS + 1.2f))
+						|| (eVeinType == EVeinType::Fireice && static_cast<double>(target_height) < static_cast<double>(NORMAL_PLANET_RADIUS) + static_cast<double>(1.2f)))
 						continue;
 					bool flag3 = false;
 					float num15 = ((eVeinType == EVeinType::Oil) ? 100.0f : 196.0f);
@@ -4271,7 +4246,7 @@ public:
 						}
 					}
 					if(!flag3)
-					{	
+					{
 						flag2 = true;
 						break;
 					}
@@ -4292,9 +4267,9 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
-			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
-			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
+			const Quaternion quaternion = Quaternion::FromUpRotation(normalized);
+			Vector3 vector = quaternion * Vector3::right();
+			Vector3 vector2 = quaternion * Vector3::forward();
 			tmp_vecs.push_back(Vector2::zero());
 			int vein_point_num = Mathf.RoundToInt(array2[vein_point_type] * (float)dotNet35Random2.Next(20,25));
 			if(eVeinType2 == EVeinType::Oil)
@@ -4338,7 +4313,7 @@ public:
 			float num25 = num8;
 			if(eVeinType2 == EVeinType::Oil)
 				num25 = Mathf.Pow(num8,0.5f);
-			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			int num26 = Mathf.RoundToInt(static_cast<float>(static_cast<double>(num20) * 100000.0 * static_cast<double>(num25)));
 			if(num26 < 20)
 				num26 = 20;
 			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
@@ -4363,6 +4338,7 @@ public:
 					vein_amount = 1000000000;
 				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
+				if(eVeinType2 == EVeinType::Oil) vein_pos = SnapOilPosition(vein_pos);
 				//TODO: 这里对油井坐标未变换！（先不管，目前不变换也是准的）
 				//if(vein.type == EVeinType::Oil)
 				//{
@@ -4376,7 +4352,7 @@ public:
 				}
 			}
 		}
-		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
+		//cout << "星球" << planet.id << "矿脉生成完成" << endl;
 		tmp_vecs.clear();
 	};
 };
@@ -4388,7 +4364,7 @@ private:
 	{
 		return (x - sourceMin) / (sourceMax - sourceMin) * (targetMax - targetMin) + targetMin;
 	}
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	__forceinline __m128d __vectorcall Remap_batch2(double sourceMin,double sourceMax,double targetMin,double targetMax,__m128d x) {
 		return _mm_add_pd(_mm_mul_pd(_mm_div_pd(_mm_sub_pd(x,_mm_set1_pd(sourceMin)),_mm_set1_pd(sourceMax-sourceMin)),_mm_set1_pd(targetMax-targetMin)),_mm_set1_pd(targetMin));
 	}
@@ -4417,9 +4393,9 @@ public:
 	SimplexNoise simplexNoise;
 
 	void GenerateHeight1(int index) override {
-		double num4 = vertices[index].x * NORMAL_PLANET_RADIUS;
-		double num5 = vertices[index].y * NORMAL_PLANET_RADIUS;
-		double num6 = vertices[index].z * NORMAL_PLANET_RADIUS;
+		double num4 = static_cast<double>(vertices[index].x) * NORMAL_PLANET_RADIUS;
+		double num5 = static_cast<double>(vertices[index].y) * NORMAL_PLANET_RADIUS;
+		double num6 = static_cast<double>(vertices[index].z) * NORMAL_PLANET_RADIUS;
 		double x = Remap(-1.0,1.0,0.0,1.0,simplexNoise.Noise3DFBM(num4 * num,num5 * num2,num6 * num3,6));
 		x = Math.Pow(x,modY) * 3.0625;
 		x = Remap(0.0,2.0,0.0,4.0,x);
@@ -4432,12 +4408,12 @@ public:
 		heightData[index] = (unsigned short)(((double)NORMAL_PLANET_RADIUS + num8 + 0.1) * 100.0);
 	}
 
-#ifdef SUPPORT_AVX2
+#ifdef __AVX2__
 	void GenerateHeight2(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m128d x = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d y = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m128d z = _mm_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m128d x = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d y = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
+		__m128d z = _mm_mul_pd(_mm_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,0.0f,0.0f)),_mm_set1_pd(NORMAL_PLANET_RADIUS));
 		__m128d terrain = simplexNoise.Noise3DFBM_batch2(_mm_mul_pd(x,_mm_set1_pd(num)),_mm_mul_pd(y,_mm_set1_pd(num2)),_mm_mul_pd(z,_mm_set1_pd(num3)),6);
 		terrain = Remap_batch2(-1.0,1.0,0.0,1.0,terrain);
 		terrain = _mm_mul_pd(Pow_batch2(terrain,modY),_mm_set1_pd(3.0625));
@@ -4458,10 +4434,10 @@ public:
 	}
 
 	void GenerateHeight4(int* index_arr) override {
-		// Multiply coordinates in float before widening, matching the scalar path.
-		__m256d x = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d y = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
-		__m256d z = _mm256_cvtps_pd(_mm_mul_ps(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z),_mm_set1_ps(NORMAL_PLANET_RADIUS)));
+		// Match the double coordinate product in GenerateHeight1.
+		__m256d x = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].x,vertices[index_arr[1]].x,vertices[index_arr[2]].x,vertices[index_arr[3]].x)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d y = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].y,vertices[index_arr[1]].y,vertices[index_arr[2]].y,vertices[index_arr[3]].y)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
+		__m256d z = _mm256_mul_pd(_mm256_cvtps_pd(_mm_setr_ps(vertices[index_arr[0]].z,vertices[index_arr[1]].z,vertices[index_arr[2]].z,vertices[index_arr[3]].z)),_mm256_set1_pd(NORMAL_PLANET_RADIUS));
 		__m256d terrain = simplexNoise.Noise3DFBM_batch4(_mm256_mul_pd(x,_mm256_set1_pd(num)),_mm256_mul_pd(y,_mm256_set1_pd(num2)),_mm256_mul_pd(z,_mm256_set1_pd(num3)),6);
 		terrain = Remap_batch4(-1.0,1.0,0.0,1.0,terrain);
 		terrain = _mm256_mul_pd(Pow_batch4(terrain,modY),_mm256_set1_pd(3.0625));
@@ -4482,7 +4458,7 @@ public:
 	}
 #endif
 
-	void GenerateTerrain(const PlanetClassSimple& planet,bool gen_terr = false) override {
+	void GenerateTerrain(const PlanetClassSimple& planet) override {
 		double modX = planet.mod_x;
 		modY = planet.mod_y;
 		num = 0.007 * modX;
@@ -4490,38 +4466,34 @@ public:
 		num3 = 0.007 * modX;
 		simplexNoise = SimplexNoise(DotNet35Random(planet.seed).Next());
 		heightData.assign(VERTICES_DATALENGTH,0);
-		if(gen_terr && OpenCLManager::get_worker()) {
-			cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
+	}
 
-			ThreadLocalBuffers& tls = get_tls_buffers();
-			memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
-			memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
-			tls.upload_buffer();
+	float CalcLandPercentGPU() override {
+		cl::Kernel kernel(OpenCLManager::program,"GenerateTerrain13");
 
-			kernel.setArg(0,OpenCLManager::vertices_buffer);
-			kernel.setArg(1,NORMAL_PLANET_RADIUS);
-			kernel.setArg(2,num);
-			kernel.setArg(3,num2);
-			kernel.setArg(4,num3);
-			kernel.setArg(5,modY);
-			kernel.setArg(6,tls.buffer);
-			kernel.setArg(7,tls.heightData_buffer);
-			
-			int local_size = OpenCLManager::local_size;
-			int global_size = (int)ceil((double)LAND_DATALENGTH/local_size) * local_size;
-			cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
-			if(err != CL_SUCCESS){
-				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-				throw std::runtime_error("Kernel execution failed");
-			}
+		ThreadLocalBuffers& tls = get_tls_buffers();
+		memcpy(tls.perm_buffer_1(),simplexNoise.perm,tls.PERM_BUF_SIZE);
+		memcpy(tls.permMod12_buffer_1(),simplexNoise.permMod12,tls.PERM_BUF_SIZE);
+		tls.upload_buffer();
 
-			tls.download_buffer(heightData.data());
-			OpenCLManager::return_worker();
-			for(int i=LAND_DATALENGTH-1;i>=0;i--) {
-				heightData[landIndex[i]] = heightData[i];
-				heightData[i] = 0;
-			}
+		kernel.setArg(0,OpenCLManager::vertices_buffer);
+		kernel.setArg(1,NORMAL_PLANET_RADIUS);
+		kernel.setArg(2,num);
+		kernel.setArg(3,num2);
+		kernel.setArg(4,num3);
+		kernel.setArg(5,modY);
+		kernel.setArg(6,tls.buffer);
+		kernel.setArg(7,tls.heightData_buffer);
+
+		int local_size = OpenCLManager::local_size;
+		int global_size = (int)std::ceil((double)LAND_DATALENGTH/local_size) * local_size;
+		cl_int err = tls.queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
+		if(err != CL_SUCCESS){
+			std::cerr << "Kernel execution failed with error code: " << err << std::endl;
+			throw std::runtime_error("Kernel execution failed");
 		}
+
+		return DownloadLandPercent(tls);
 	}
 
 	void GenerateVeins(PlanetClassSimple& planet,const int birthPlanetId) override {
@@ -4693,13 +4665,13 @@ public:
 				num8 = Mathf.Pow(num8,0.8f);
 			num8 *= 0.7f;
 		}
-		vector<Vector3> veinVectors(512);
-		vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
-		vector<Vector2> tmp_vecs;
+		std::vector<Vector3> veinVectors(512);
+		std::vector<EVeinType> veinVectorTypes(512,EVeinType::None_vein);
+		std::vector<Vector2> tmp_vecs;
 		int veinVectorCount = 0;
 		Vector3 birthPoint;
 		if(flag) {
-			tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
+			std::tie(birthPoint,veinVectors[0],veinVectors[1]) = GenBirthPoints(planet,birthSeed,star.uPosition);
 			birthPoint.Normalize();
 			birthPoint *= 0.75f;
 			veinVectorTypes[0] = EVeinType::Iron;
@@ -4770,9 +4742,9 @@ public:
 			Vector3 normalized = Vector3::Normalize(veinVectors[vein_group_index]);
 			EVeinType eVeinType2 = veinVectorTypes[vein_group_index];
 			int vein_point_type = (int)eVeinType2;
-			glm::quat quaternion = glm::rotation(vector3_to_glm(Vector3::up()),vector3_to_glm(normalized));
-			Vector3 vector = glm_to_vector3(quaternion * vector3_to_glm(Vector3::right()));
-			Vector3 vector2 = glm_to_vector3(quaternion * vector3_to_glm(Vector3::forward()));
+			const Quaternion quaternion = Quaternion::FromUpRotation(normalized);
+			Vector3 vector = quaternion * Vector3::right();
+			Vector3 vector2 = quaternion * Vector3::forward();
 			tmp_vecs.push_back(Vector2::zero());
 			int vein_point_num = Mathf.RoundToInt(array2[vein_point_type] * (float)dotNet35Random2.Next(20,25));
 			if(eVeinType2 == EVeinType::Oil)
@@ -4816,7 +4788,7 @@ public:
 			float num25 = num8;
 			if(eVeinType2 == EVeinType::Oil)
 				num25 = Mathf.Pow(num8,0.5f);
-			int num26 = Mathf.RoundToInt(num20 * 100000.0f * num25);
+			int num26 = Mathf.RoundToInt(static_cast<float>(static_cast<double>(num20) * 100000.0 * static_cast<double>(num25)));
 			if(num26 < 20)
 				num26 = 20;
 			int num27 = ((num26 < 16000) ? Mathf.FloorToInt((float)num26 * 0.9375f) : 15000);
@@ -4841,6 +4813,7 @@ public:
 					vein_amount = 1000000000;
 				//dotNet35Random2.Next();
 				Vector3 vein_pos = normalized + vector5;
+				if(eVeinType2 == EVeinType::Oil) vein_pos = SnapOilPosition(vein_pos);
 				//TODO: 这里对油井坐标未变换！（先不管，目前不变换也是准的）
 				//if(vein.type == EVeinType::Oil)
 				//{
@@ -4854,7 +4827,7 @@ public:
 				}
 			}
 		}
-		//std::cout << "星球" << planet.id << "矿脉生成完成" << std::endl;
+		//cout << "星球" << planet.id << "矿脉生成完成" << endl;
 		tmp_vecs.clear();
 	};
 };
@@ -4910,8 +4883,8 @@ public:
 //			cl_int err = OpenCLManager::queue.enqueueNDRangeKernel(kernel,cl::NullRange,{(size_t)global_size},{(size_t)local_size});
 //			OpenCLManager::queue.finish();
 //			if(err != CL_SUCCESS){
-//				std::cerr << "Kernel execution failed with error code: " << err << std::endl;
-//				throw std::runtime_error("Kernel execution failed");
+//				cerr << "Kernel execution failed with error code: " << err << endl;
+//				throw runtime_error("Kernel execution failed");
 //			}
 //
 //			OpenCLManager::queue.enqueueReadBuffer(heightData_buffer,CL_TRUE,0,
@@ -4960,7 +4933,13 @@ public:
 //					num25 = Maths::Levelize2(num23);
 //					num25 = Maths::Levelize4(num25);
 //				}
-//				double num26 = ((!(num25 > 0.0)) ? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num25 + 1.0f)) : ((!(num25 > 1.0)) ? ((double)Mathf.Lerp(0.0f,0.3f,(float)num25) + num21 * 0.1) : ((num25 > 2.0) ? ((double)Mathf.Lerp(1.4f,2.7f,(float)num25 - 2.0f) + num21 * 0.12) : ((double)Mathf.Lerp(0.3f,1.4f,(float)num25 - 1.0f) + num21 * 0.12))));
+//				double num26 = ((!(num25 > 0.0))
+//					? ((double)Mathf.Lerp(-4.0f,0.0f,(float)num25 + 1.0f))
+//					: ((!(num25 > 1.0))
+//						? ((double)Mathf.Lerp(0.0f,0.3f,(float)num25) + num21 * 0.1)
+//						: ((num25 > 2.0)
+//							? ((double)Mathf.Lerp(1.4f,2.7f,(float)num25 - 2.0f) + num21 * 0.12)
+//							: ((double)Mathf.Lerp(0.3f,1.4f,(float)num25 - 1.0f) + num21 * 0.12))));
 //				if(num23 < 0.0)
 //				{
 //					num23 *= 2.0;
