@@ -125,10 +125,10 @@ def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: GalaxyCondition) 
 
 def check_seed_py(seed: Seed, galaxy_condition: GalaxyCondition, quick: bool) -> bool:
     if not quick:
-        galaxy_data = get_galaxy_data_c(seed, True)
+        galaxy_data = get_galaxy_data_fast_c(seed, True)
         if not check_galaxy_py(galaxy_data, galaxy_condition):
             return not galaxy_condition.valid_state
-    galaxy_data = get_galaxy_data_c(seed, quick)
+    galaxy_data = get_galaxy_data_fast_c(seed, quick)
     if not check_galaxy_py(galaxy_data, galaxy_condition):
         return not galaxy_condition.valid_state
     return galaxy_condition.valid_state
@@ -141,11 +141,9 @@ def check_batch_py(tasks: list[tuple[int, int, int]], galaxy_condition: dict, qu
             result.append((seed_id, star_num))
     return result
 
-def init_process(device_id: int, local_size: int):
+def init_process():
     do_init_c()
-    if not set_device_id_c(device_id):
-        print("Set device id failed! Roll back to cpu!")
-    set_local_size_c(local_size)
+    set_device_id_c(-1)
 
 def get_task_seed_wrapper(seeds: tuple[int, int], star_nums: tuple[int, int], resource_index: int) -> callable:
     def get_task_seed(task_id: int) -> tuple[int, int, int]:
@@ -172,25 +170,21 @@ def check_seeds_py(seeds: tuple[int, int],
                    resource_index: int,
                    galaxy_condition: dict,
                    quick: bool,
-                   max_thread: int,
-                   device_id: int,
-                   local_size: int) -> list[tuple[int, int]]:
+                   max_thread: int) -> list[tuple[int, int]]:
     get_task_seed = get_task_seed_wrapper(seeds, star_nums, resource_index)
     max_thread = min(max_thread, cpu_count())
     task_num = (seeds[1] - seeds[0] + 1) * (star_nums[1] - star_nums[0] + 1)
     batch_size = max(1, min(task_num // (max_thread * 20), 1024))
-    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process, initargs=(device_id, local_size)) as executor:
+    with ProcessPoolExecutor(max_workers = max_thread, initializer=init_process) as executor:
         futures = []
         for task_id in range(0, task_num, batch_size):
             tasks = [get_task_seed(i) for i in range(task_id, min(task_id + batch_size, task_num))]
             futures.append(executor.submit(check_batch_py, tasks, galaxy_condition, quick))
 
         results = []
-        for i, future in enumerate(futures):
-            print(f"当前进度{i}/{len(futures)}", end="\r")
+        for future in futures:
             result = future.result()
             results.extend(result)
-        print(" " * 50, end="\r")
     return results
 
 __all__ = ["check_seed_py", "check_seeds_py"]

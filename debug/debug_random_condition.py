@@ -173,17 +173,25 @@ def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool):
     galaxy_condition = {
         "valid_state": random.random() < 0.7
     }
+    if need_veins:
+        # 不同时叠加星系总矿量、行星矿量等独立限制，避免几乎全部失败。
+        scope = random.choice(["galaxy", "stars", "planets", "bonds"])
+        if scope == "galaxy":
+            points, amounts = get_veins_condition("galaxy", resource_index, quick)
+            galaxy_condition["veins_point"] = points
+            if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
+                galaxy_condition["veins_amount"] = amounts
+        else:
+            factory = {"stars": get_star_condition, "planets": get_planet_condition,
+                       "bonds": get_bond_condition}[scope]
+            galaxy_condition[scope] = [factory(resource_index, need_veins, quick)]
+        return galaxy_condition
     if random.random() < 0.5 and not need_veins:
         galaxy_condition["stars"] = [get_star_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 2))]
     if random.random() < 0.5:
         galaxy_condition["planets"] = [get_planet_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 3))]
     if "stars" not in galaxy_condition and "planets" not in galaxy_condition:
         galaxy_condition["bonds"] = [get_bond_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 2))]
-    if need_veins:
-        veins_point_condition, veins_amount_condition = get_veins_condition("galaxy", resource_index, quick)
-        galaxy_condition["veins_point"] = veins_point_condition
-        if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
-            galaxy_condition["veins_amount"] = veins_amount_condition
     return galaxy_condition
 
 def get_veins_condition(satro_type: Literal["galaxy", "star", "planet"], resource_index: int, quick: bool):
@@ -201,23 +209,15 @@ def get_veins_condition(satro_type: Literal["galaxy", "star", "planet"], resourc
     veins_amount_condition = {vein: int(limit*amount_rate*resource_rate) for vein, limit in veins_amount_limit.items()}
     return veins_point_condition, veins_amount_condition
 
-def get_random_debug_condition():
-    if random.random() < 0.3:
-        need_veins = True
-    else:
-        need_veins = False
-    if need_veins:
-        quick = random.choice([True, False])
-    else:
-        quick = True
+def get_random_debug_condition(need_veins: bool | None = None, quick: bool | None = None):
+    if need_veins is None:
+        need_veins = random.random() < 0.3
+    if quick is None:
+        quick = random.choice([True, False]) if need_veins else True
     resource_index = random.randint(0, len(resource_rate_c)-1)
-    if need_veins:
-        if quick:
-            seeds = (0, 99999)
-        else:
-            seeds = (0, 499)
-    else:
-        seeds = (0, 199999) 
+    # 两端均包含；正式搜索按实测耗时扩展，预留连续种子空间。
+    start_seed = random.randint(0, 99999999 - 1999999)
+    seeds = (start_seed, start_seed + 99)
     galaxy_condition = get_galaxy_condition(resource_index, need_veins, quick)
     return galaxy_condition, seeds, (64, 64), resource_index, quick
 
