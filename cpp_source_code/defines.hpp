@@ -12,7 +12,7 @@
 #include "src/DotNet35Random.hpp"
 #include "src/quaternion.hpp"
 
-enum ESpectrType {
+enum ESpectrType : uint8_t {
     M = 0,
     K = 1,
     G = 2,
@@ -22,14 +22,14 @@ enum ESpectrType {
     O = 6,
     X = 7
 };
-enum EStarType {
+enum EStarType : uint8_t {
     MainSeqStar = 0,
     GiantStar = 1,
     WhiteDwarf = 2,
     NeutronStar = 3,
     BlackHole = 4
 };
-enum EVeinType {
+enum EVeinType : uint8_t {
 	None_vein = 0,
 	Iron = 1,
 	Copper = 2,
@@ -47,8 +47,7 @@ enum EVeinType {
 	Mag = 14,
 	Max = 15
 };
-enum EPlanetSingularity
-{
+enum EPlanetSingularity : uint8_t {
     None = 0,
     TidalLocked = 1,
     TidalLocked2 = 2,
@@ -59,8 +58,7 @@ enum EPlanetSingularity
 	Satellite = 0x40
 };
 
-enum class EPlanetType
-{
+enum class EPlanetType : uint8_t {
     None = 0,
     Vocano = 1,
     Ocean = 2,
@@ -69,8 +67,7 @@ enum class EPlanetType
     Gas = 5
 };
 
-enum class EThemeDistribute
-{
+enum class EThemeDistribute : uint8_t {
     Default = 0,
     Birth = 1,
     Interstellar = 2,

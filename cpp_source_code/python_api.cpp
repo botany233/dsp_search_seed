@@ -9,6 +9,7 @@
 
 #include "defines.hpp"
 #include "check_batch.hpp"
+#include "get_galaxy_data.hpp"
 #include "check_seed.hpp"
 #include "data_struct.hpp"
 #include "src/RandomTable.hpp"

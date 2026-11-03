@@ -14,6 +14,7 @@
 
 #include "data_struct.hpp"
 #include "check_seed.hpp"
+#include "get_galaxy_data.hpp"
 #include "python_api.hpp"
 #include "seed_manager.hpp"
 #include "condition_to_struct.hpp"

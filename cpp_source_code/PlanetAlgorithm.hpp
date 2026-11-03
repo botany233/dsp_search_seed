@@ -177,13 +177,11 @@ inline ThreadLocalBuffers& get_tls_buffers() {
 	return tls;
 }
 
-static GalaxyClassSimple galaxy_to_simple(const GalaxyClass& galaxy) {
-	GalaxyClassSimple galaxy_simple;
+static void galaxy_to_simple(const GalaxyClass& galaxy,GalaxyClassSimple& galaxy_simple) {
 	galaxy_simple.resource_multiplier = galaxy.resource_multiplier;
 	galaxy_simple.is_infinite_resource = galaxy.is_infinite_resource;
 	galaxy_simple.is_rare_resource = galaxy.is_rare_resource;
 	galaxy_simple.birthPlanetId = galaxy.birthPlanetId;
-	return galaxy_simple;
 }
 
 static StarClassSimple star_to_simple(const StarClass& star) {
@@ -677,7 +675,8 @@ public:
 	void get_veins(const GalaxyClass& galaxy,const StarClass& star,PlanetClass& planet) {
 		PlanetClassSimple planet_simple = planet_to_simple(planet);
 		StarClassSimple star_simple = star_to_simple(star);
-		GalaxyClassSimple galaxy_simple = galaxy_to_simple(galaxy);
+		GalaxyClassSimple galaxy_simple;
+		galaxy_to_simple(galaxy,galaxy_simple);
 		star_simple.galaxy = &galaxy_simple;
 		planet_simple.star = &star_simple;
 		PlanetClassSimple planet_simple_orbit;

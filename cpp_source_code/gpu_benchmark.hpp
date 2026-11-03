@@ -5,7 +5,7 @@
 #include <atomic>
 #include <chrono>
 
-#include "check_seed.hpp"
+#include "get_galaxy_data.hpp"
 #include "src/DotNet35Random.hpp"
 
 namespace py = pybind11;
