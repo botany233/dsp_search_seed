@@ -98,7 +98,8 @@ public:
 	}
 };
 
-class GetDataManager {
+template<bool Fast>
+class GetDataManagerImpl {
 protected:
 	std::mutex task_mtx;
 	std::queue<SeedStruct> tasks;
@@ -107,6 +108,8 @@ protected:
 	int max_thread;
 	bool quick;
 	int max_cache;
+	const int gen_planet_num;
+	const unsigned short vein_mask;
 
 	std::mutex result_mtx;
 	std::condition_variable_any on_result_clear;
@@ -125,15 +128,22 @@ protected:
 				tasks.pop();
 			}
 
-			auto galaxy_data = get_galaxy_data(current_task,quick);
+			auto galaxy_data = [&] {
+				if constexpr(Fast)
+					return get_galaxy_data_fast(current_task,quick,gen_planet_num,vein_mask);
+				else
+					return get_galaxy_data(current_task,quick);
+			}();
 			std::unique_lock lck(result_mtx);
 			on_result_clear.wait(lck,token,[this] { return result.size() < max_cache; });
 			result.push_back(std::move(galaxy_data));
 		}
 	}
 public:
-	GetDataManager(int max_thread,bool quick,int max_cache=1024):
-		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1))
+	GetDataManagerImpl(int max_thread,bool quick,int max_cache=1024,int gen_planet_num=-1,
+		unsigned short vein_mask=0x3FFF):
+		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1)),
+		gen_planet_num(gen_planet_num),vein_mask(vein_mask)
 	{
 		try {
 			search_threads.reserve(this->max_thread);
@@ -145,7 +155,7 @@ public:
 		}
 	}
 
-	~GetDataManager() {
+	~GetDataManagerImpl() {
 		shutdown();
 	}
 
@@ -183,6 +193,9 @@ public:
 		return return_result;
 	}
 };
+
+using GetDataManager = GetDataManagerImpl<false>;
+using GetDataManagerFast = GetDataManagerImpl<true>;
 
 class CheckPreciseManager {
 protected:

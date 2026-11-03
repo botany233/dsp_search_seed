@@ -34,9 +34,17 @@ class SortThread(QThread):
             self.label_text.emit(tr("viewer.progress.generating_tasks"))
 
             resource_index = self.resource_rate_combo.current_resource_index()
-            value_func = get_value_function(self.main_type_combo.current_value(), self.sub_type_combo.current_value())
+            main_type = self.main_type_combo.current_value()
+            sub_type = self.sub_type_combo.current_value()
+            value_func = get_value_function(main_type, sub_type)
 
-            get_data_manager = GetDataManager(min(cpu_count()-1, cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128)
+            fast = main_type in ("矿脉储量", "矿脉数量", "行星类别", "恒星类别")
+            vein_mask = 1 << vein_names_c.index(sub_type) if main_type in ("矿脉储量", "矿脉数量") else 0
+            gen_planet_num = 0 if main_type == "恒星类别" else -1
+            get_data_manager = GetDataManager(
+                min(cpu_count()-1, cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128,
+                fast, gen_planet_num, vein_mask,
+            )
 
             data = self.seed_list.get_all_data()
             task_num = len(data)

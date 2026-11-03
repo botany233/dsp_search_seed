@@ -132,7 +132,7 @@ std::vector<std::string> check_batch_c(int start_seed,int end_seed,int start_sta
 PYBIND11_MODULE(search_seed,m) {
 	py::class_<SeedStruct>(m,"Seed")
 		.def(py::init<>())
-		.def(py::init<int,int,uint8_t>())
+		.def(py::init<int,int,uint8_t>(),py::arg("seed_id"),py::arg("star_num"),py::arg("resource_index"))
 		.def_readonly("seed_id",&SeedStruct::seed_id)
 		.def_readonly("star_num",&SeedStruct::star_num)
 		.def_readonly("resource_index",&SeedStruct::resource_index);
@@ -229,24 +229,31 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("liquid",&GalaxyData::liquid);
 	py::class_<SeedManager>(m,"SeedManager")
 		.def(py::init<>())
-		.def("add_seed",&SeedManager::add_seed)
-		.def("del_seed",&SeedManager::del_seed)
+		.def("add_seed",&SeedManager::add_seed,py::arg("seed_id"),py::arg("star_num"))
+		.def("del_seed",&SeedManager::del_seed,py::arg("seed_id"),py::arg("star_num"))
 		.def("clear",&SeedManager::clear)
 		.def("reset_index",&SeedManager::reset_index)
-		.def("get_seeds",&SeedManager::get_seeds)
+		.def("get_seeds",&SeedManager::get_seeds,py::arg("batch_num"),py::arg("resource_index"))
 		.def("get_seeds_count",&SeedManager::get_seeds_count);
 	py::class_<GetDataQueue>(m,"GetDataQueue")
-		.def(py::init<int>())
-		.def("add_task",&GetDataQueue::add_task)
+		.def(py::init<int>(),py::arg("max_cache"))
+		.def("add_task",&GetDataQueue::add_task,py::arg("seed"),py::arg("thread_num"))
 		.def("shutdown",&GetDataQueue::shutdown)
 		.def("get_results",&GetDataQueue::get_results);
 	py::class_<GetDataManager>(m,"GetDataManager")
-		.def(py::init<int,bool,int>())
-		.def("add_task",&GetDataManager::add_task)
+		.def(py::init<int,bool,int>(),py::arg("max_thread"),py::arg("quick"),py::arg("max_cache"))
+		.def("add_task",&GetDataManager::add_task,py::arg("seed"))
 		.def("shutdown",&GetDataManager::shutdown)
 		.def("get_results",&GetDataManager::get_results);
+	py::class_<GetDataManagerFast>(m,"GetDataManagerFast")
+		.def(py::init<int,bool,int,int,unsigned short>(),py::arg("max_thread"),py::arg("quick"),
+			py::arg("max_cache")=1024,py::arg("gen_planet_num")=-1,py::arg("vein_mask")=0x3FFF)
+		.def("add_task",&GetDataManagerFast::add_task,py::arg("seed"))
+		.def("shutdown",&GetDataManagerFast::shutdown)
+		.def("get_results",&GetDataManagerFast::get_results);
 	py::class_<CheckPreciseManager>(m,"CheckPreciseManager")
-		.def(py::init<SeedManager&,uint8_t,const py::dict &,bool,int>())
+		.def(py::init<SeedManager&,uint8_t,const py::dict &,bool,int>(),py::arg("seed_manager"),
+			py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"),py::arg("max_thread"))
 		.def("run",&CheckPreciseManager::run)
 		.def("start_wait",&CheckPreciseManager::start_wait)
 		.def("end_wait",&CheckPreciseManager::end_wait)
@@ -258,7 +265,9 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("get_last_result",&CheckPreciseManager::get_last_result)
 		.def("get_results",&CheckPreciseManager::get_results);
 	py::class_<CheckBatchManager>(m,"CheckBatchManager")
-		.def(py::init<int,int,int,int,uint8_t,const py::dict&,bool,int>())
+		.def(py::init<int,int,int,int,uint8_t,const py::dict&,bool,int>(),py::arg("start_seed"),py::arg("end_seed"),
+			py::arg("start_star_num"),py::arg("end_star_num"),py::arg("resource_index"),
+			py::arg("galaxy_condition"),py::arg("quick"),py::arg("max_thread"))
 		.def("run", &CheckBatchManager::run)
 		.def("start_wait",&CheckBatchManager::start_wait)
 		.def("end_wait",&CheckBatchManager::end_wait)
@@ -270,7 +279,7 @@ PYBIND11_MODULE(search_seed,m) {
 		.def("get_last_result", &CheckBatchManager::get_last_result)
 		.def("get_results", &CheckBatchManager::get_results);
 	py::class_<GPUBenchmark>(m,"GPUBenchmark")
-		.def(py::init<int,bool>())
+		.def(py::init<int,bool>(),py::arg("max_thread"),py::arg("heavy"))
 		.def("run",&GPUBenchmark::run)
 		.def("shutdown",&GPUBenchmark::shutdown)
 		.def("reset",&GPUBenchmark::reset)
