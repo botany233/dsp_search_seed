@@ -41,10 +41,14 @@ class SortThread(QThread):
             fast = main_type in ("矿脉储量", "矿脉数量", "行星类别", "恒星类别")
             vein_mask = 1 << vein_names_c.index(sub_type) if main_type in ("矿脉储量", "矿脉数量") else 0
             gen_planet_num = 0 if main_type == "恒星类别" else -1
-            get_data_manager = GetDataManager(
-                min(cpu_count()-1, cfg.config.max_thread), self.quick_sort_switch.isChecked(), 128,
-                fast, gen_planet_num, vein_mask,
-            )
+            max_thread = min(cpu_count()-1, cfg.config.max_thread)
+            quick = self.quick_sort_switch.isChecked()
+            if fast:
+                get_data_manager = GetDataManagerFast(
+                    max_thread, quick, 128, gen_planet_num=gen_planet_num, vein_mask=vein_mask,
+                )
+            else:
+                get_data_manager = GetDataManager(max_thread, quick, 128)
 
             data = self.seed_list.get_all_data()
             task_num = len(data)
