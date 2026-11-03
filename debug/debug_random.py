@@ -44,10 +44,11 @@ def prepare_random_search(cpu_thread: int):
     return raw, (seeds[0], end_seed), star_nums, resource_index, quick, results, py_time
 
 
-def main(test_num: int, load_condition: bool = False):
+def main(test_num: int, test_second: int, load_condition: bool = False):
     cpu_thread = 20
     set_device_id_c(-1) #现在搜索已经不需要gpu了，直接禁用
 
+    global_tag = perf_counter()
     for test_index in range(test_num):
         if load_condition:
             with open(os.path.join(cur_dir, f"debug_random_condition.json"), "r", encoding="utf-8") as f:
@@ -70,14 +71,13 @@ def main(test_num: int, load_condition: bool = False):
         flag = perf_counter()
         check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)
         check_batch_manager.run()
-        task_num = check_batch_manager.get_task_num()
         while check_batch_manager.is_running():
             sleep(0.1)
         c_results = [(i.seed_id, i.star_num) for i in check_batch_manager.get_results()]
         c_results = sorted(c_results, key=lambda x: x[0] * 33 + x[1])
         c_time = perf_counter() - flag
 
-        if py_results == c_results:
+        if py_results == c_results and c_time < py_time * 2:
             print(f"测试{test_index+1}通过！py用时{py_time:.2f}s, c用时{c_time:.2f}s, 找到{len(py_results)}个种子")
             # print(galaxy_condition_raw)
         else:
@@ -96,7 +96,10 @@ def main(test_num: int, load_condition: bool = False):
 
         if load_condition:
             break
+        if perf_counter() - global_tag > test_second:
+            print(f"测试时间超过{test_second}秒，提前结束")
+            break
 
 if __name__ == "__main__":
     # 小规模测试10次就行，大规模一般1000
-    main(10, os.path.exists(os.path.join(cur_dir, "debug_random_condition.json")))
+    main(1000, 3600*6, os.path.exists(os.path.join(cur_dir, "debug_random_condition.json")))

@@ -37,6 +37,7 @@ class UserLayout(QVBoxLayout):
         self.outputFileLabel = BodyLabel(tr("search.status.output_file_name"))
         self.userButtonsLayout.addWidget(self.outputFileLabel)
         self.outputFileLine = LineEdit()
+        self.outputFileLine.setMinimumWidth(self.outputFileLine.sizeHint().width())
         self.outputFileLine.setPlaceholderText(cfg.config.save_name)
         self.outputFileLine.textEdited.connect(self._update_output_filename)
         self.userButtonsLayout.addWidget(self.outputFileLine)
@@ -58,6 +59,7 @@ class UserLayout(QVBoxLayout):
         self.barVLayout.addWidget(self.progressBar)
         self.userButtonsLayout.addLayout(self.barVLayout)
         self.userButtonsLayout.setStretchFactor(self.barVLayout, 2)
+        QTimer.singleShot(0, self._init_stretch)
 
         self.setContentsMargins(7, 0, 7, 7)
 
@@ -65,6 +67,14 @@ class UserLayout(QVBoxLayout):
         SearchMessages.new_find_seed.connect(self._update_last_seed)
 
         self.progress_cache = deque(maxlen=1000)
+
+    def _init_stretch(self):
+        original_width = self.outputFileLine.width()
+        input_width = round(original_width * 1.5)
+        progress_width = max(1, self.progressBar.width() - (input_width - original_width))
+        self.outputFileLine.setMinimumWidth(input_width)
+        self.userButtonsLayout.setStretchFactor(self.outputFileLine, input_width)
+        self.userButtonsLayout.setStretchFactor(self.barVLayout, progress_width)
 
     def _update_output_filename(self, filename: str):
         cfg.config.save_name = "seed" if filename == "" else filename
