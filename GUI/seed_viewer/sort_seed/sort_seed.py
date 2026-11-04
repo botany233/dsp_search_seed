@@ -45,7 +45,7 @@ class SortThread(QThread):
             quick = self.quick_sort_switch.isChecked()
             if fast:
                 get_data_manager = GetDataManagerFast(
-                    max_thread, quick, 128, gen_planet_num=gen_planet_num, vein_mask=vein_mask,
+                    max_thread, quick, 1024, gen_planet_num=gen_planet_num, vein_mask=vein_mask,
                 )
             else:
                 get_data_manager = GetDataManager(max_thread, quick, 128)

@@ -1,22 +1,16 @@
-from CApi import GalaxyData, planet_types_c
+from CApi import GalaxyDataSimple, planet_types_c
 
 def handle_planet_sort(subtype: str):
     return GetPlanetValue(subtype)
 
-class GetPlanetValue():
+class GetPlanetValue:
+    gas_id = planet_types_c.index("气态巨星")
+    high_gas_id = planet_types_c.index("高产气巨")
     def __init__(self, n):
-        self.n = n
+        self.n = planet_types_c.index(n)
 
-    def __call__(self, galaxy_data: GalaxyData) -> int:
-        num = 0
-        if self.n == "气态巨星":
-            for star in galaxy_data.stars:
-                for planet in star.planets:
-                    if planet.type == "气态巨星" or planet.type == "高产气巨":
-                        num += 1
+    def __call__(self, galaxy_data: GalaxyDataSimple) -> int:
+        if self.n == self.gas_id:
+            return galaxy_data.planet_type_num[self.gas_id] + galaxy_data.planet_type_num[self.high_gas_id]
         else:
-            for star in galaxy_data.stars:
-                for planet in star.planets:
-                    if planet.type == self.n:
-                        num += 1
-        return num
+            return galaxy_data.planet_type_num[self.n]

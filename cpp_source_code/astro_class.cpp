@@ -119,6 +119,7 @@ void PlanetClassSimple::generate_theme() {
 		else
 			this->dsp_level = 0;
 	}
+	this->type_id = themeProto1.TypeId;
 	this->type_mask = 1 << themeProto1.TypeId;
 	this->vein_mask = (type == EPlanetType::Gas)? 0 : (planet_veins_mask[themeProto1.ID - 1] | star_veins_mask[star->type_id]);
 	if(type == EPlanetType::Gas)

@@ -6,7 +6,7 @@ from .star_sort import handle_star_sort
 from .veins_point_sort import handle_veins_point_sort
 from .veins_amount_sort import handle_veins_amount_sort
 
-def get_value_function(maintype:str, subtype: str):
+def get_value_function(maintype: str, subtype: str):
     if maintype == "矿脉储量":
         return handle_veins_amount_sort(subtype)
     elif maintype == "矿脉数量":

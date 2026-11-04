@@ -54,6 +54,15 @@ class GalaxyData:
     gas_veins: list[float]
     liquid: list[int]
 
+class GalaxyDataSimple:
+    seed_id: int
+    star_num: int
+    resource_index: int
+    star_type_num: list[int] = [0] * 15
+    planet_type_num: list[int] = [0] * 23
+    veins_point: list[int] = [0] * 14
+    veins_amount: list[int] = [0] * 14
+
 class PlanetCondition:
     satisfy_num: int = 1
     dsp_level: int = 0
@@ -119,7 +128,7 @@ class GetDataManagerFast:
     def __init__(self, max_thread:int, quick:bool, max_cache:int, gen_planet_num: int = -1, vein_mask: int = 0x3FFF): ...
     def add_task(self, seed: Seed) -> None: ...
     def shutdown(self) -> None: ...
-    def get_results(self) -> list[GalaxyData]: ...
+    def get_results(self) -> list[GalaxyDataSimple]: ...
 
 class CheckPreciseManager:
     def __init__(self, seed_manager:SeedManager, resource_index:int, galaxy_condition:dict, quick:bool, max_thread:int): ...

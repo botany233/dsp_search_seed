@@ -140,14 +140,14 @@ The searcher no longer uses GPU computation. The performance table is shown belo
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">347599</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">86549</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62874</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">19004</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.97</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">319052</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159512</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">65257</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">341365</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">69563</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63032</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">18639</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.10</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">220176</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">148962</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">71090</td>
   </tr>
 </table>
 
@@ -160,27 +160,33 @@ The searcher no longer uses GPU computation. The performance table is shown belo
 - All Rares Magnet: galaxy Unipolar Magnet veins x120; an O Type Star system has a High-Yield Gas Giant, a Full Receive Planet, Water and Sulfuric Acid, and all rare resources except Unipolar Magnet, while the nearest Unipolar Magnet planet is within 12 light-years
 
 ## Viewer Performance
-The viewer sorting performance table is shown below. All results are for 64-star galaxies. Seed information export speed is similar to Standard Mode:
+The viewer sorting performance table is shown below. All results are for 64-star galaxies. Seed information export speed is similar to Custom - Standard Mode:
 
 <table style="width:100%; border-collapse: collapse;">
   <tr class="table-header">
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Performance Table (seed/s)</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Quick Mode</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Standard Mode</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Star Type</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Planet Type</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Minerals - Quick Mode</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Minerals - Standard Mode</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Custom - Quick Mode</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">Custom - Standard Mode</th>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">49466</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">44662</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">35478~43840</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">96.06~7432</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">6020</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.29</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Integrated GPU (Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9.42</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">Dedicated GPU (RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">30.20</td>
   </tr>
 </table>

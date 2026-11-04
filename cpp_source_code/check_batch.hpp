@@ -98,8 +98,7 @@ public:
 	}
 };
 
-template<bool Fast>
-class GetDataManagerImpl {
+class GetDataManager {
 protected:
 	std::mutex task_mtx;
 	std::queue<SeedStruct> tasks;
@@ -108,8 +107,6 @@ protected:
 	int max_thread;
 	bool quick;
 	int max_cache;
-	const int gen_planet_num;
-	const unsigned short vein_mask;
 
 	std::mutex result_mtx;
 	std::condition_variable_any on_result_clear;
@@ -128,22 +125,15 @@ protected:
 				tasks.pop();
 			}
 
-			auto galaxy_data = [&] {
-				if constexpr(Fast)
-					return get_galaxy_data_fast(current_task,quick,gen_planet_num,vein_mask);
-				else
-					return get_galaxy_data(current_task,quick);
-			}();
+			auto galaxy_data = get_galaxy_data(current_task,quick);
 			std::unique_lock lck(result_mtx);
 			on_result_clear.wait(lck,token,[this] { return result.size() < max_cache; });
 			result.push_back(std::move(galaxy_data));
 		}
 	}
 public:
-	GetDataManagerImpl(int max_thread,bool quick,int max_cache=1024,int gen_planet_num=-1,
-		unsigned short vein_mask=0x3FFF):
-		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1)),
-		gen_planet_num(gen_planet_num),vein_mask(vein_mask)
+	GetDataManager(int max_thread,bool quick,int max_cache=1024):
+		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1))
 	{
 		try {
 			search_threads.reserve(this->max_thread);
@@ -155,7 +145,7 @@ public:
 		}
 	}
 
-	~GetDataManagerImpl() {
+	~GetDataManager() {
 		shutdown();
 	}
 
@@ -194,8 +184,108 @@ public:
 	}
 };
 
-using GetDataManager = GetDataManagerImpl<false>;
-using GetDataManagerFast = GetDataManagerImpl<true>;
+class GetDataManagerFast {
+protected:
+	std::mutex task_mtx;
+	std::queue<SeedStruct> tasks;
+	std::condition_variable_any on_task_generated;
+	bool stopped = false;
+	int max_thread;
+	bool quick;
+	int max_cache;
+	const int gen_planet_num;
+	const unsigned short vein_mask;
+
+	std::mutex result_mtx;
+	std::condition_variable_any on_result_clear;
+	std::vector<GalaxyDataSimple> result;
+	std::vector<std::jthread> search_threads;
+
+	void search_func(std::stop_token token) {
+		while(true) {
+			SeedStruct current_task;
+			{
+				std::unique_lock lck(task_mtx);
+				on_task_generated.wait(lck,token,[this] { return !tasks.empty(); });
+				if(stopped || token.stop_requested())
+					break;
+				current_task = tasks.front();
+				tasks.pop();
+			}
+
+			GalaxyData galaxy = get_galaxy_data_fast(current_task,quick,gen_planet_num,vein_mask);
+			GalaxyDataSimple galaxy_simple;
+			galaxy_simple.seed_id = galaxy.seed_id;
+			galaxy_simple.star_num = galaxy.star_num;
+			galaxy_simple.resource_index = galaxy.resource_index;
+			for(int i=0;i<14;i++) {
+				galaxy_simple.veins_point[i] = galaxy.veins_point[i];
+				galaxy_simple.veins_amount[i] = galaxy.veins_amount[i];
+			}
+			for(const StarData& star: galaxy.stars) {
+				galaxy_simple.star_type_num[star.type_id]++;
+				for(const PlanetData& planet: star.planets)
+					galaxy_simple.planet_type_num[planet.type_id]++;
+			}
+			std::unique_lock lck(result_mtx);
+			on_result_clear.wait(lck,token,[this] { return result.size() < max_cache; });
+			result.push_back(std::move(galaxy_simple));
+		}
+	}
+public:
+	GetDataManagerFast(int max_thread,bool quick,int max_cache=1024,int gen_planet_num=-1,
+		unsigned short vein_mask=0x3FFF):
+		max_thread(std::clamp(max_thread,1,128)),quick(quick),max_cache(std::max(max_cache,1)),
+		gen_planet_num(gen_planet_num),vein_mask(vein_mask)
+	{
+		try {
+			search_threads.reserve(this->max_thread);
+			for(int i=0;i<this->max_thread;++i)
+				search_threads.emplace_back([this](std::stop_token token) { search_func(token); });
+		} catch(...) {
+			shutdown();
+			throw;
+		}
+	}
+
+	~GetDataManagerFast() {
+		shutdown();
+	}
+
+	void add_task(const SeedStruct& seed) {
+		{
+			std::lock_guard lck(task_mtx);
+			if(stopped)
+				return;
+			tasks.push(seed);
+		}
+		on_task_generated.notify_one();
+	}
+
+	void shutdown() {
+		{
+			std::lock_guard lck(task_mtx);
+			stopped = true;
+		}
+		for(auto& worker: search_threads)
+			worker.request_stop();
+		for(auto& worker: search_threads) {
+			if(worker.joinable())
+				worker.join();
+		}
+		search_threads.clear();
+	}
+
+	std::vector<GalaxyDataSimple> get_results() {
+		std::vector<GalaxyDataSimple> return_result;
+		{
+			std::lock_guard lck(result_mtx);
+			return_result.swap(result);
+		}
+		on_result_clear.notify_all();
+		return return_result;
+	}
+};
 
 class CheckPreciseManager {
 protected:

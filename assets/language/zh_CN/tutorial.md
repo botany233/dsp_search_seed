@@ -140,14 +140,14 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">347599</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">86549</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62874</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">19004</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.97</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">319052</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">159512</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">65257</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">341365</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">69563</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63032</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">18639</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.10</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">220176</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">148962</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">71090</td>
   </tr>
 </table>
 
@@ -160,27 +160,33 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
 - 全珍奇磁石：星区磁石矿脉x120，某一O型恒星系存在高产气巨、全接收星、水和硫酸、除磁石外全珍奇，同时最近的磁石星球距离小于12光年
 
 ## 查看器性能
-查看器排序性能表格如下，均为64星情况。种子信息导出速度与标准模式近似：
+查看器排序性能表格如下，均为64星情况。种子信息导出速度与自定义-标准模式近似：
 
 <table style="width:100%; border-collapse: collapse;">
   <tr class="table-header">
     <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">性能表格(seed/s)</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">快速模式</th>
-    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">标准模式</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">恒星类别</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">行星类别</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">矿物-快速模式</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">矿物-标准模式</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">自定义-快速模式</th>
+    <th style="border: 1px solid #ddd; padding: 10px; text-align: center;">自定义-标准模式</th>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">49466</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">44662</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">35478~43840</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">96.06~7432</td>
+    <td rowspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center; vertical-align: middle;">6020</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">6.29</td>
   </tr>
   <tr class="zebra-row">
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">核显(Arc 128EU)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9.42</td>
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">独显(RX 9070)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">9031</td>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">30.20</td>
   </tr>
 </table>

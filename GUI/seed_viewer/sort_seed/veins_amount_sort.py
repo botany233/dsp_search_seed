@@ -1,4 +1,4 @@
-from CApi import GalaxyData, vein_names_c
+from CApi import GalaxyDataSimple, vein_names_c
 
 def handle_veins_amount_sort(subtype: str):
     n = vein_names_c.index(subtype)
@@ -8,10 +8,10 @@ def handle_veins_amount_sort(subtype: str):
         scale = 1
     return GetVeinsAmountValue(n, scale)
 
-class GetVeinsAmountValue():
+class GetVeinsAmountValue:
     def __init__(self, n, scale=1):
         self.n = n
         self.scale = scale
 
-    def __call__(self, galaxy_data: GalaxyData) -> int:
+    def __call__(self, galaxy_data: GalaxyDataSimple) -> float:
         return galaxy_data.veins_amount[self.n] / self.scale

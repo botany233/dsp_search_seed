@@ -51,6 +51,7 @@ public:
 	uint8_t dsp_level;
 	uint8_t veins_state;
 	uint32_t type_mask;
+	uint8_t type_id;
 
 	EPlanetType type;
 	int theme;

@@ -115,3 +115,13 @@ struct GalaxyData {
 	std::array<int,3> liquid = {};
 	std::vector<StarData> stars;
 };
+
+struct GalaxyDataSimple {
+	int seed_id;
+	uint8_t star_num;
+	uint8_t resource_index;
+	std::array<uint8_t,15> star_type_num = {};
+	std::array<uint16_t,23> planet_type_num = {};
+	std::array<uint16_t,14> veins_point = {};
+	std::array<uint64_t,14> veins_amount = {};
+};

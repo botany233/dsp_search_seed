@@ -227,6 +227,15 @@ PYBIND11_MODULE(search_seed,m) {
 		.def_readonly("veins_amount",&GalaxyData::veins_amount)
 		.def_readonly("gas_veins",&GalaxyData::gas_veins)
 		.def_readonly("liquid",&GalaxyData::liquid);
+	py::class_<GalaxyDataSimple>(m,"GalaxyDataSimple")
+		.def(py::init<>())
+		.def_readonly("seed_id",&GalaxyDataSimple::seed_id)
+		.def_readonly("star_num",&GalaxyDataSimple::star_num)
+		.def_readonly("resource_index",&GalaxyDataSimple::resource_index)
+		.def_readonly("star_type_num",&GalaxyDataSimple::star_type_num)
+		.def_readonly("planet_type_num",&GalaxyDataSimple::planet_type_num)
+		.def_readonly("veins_point",&GalaxyDataSimple::veins_point)
+		.def_readonly("veins_amount",&GalaxyDataSimple::veins_amount);
 	py::class_<SeedManager>(m,"SeedManager")
 		.def(py::init<>())
 		.def("add_seed",&SeedManager::add_seed,py::arg("seed_id"),py::arg("star_num"))
