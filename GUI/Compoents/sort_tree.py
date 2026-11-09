@@ -133,7 +133,6 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout = QHBoxLayout(self)
         self.mainLayout.setAlignment(Qt.AlignRight)
         self.mainLayout.setContentsMargins(0, 0, 0, 0)
-        self._placeholders: dict[int, TransparentToolButton] = {}
         self.addButton = ToolButton(AppIcons.STAR)
         self.addButton.setToolTip(tr("search.condition_tree.tooltips.add_star"))
         self.delButton = ToolButton(FluentIcon.DELETE)
@@ -150,25 +149,6 @@ class TreeWidgetLeave(LeaveBase):
         self.mainLayout.addWidget(self.addPlanetButton)
         # self.mainLayout.addSpacing(5)
         self.mainLayout.addWidget(self.delButton)
-
-    def add_placeholder_for(self, button: ToolButton):
-        button_id = id(button)
-        if button_id in self._placeholders:
-            return
-
-        index = self.mainLayout.indexOf(button)
-        if index < 0:
-            return
-
-        placeholder = TransparentToolButton()
-        placeholder.setEnabled(False)
-        placeholder.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        placeholder.setFixedSize(button.sizeHint())
-        qss = """TransparentToolButton{background: transparent;} TransparentToolButton:hover{background: transparent;}"""
-        setCustomStyleSheet(placeholder, qss, qss)
-        self.mainLayout.insertWidget(index, placeholder)
-        button.setHidden(True)
-        self._placeholders[button_id] = placeholder
 
 class GalaxyTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj):
@@ -232,7 +212,7 @@ class StarTreeWidgetItem(TreeWidgetItem):
 
         self.manageButtons = TreeWidgetLeave()
         self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.add_placeholder_for(self.manageButtons.addButton)
+        self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
         self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_planet"))
@@ -385,7 +365,7 @@ class PlanetTreeWidgetItem(TreeWidgetItem):
         self.root.setItemWidget(self, 2, self.manageButtons)
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
-        self.manageButtons.add_placeholder_for(self.manageButtons.addButton)
+        self.manageButtons.addButton.setHidden(True)
         self.manageButtons.addPlanetButton.setIcon(AppIcons.MOON)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
         self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_moon"))
@@ -445,7 +425,7 @@ class MoonTreeWidgetItem(TreeWidgetItem):
         self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
 
         self.manageButtons.addButton.setHidden(True)
-        self.manageButtons.add_placeholder_for(self.manageButtons.addPlanetButton)
+        self.manageButtons.addPlanetButton.setHidden(True)
         self.manageButtons.adjustButton = TransparentToolButton()
         self.manageButtons.adjustButton.setToolTip(tr("search.condition_tree.egg.init"))
         self.manageButtons.adjustButton.installEventFilter(ToolTipFilterWithEgg(self.manageButtons.adjustButton, showDelay=5000))
@@ -736,9 +716,9 @@ class SortTree(TreeWidget):
         header.setSectionResizeMode(1, QHeaderView.Stretch)
         header.setSectionResizeMode(2, QHeaderView.Fixed)
 
-        self.setColumnWidth(0, 186)
-        self.setColumnWidth(1, 550)
-        self.setColumnWidth(2, 130)
+        self.setColumnWidth(0, 201)
+        self.setColumnWidth(1, 575)
+        self.setColumnWidth(2, 90)
 
         self.root = self.invisibleRootItem()
 

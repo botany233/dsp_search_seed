@@ -2,7 +2,6 @@ __all__ = ["config_to_galaxy_condition"]
 
 from config.cfg_dict_tying import (
     GalaxyCondition,
-    BondCondition,
     PlanetCondition,
     StarCondition,
     VeinsCondition,
@@ -19,7 +18,6 @@ def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
     children = []
     if mineral_condition:
         children.append({"type": 1, "value": mineral_condition})
-    children.extend({"type": 4, "value": config_to_bond_condition(bond_cfg)} for bond_cfg in galaxy_cfg.bond_condition)
     children.extend({"type": 2, "value": config_to_star_condition(star_cfg)} for star_cfg in galaxy_cfg.star_condition)
     children.extend({"type": 3, "value": config_to_planet_condition(planet_cfg)} for planet_cfg in galaxy_cfg.planet_condition)
     galaxy_condition = {
@@ -30,25 +28,25 @@ def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
         galaxy_condition = {"type": 5, "value": {"satisfy_num": 0, "children": [galaxy_condition]}}
     return galaxy_condition
 
-def config_to_bond_condition(bond_cfg: BondCondition) -> dict:
-    bond_condition = {
-        "con1": {
-            "type": 3 if bond_cfg.con1_is_planet else 2,
-            "value": config_to_planet_condition(bond_cfg.con1_planet) if bond_cfg.con1_is_planet else config_to_star_condition(bond_cfg.con1_star),
-        },
-        "con2": {
-            "type": 3 if bond_cfg.con2_is_planet else 2,
-            "value": config_to_planet_condition(bond_cfg.con2_planet) if bond_cfg.con2_is_planet else config_to_star_condition(bond_cfg.con2_star),
-        },
-    }
-    if bond_cfg.checked:
-        if bond_cfg.distance >= 0:
-            bond_condition["distance"] = bond_cfg.distance
-        if bond_cfg.satisfy_num > 1:
-            bond_condition["satisfy_num"] = bond_cfg.satisfy_num
-    else:
-        bond_condition["satisfy_num"] = 0
-    return bond_condition
+# def config_to_bond_condition(bond_cfg: BondCondition) -> dict:
+#     bond_condition = {
+#         "con1": {
+#             "type": 3 if bond_cfg.con1_is_planet else 2,
+#             "value": config_to_planet_condition(bond_cfg.con1_planet) if bond_cfg.con1_is_planet else config_to_star_condition(bond_cfg.con1_star),
+#         },
+#         "con2": {
+#             "type": 3 if bond_cfg.con2_is_planet else 2,
+#             "value": config_to_planet_condition(bond_cfg.con2_planet) if bond_cfg.con2_is_planet else config_to_star_condition(bond_cfg.con2_star),
+#         },
+#     }
+#     if bond_cfg.checked:
+#         if bond_cfg.distance >= 0:
+#             bond_condition["distance"] = bond_cfg.distance
+#         if bond_cfg.satisfy_num > 1:
+#             bond_condition["satisfy_num"] = bond_cfg.satisfy_num
+#     else:
+#         bond_condition["satisfy_num"] = 0
+#     return bond_condition
 
 def config_to_star_condition(star_cfg: StarCondition) -> dict:
     star_condition = {
