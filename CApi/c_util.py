@@ -83,13 +83,13 @@ def change_bond_condition_legal(condition: dict) -> dict:
 
 
 def change_logic_condition_legal(condition: dict) -> dict:
-    """默认 OR；satisfy_num=子项数为 AND，0 为单子项 NOT，其余为至少 K 项。"""
+    """默认 OR；satisfy_num=子项数为 AND，0 为空节点恒真或单子项 NOT。"""
     condition["satisfy_num"] = condition.get("satisfy_num", 1)
     children = condition["children"]
-    if not children:
-        raise ValueError("逻辑节点必须非空")
-    if condition["satisfy_num"] == 0 and len(children) != 1:
-        raise ValueError("非门逻辑节点必须仅有一个子条件")
+    if not children and condition["satisfy_num"] != 0:
+        raise ValueError("空逻辑节点的 satisfy_num 必须为 0")
+    if condition["satisfy_num"] == 0 and len(children) > 1:
+        raise ValueError("satisfy_num 为 0 时逻辑节点最多有一个子条件")
     condition["children"] = [change_condition_legal(child) for child in children]
     return condition
 

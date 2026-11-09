@@ -118,6 +118,8 @@ def check_galaxy_py(galaxy_data: GalaxyData, galaxy_condition: dict) -> bool:
             children = condition["children"]
             need = condition["satisfy_num"]
             if need == 0:
+                if not children:
+                    return True
                 return not check_galaxy_py(galaxy_data, children[0])
             if need > len(children):
                 return False

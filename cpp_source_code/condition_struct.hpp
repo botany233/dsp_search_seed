@@ -93,8 +93,8 @@ struct BondCondition {
 
 struct LogicCondition {
 	std::uint16_t children_begin = 0;
-	std::uint16_t children_count = 0; // 必须非空；重复出现分别计数。
-	// K>0 为至少 K 个真；K=0 为非门，并要求children_count=1。
+	std::uint16_t children_count = 0; // 重复出现分别计数；空节点仅允许 K=0。
+	// K>0 为至少 K 个真；K=0 时，空节点为恒真，单子项为非门。
 	// 子条件取完整结果；其中 Star/Planet 在全星系范围统计。
 	std::uint16_t satisfy_num = 1;
 };

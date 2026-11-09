@@ -72,6 +72,8 @@ EnumResult ConditionManager::evaluate_root(const ResultManager& result_manager) 
 			return result_manager.results[ref.result_index];
 		case ConditionType::Logic: {
 			const LogicCondition& node = logic_nodes[ref.index];
+			if(node.children_count == 0)
+				return EnumResult::True;
 			if(node.satisfy_num == 0) {
 				const EnumResult child = self(self,references[node.children_begin]);
 				return child == EnumResult::Unknown ? EnumResult::Unknown :
@@ -256,10 +258,10 @@ ConditionRef ConditionManager::add_logic_condition(const py::dict& condition) {
 	LogicCondition new_condition;
 	new_condition.satisfy_num = condition["satisfy_num"].cast<std::uint16_t>();
 	const py::list sub_conditions = condition["children"].cast<py::list>();
-	if(sub_conditions.empty())
-		throw std::invalid_argument("逻辑节点必须非空");
-	if(new_condition.satisfy_num == 0 && sub_conditions.size() != 1)
-		throw std::invalid_argument("非门逻辑节点必须仅有一个子条件");
+	if(sub_conditions.empty() && new_condition.satisfy_num != 0)
+		throw std::invalid_argument("空逻辑节点的 satisfy_num 必须为 0");
+	if(new_condition.satisfy_num == 0 && sub_conditions.size() > 1)
+		throw std::invalid_argument("satisfy_num 为 0 时逻辑节点最多有一个子条件");
 	std::vector<ConditionRef> children;
 	for(auto child : sub_conditions)
 		children.push_back(handle_condition_dict(child.cast<py::dict>()));

@@ -34,7 +34,7 @@ class SearchThread(QThread):
 
             gui_cfg = cfg.copy()
             galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
-            galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
+            galaxy_condition = change_condition_legal(galaxy_condition)
             save_name = gui_cfg.save_name + ".csv"
             max_thread = gui_cfg.max_thread
             quick = gui_cfg.quick_check
