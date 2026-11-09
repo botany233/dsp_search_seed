@@ -1,7 +1,23 @@
-from .search_seed import *
-from .const_values import *
+"""ConditionManager 新格式的规范化入口。
 
-__all__ = ["change_galaxy_condition_legal", "init_process"]
+根、逻辑子节点和绑定端点使用 {"type": 编号, "value": 字典}：
+1=星系矿物，2=恒星，3=行星，4=绑定，5=逻辑。
+恒星的 planets 和行星的 moons 仍是未包装的行星条件列表。
+与旧入口一样原位补齐字段；名称转为 C++ 使用的掩码、编号和矿物数组。
+"""
+
+from .search_seed import do_init_c, set_device_id_c, set_local_size_c
+from .const_values import (
+    dsp_level_c,
+    liquid_types_c,
+    planet_types_c,
+    singularity_c,
+    star_types_c,
+    vein_names_c,
+)
+
+__all__ = ["change_condition_legal", "init_process"]
+
 
 def init_process(device_id: int, local_size: int):
     do_init_c()
@@ -9,53 +25,76 @@ def init_process(device_id: int, local_size: int):
         print("Set device id failed! Roll back to cpu!")
     set_local_size_c(local_size)
 
-def change_galaxy_condition_legal(galaxy_condition:dict) -> dict:
-    galaxy_condition["valid_state"] = galaxy_condition.get("valid_state", True)
-    galaxy_condition["veins_point"] = change_veins_legal(galaxy_condition.get("veins_point", {}))
-    galaxy_condition["veins_amount"] = change_veins_legal(galaxy_condition.get("veins_amount", {}))
-    galaxy_condition["stars"] = [change_star_condition_legal(star_condition) for star_condition in galaxy_condition.get("stars", [])]
-    galaxy_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in galaxy_condition.get("planets", [])]
-    galaxy_condition["bonds"] = [change_bond_condition_legal(bond_condition) for bond_condition in galaxy_condition.get("bonds", [])]
-    return galaxy_condition
 
-def change_bond_condition_legal(bond_condition:dict) -> dict:
-    bond_condition["satisfy_num"] = bond_condition.get("satisfy_num", 1)
-    bond_condition["distance"] = bond_condition.get("distance", 1000)
-    if bond_condition["con1_is_planet"]:
-        bond_condition["con1"] = change_planet_condition_legal(bond_condition["con1"])
-    else:
-        bond_condition["con1"] = change_star_condition_legal(bond_condition["con1"])
-    if bond_condition["con2_is_planet"]:
-        bond_condition["con2"] = change_planet_condition_legal(bond_condition["con2"])
-    else:
-        bond_condition["con2"] = change_star_condition_legal(bond_condition["con2"])
-    return bond_condition
+def change_condition_legal(condition: dict) -> dict:
+    match condition["type"]:
+        case 1: condition["value"] = change_mineral_condition_legal(condition["value"])
+        case 2: condition["value"] = change_star_condition_legal(condition["value"])
+        case 3: condition["value"] = change_planet_condition_legal(condition["value"])
+        case 4: condition["value"] = change_bond_condition_legal(condition["value"])
+        case 5: condition["value"] = change_logic_condition_legal(condition["value"])
+        case _: raise ValueError(f"不支持的条件类型: {condition["type"]}")
+    return condition
 
-def change_star_condition_legal(star_condition:dict) -> dict:
-    star_condition["satisfy_num"] = star_condition.get("satisfy_num", 1)
-    star_condition["type"] = get_star_type_mask(star_condition["type"]) if "type" in star_condition else (1<<16)-1
-    star_condition["distance"] = star_condition.get("distance", 1000)
-    star_condition["dyson_lumino"] = star_condition.get("dyson_lumino", 0)
-    star_condition["veins_point"] = change_veins_legal(star_condition.get("veins_point", {}))
-    star_condition["veins_amount"] = change_veins_legal(star_condition.get("veins_amount", {}))
-    star_condition["planets"] = [change_planet_condition_legal(planet_condition) for planet_condition in star_condition.get("planets", [])]
-    return star_condition
 
-def change_planet_condition_legal(planet_condition:dict) -> dict:
-    planet_condition["satisfy_num"] = planet_condition.get("satisfy_num", 1)
-    planet_condition["dsp_level"] = dsp_level_c.index(planet_condition["dsp_level"]) + 1 if "dsp_level" in planet_condition else 0
-    planet_condition["type"] = get_planet_type_mask(planet_condition["type"]) if "type" in planet_condition else (1<<32)-1
-    planet_condition["liquid"] = liquid_types_c.index(planet_condition["liquid"]) + 1 if "liquid" in planet_condition else 0
-    planet_condition["singularity"] = get_singularity_mask(planet_condition["singularity"]) if "singularity" in planet_condition else 0
-    planet_condition["veins_point"] = change_veins_legal(planet_condition.get("veins_point", {}))
-    planet_condition["veins_amount"] = change_veins_legal(planet_condition.get("veins_amount", {}))
-    planet_condition["moons"] = [change_planet_condition_legal(moon_condition) for moon_condition in planet_condition.get("moons", [])]
-    return planet_condition
+def change_veins_legal(veins: dict | list[int]) -> list[int]:
+    if isinstance(veins, dict):
+        return [veins.get(name, 0) for name in vein_names_c]
+    if len(veins) != len(vein_names_c):
+        raise ValueError("矿物数组必须包含 14 项")
+    return veins
 
-def change_veins_legal(veins:dict) -> list[int]:
-    return [veins.get(vein_name, 0) for vein_name in vein_names_c]
 
-def get_star_type_mask(star_type:str|list[str]) -> int:
+def change_mineral_condition_legal(condition: dict) -> dict:
+    condition["veins_point"] = change_veins_legal(condition.get("veins_point", {}))
+    condition["veins_amount"] = change_veins_legal(condition.get("veins_amount", {}))
+    return condition
+
+
+def change_star_condition_legal(condition: dict) -> dict:
+    change_mineral_condition_legal(condition)
+    condition["satisfy_num"] = condition.get("satisfy_num", 1)
+    condition["distance"] = condition.get("distance", 1000)
+    condition["dyson_lumino"] = condition.get("dyson_lumino", 0)
+    condition["type"] = get_star_type_mask(condition["type"]) if "type" in condition else 0xFFFFFFFF
+    condition["planets"] = [change_planet_condition_legal(child) for child in condition.get("planets", [])]
+    return condition
+
+
+def change_planet_condition_legal(condition: dict) -> dict:
+    change_mineral_condition_legal(condition)
+    condition["satisfy_num"] = condition.get("satisfy_num", 1)
+    condition["type"] = get_planet_type_mask(condition["type"]) if "type" in condition else 0xFFFFFFFF
+    condition["dsp_level"] = dsp_level_c.index(condition["dsp_level"]) + 1 if "dsp_level" in condition else 0
+    condition["liquid"] = liquid_types_c.index(condition["liquid"]) + 1 if "liquid" in condition else 0
+    condition["singularity"] = get_singularity_mask(condition["singularity"]) if "singularity" in condition else 0
+    condition["moons"] = [change_planet_condition_legal(child) for child in condition.get("moons", [])]
+    return condition
+
+
+def change_bond_condition_legal(condition: dict) -> dict:
+    condition["satisfy_num"] = condition.get("satisfy_num", 1)
+    condition["distance"] = condition.get("distance", 1000)
+    for key in ("con1", "con2"):
+        if condition[key]["type"] not in (2, 3):
+            raise ValueError("绑定端点必须为恒星或行星条件")
+        condition[key] = change_condition_legal(condition[key])
+    return condition
+
+
+def change_logic_condition_legal(condition: dict) -> dict:
+    """默认 OR；satisfy_num=子项数为 AND，0 为单子项 NOT，其余为至少 K 项。"""
+    condition["satisfy_num"] = condition.get("satisfy_num", 1)
+    children = condition["children"]
+    if not children:
+        raise ValueError("逻辑节点必须非空")
+    if condition["satisfy_num"] == 0 and len(children) != 1:
+        raise ValueError("非门逻辑节点必须仅有一个子条件")
+    condition["children"] = [change_condition_legal(child) for child in children]
+    return condition
+
+
+def get_star_type_mask(star_type: str | list[str]) -> int:
     if isinstance(star_type, str):
         star_type = [star_type]
     result = 0
@@ -63,17 +102,17 @@ def get_star_type_mask(star_type:str|list[str]) -> int:
         result |= 1 << star_types_c.index(st)
     return result
 
-def get_planet_type_mask(planet_type:str|list[str]) -> int:
+
+def get_planet_type_mask(planet_type: str | list[str]) -> int:
     if isinstance(planet_type, str):
         planet_type = [planet_type]
-    # if "气态巨星" in planet_type and "高产气巨" not in planet_type:
-    #     planet_type.append("高产气巨")
     result = 0
     for pt in planet_type:
         result |= 1 << planet_types_c.index(pt)
     return result
 
-def get_singularity_mask(singularity:str|list[str]) -> int:
+
+def get_singularity_mask(singularity: str | list[str]) -> int:
     if isinstance(singularity, str):
         singularity = [singularity]
     result = 0
