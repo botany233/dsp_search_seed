@@ -375,6 +375,13 @@
             "潘多拉沼泽": "Pandora Swamp"
         },
         "star_types": {
+            "M型红巨星": "M Type Red Giant",
+            "K型红巨星": "K Type Red Giant",
+            "G型黄巨星": "G Type Yellow Giant",
+            "F型黄巨星": "F Type Yellow Giant",
+            "A型白巨星": "A Type White Giant",
+            "B型蓝巨星": "B Type Blue Giant",
+            "O型蓝巨星": "O Type Blue Giant",
             "红巨星": "Red Giant",
             "黄巨星": "Yellow Giant",
             "蓝巨星": "Blue Giant",

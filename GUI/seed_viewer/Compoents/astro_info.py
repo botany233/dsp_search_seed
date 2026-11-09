@@ -165,7 +165,7 @@ class InfoBase(QWidget):
     def add_stars(self, stars: list[str]) -> None:
         """应该在`add_veins`之后调用"""
         count = len(stars)
-        df_count = (self.veins_count - count) // 2
+        df_count = max(0, (self.veins_count - count) // 2)
         for i in range(count):
             if stars[i] == "":
                 continue
@@ -186,33 +186,14 @@ class GalaxyInfo(InfoBase):
 
         self.add_veins(get_veins_list(data.veins_point, data.veins_amount, data.gas_veins, data.liquid))
 
-        star_sort = [
-            "M型恒星",
-            "K型恒星",
-            "G型恒星",
-            "F型恒星",
-            "A型恒星",
-            "B型恒星",
-            "O型恒星",
-            "",
-            "白矮星",
-            "中子星",
-            "黑洞",
-            "",
-            "红巨星",
-            "黄巨星",
-            "白巨星",
-            "蓝巨星"
-            ]
-        star_type_nums = [0] * 14
+        star_type_nums = [0] * len(star_types_c)
         for star in data.stars:
             star_type_nums[star.type_id] += 1
         star_labels = []
-        for star_type in star_sort:
-            if star_type == "":
+        for type_id, star_type in enumerate(star_types_c):
+            if type_id in (7, 14):
                 star_labels.append("")
-            else:
-                star_labels.append(f"{star_type}：{star_type_nums[star_types_c.index(star_type)]}")
+            star_labels.append(f"{star_type}：{star_type_nums[type_id]}")
         self.add_stars(star_labels)
 
 
