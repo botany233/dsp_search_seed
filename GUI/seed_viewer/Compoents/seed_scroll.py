@@ -98,7 +98,9 @@ class SeedScroll(TableWidget):
         self.setRowCount(row_count + 1)
         self.setItem(row_count, 0, QTableWidgetItem(str(seed_id)))
         self.setItem(row_count, 1, QTableWidgetItem(str(star_num)))
-        self.setItem(row_count, 2, QTableWidgetItem(str(0)))
+        value_item = QTableWidgetItem(str(0))
+        value_item.setData(Qt.ItemDataRole.UserRole, 0)
+        self.setItem(row_count, 2, value_item)
 
     def do_sort(self, is_ascending_order = True) -> None:
         locker = QMutexLocker(self.mutex)
@@ -108,7 +110,9 @@ class SeedScroll(TableWidget):
         for table_row, (seed_id, star_num, sort_value) in enumerate(data):
             self.setItem(table_row, 0, QTableWidgetItem(str(seed_id)))
             self.setItem(table_row, 1, QTableWidgetItem(str(star_num)))
-            self.setItem(table_row, 2, QTableWidgetItem(self.get_sort_value_str(sort_value)))
+            value_item = QTableWidgetItem(self.get_sort_value_str(sort_value))
+            value_item.setData(Qt.ItemDataRole.UserRole, sort_value)
+            self.setItem(table_row, 2, value_item)
             if table_row % 100 == 0:
                 QApplication.processEvents()
         self.clearSelection()
@@ -189,9 +193,9 @@ class SeedScroll(TableWidget):
             self.clearSelection()
         return data
 
-    def get_table_value(self) -> list[tuple[int, int, float]]:
+    def get_table_value(self) -> list[tuple[int, int, float|int]]:
         row_count = self.rowCount()
         data = []
         for row in range(row_count):
-            data.append((int(self.item(row, 0).text()), int(self.item(row, 1).text()), float(self.item(row, 2).text())))
+            data.append((int(self.item(row, 0).text()), int(self.item(row, 1).text()), self.item(row, 2).data(Qt.ItemDataRole.UserRole)))
         return data
