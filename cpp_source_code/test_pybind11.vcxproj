@@ -159,7 +159,7 @@
     <ClCompile Include="astro_class.cpp" />
     <ClCompile Include="check_seed.cpp" />
     <ClCompile Include="get_galaxy_data.cpp" />
-    <ClCompile Include="condition_to_struct.cpp" />
+    <ClCompile Include="condition_struct.cpp" />
     <ClCompile Include="PlanetAlgorithm.cpp" />
     <ClCompile Include="python_api.cpp" />
     <ClCompile Include="static_value.cpp" />
@@ -169,7 +169,7 @@
     <ClInclude Include="astro_class.hpp" />
     <ClInclude Include="check_seed.hpp" />
     <ClInclude Include="get_galaxy_data.hpp" />
-    <ClInclude Include="condition_to_struct.hpp" />
+    <ClInclude Include="condition_struct.hpp" />
     <ClInclude Include="const_value.hpp" />
     <ClInclude Include="defines.hpp" />
     <ClInclude Include="src\DotNet35Random.hpp" />
@@ -210,51 +210,6 @@
     <Error Condition="!Exists('packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.props')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.props'))" />
     <Error Condition="!Exists('packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.targets')" Text="$([System.String]::Format('$(ErrorText)', 'packages\vcpkg.D.vcpkg.vcpkg.1.0.0\build\native\vcpkg.D.vcpkg.vcpkg.targets'))" />
   </Target>
-  <ItemGroup>
-    <ClInclude Include="tests\config.hpp" />
-    <ClInclude Include="tests\seed_benchmark.hpp" />
-    <ClCompile Include="tests\seed_benchmark.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClCompile Include="tests\galaxy_consistency_tests.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_consistency_tests.hpp" />
-    <ClCompile Include="tests\galaxy_dump.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_dump.hpp" />
-    <ClCompile Include="tests\galaxy_truth_tests.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_truth_tests.hpp" />
-    <ClCompile Include="tests\main.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClCompile Include="tests\math.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\math.hpp" />
-    <ClCompile Include="tests\math_tests.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\math_tests.hpp" />
-    <ClCompile Include="tests\planet_tests.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\planet_tests.hpp" />
-    <ClCompile Include="tests\utils.cpp">
-      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application'">true</ExcludedFromBuild>
-      <FloatingPointModel>Precise</FloatingPointModel>
-    </ClCompile>
-    <ClInclude Include="tests\utils.hpp" />
-  </ItemGroup>
+  <!-- 测试源码仅供命令行控制台构建加载，VS 只展示生产代码。 -->
+  <Import Project="tests\build.targets" Condition="'$(ConfigurationType)'=='Application' and '$(BuildingInsideVisualStudio)'!='true'" />
 </Project>

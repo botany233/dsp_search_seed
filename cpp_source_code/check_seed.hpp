@@ -1,7 +1,10 @@
 #pragma once
+#include "condition_struct.hpp"
 #include "data_struct.hpp"
 
-// check_level 为检查阶段上限：1 恒星，2 主题与结构，3 资源上界，4 真实资源。
-// 四级使用独立判断函数；全部条件通过当前级别后，才进入下一级别。
-// 条件可包含更高级需求；低级阶段只判断当前可确定的部分，最后统一应用 valid_state。
-bool check_seed(const SeedStruct& seed,const GalaxyCondition& galaxy_condition,int check_level);
+class GalaxyClassSimple;
+
+// quick 使用资源上界，否则按需生成真实资源；根逻辑确定后提前返回。
+// 条件在搜索期间只读，工作区仅由当前线程持有，引用不得跨种子保存。
+bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick);
+bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace);

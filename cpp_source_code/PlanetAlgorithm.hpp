@@ -2433,7 +2433,6 @@ public:
 					if(eVeinType != EVeinType::Oil)
 						target_pos += birthPoint;
 					target_pos.Normalize();
-					float target_height = QueryHeight(target_pos);
 					if(eVeinType == EVeinType::Bamboo && QueryHeight(target_pos) > NORMAL_PLANET_REAL_RADIUS - 4.0f)
 						continue;
 					bool flag3 = false;

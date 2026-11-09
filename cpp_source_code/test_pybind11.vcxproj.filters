@@ -10,24 +10,24 @@
     <Filter Include="资源文件">
       <UniqueIdentifier>{BA9DBF1B-56D3-5D68-A387-8E447A1AEDEC}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src">
+    <Filter Include="源文件\src">
       <UniqueIdentifier>{CCF3351D-9E47-5FDD-8D94-BC0A053C32F1}</UniqueIdentifier>
     </Filter>
-    <Filter Include="tests">
-      <UniqueIdentifier>{4DA1646B-7CEF-57A1-9795-C8A7A5486FEC}</UniqueIdentifier>
+    <Filter Include="头文件\src">
+      <UniqueIdentifier>{CA28CE2A-31F6-42D4-8EC0-1C7D426C932A}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="check_seed.cpp">
+    <ClCompile Include="astro_class.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="astro_class.cpp">
+    <ClCompile Include="check_seed.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="get_galaxy_data.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="condition_to_struct.cpp">
+    <ClCompile Include="condition_struct.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="PlanetAlgorithm.cpp">
@@ -40,18 +40,18 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="src\Vector3.cpp">
-      <Filter>src</Filter>
+      <Filter>源文件\src</Filter>
     </ClCompile>
-    <ClInclude Include="check_seed.hpp">
+    <ClInclude Include="astro_class.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="astro_class.hpp">
+    <ClInclude Include="check_seed.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="get_galaxy_data.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="condition_to_struct.hpp">
+    <ClInclude Include="condition_struct.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="const_value.hpp">
@@ -61,7 +61,7 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\DotNet35Random.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="DSPGen.hpp">
       <Filter>头文件</Filter>
@@ -76,10 +76,10 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\Maths.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\max_flow.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="NameGen.hpp">
       <Filter>头文件</Filter>
@@ -88,34 +88,34 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\quaternion.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\RandomTable.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="seed_manager.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="src\SimplexNoise.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\SystemRandom.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\util.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Vector2.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Vector3.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\Vector4.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="src\VectorLF3.hpp">
-      <Filter>src</Filter>
+      <Filter>头文件\src</Filter>
     </ClInclude>
     <ClInclude Include="PlanetAlgorithm.hpp">
       <Filter>头文件</Filter>
@@ -126,63 +126,11 @@
     <None Include="assets\generate_terrain_double.cl">
       <Filter>资源文件</Filter>
     </None>
-    <None Include="packages.config" />
-    <None Include="vcpkg.json" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="tests\config.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClInclude Include="tests\seed_benchmark.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\seed_benchmark.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="tests\galaxy_consistency_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_consistency_tests.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\galaxy_dump.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_dump.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\galaxy_truth_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\galaxy_truth_tests.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\main.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClCompile Include="tests\math.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\math.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\math_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\math_tests.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\planet_tests.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\planet_tests.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
-    <ClCompile Include="tests\utils.cpp">
-      <Filter>tests</Filter>
-    </ClCompile>
-    <ClInclude Include="tests\utils.hpp">
-      <Filter>tests</Filter>
-    </ClInclude>
+    <None Include="packages.config">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="vcpkg.json">
+      <Filter>资源文件</Filter>
+    </None>
   </ItemGroup>
 </Project>

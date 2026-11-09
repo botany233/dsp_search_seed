@@ -14,10 +14,11 @@
 
 #include "data_struct.hpp"
 #include "check_seed.hpp"
+#include "astro_class.hpp"
 #include "get_galaxy_data.hpp"
 #include "python_api.hpp"
 #include "seed_manager.hpp"
-#include "condition_to_struct.hpp"
+#include "condition_struct.hpp"
 
 namespace py = pybind11;
 
@@ -301,9 +302,9 @@ protected:
 
 	std::uint8_t resource_index;
 	SeedManager* seed_manager;
-	GalaxyCondition galaxy_condition;
+	const ConditionManager galaxy_condition;
 	int max_thread;
-	int check_level;
+	bool quick;
 
 	std::atomic<std::size_t> finish_task_num = 0;
 	std::mutex result_mtx;
@@ -337,6 +338,7 @@ protected:
 	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
+		GalaxyClassSimple workspace;
 		while(true) {
 			SeedStruct current_task;
 			{
@@ -348,7 +350,7 @@ protected:
 				tasks.pop();
 			}
 			cv_generator.notify_one();
-			if(check_seed(current_task,galaxy_condition,check_level)) {
+			if(check_seed(current_task,galaxy_condition,quick,workspace)) {
 				std::lock_guard lck(result_mtx);
 				result.push_back(current_task);
 			}
@@ -359,9 +361,12 @@ protected:
 public:
 	CheckPreciseManager(SeedManager& seed_manager,std::uint8_t resource_index,
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread):
-		resource_index(resource_index),seed_manager(&seed_manager),
-		galaxy_condition(galaxy_condition_to_struct(galaxy_condition_dict)),
-		max_thread(std::clamp(max_thread,1,128)),check_level(get_condition_level(galaxy_condition,quick)) {}
+		CheckPreciseManager(seed_manager,resource_index,ConditionManager(galaxy_condition_dict),quick,max_thread) {}
+
+	CheckPreciseManager(SeedManager& seed_manager,std::uint8_t resource_index,
+		const ConditionManager& galaxy_condition,bool quick,int max_thread):
+		resource_index(resource_index),seed_manager(&seed_manager),galaxy_condition(galaxy_condition),
+		max_thread(std::clamp(max_thread,1,128)),quick(quick) {}
 
 	~CheckPreciseManager() {
 		shutdown();
@@ -458,8 +463,8 @@ protected:
 	bool stopped = false;
 	bool started = false;
 
-	GalaxyCondition galaxy_condition;
-	int check_level;
+	const ConditionManager galaxy_condition;
+	bool quick;
 	int start_seed;
 	int start_star_num;
 	int star_num_count;
@@ -474,6 +479,7 @@ protected:
 	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
+		GalaxyClassSimple workspace;
 		while(true) {
 			std::size_t current_task_id;
 			{
@@ -489,7 +495,7 @@ protected:
 			const int seed_id = start_seed + static_cast<int>(current_task_id / star_num_count);
 			const int star_num = start_star_num + static_cast<int>(current_task_id % star_num_count);
 			const SeedStruct task(seed_id,star_num,resource_index);
-			if(check_seed(task,galaxy_condition,check_level)) {
+			if(check_seed(task,galaxy_condition,quick,workspace)) {
 				std::lock_guard lck(result_mtx);
 				result.push_back(task);
 			}
@@ -501,11 +507,11 @@ public:
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread):
 		CheckBatchManager(start_seed,end_seed,start_star_num,end_star_num,resource_index,
-			galaxy_condition_to_struct(galaxy_condition_dict),quick,max_thread) {}
+			ConditionManager(galaxy_condition_dict),quick,max_thread) {}
 
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
-		const GalaxyCondition& galaxy_condition,bool quick,int max_thread):
-		galaxy_condition(galaxy_condition),check_level(get_condition_level(galaxy_condition,quick)),
+		const ConditionManager& galaxy_condition,bool quick,int max_thread):
+		galaxy_condition(galaxy_condition),quick(quick),
 		start_seed(start_seed),start_star_num(start_star_num),star_num_count(std::max(end_star_num-start_star_num,0)),
 		resource_index(resource_index),task_num(std::size_t(std::max(end_seed-start_seed,0)) * star_num_count),
 		max_thread(std::clamp(max_thread,1,128)) {}

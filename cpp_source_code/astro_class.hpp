@@ -107,7 +107,7 @@ public:
 	int themed_planet_count;
 	uint8_t type_id;
 
-	uint16_t type_mask;
+	uint32_t type_mask;
 	GalaxyClassSimple* galaxy;
 	uint16_t vein_mask;
 	std::array<uint16_t,14> upper_veins_point;

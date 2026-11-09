@@ -2,7 +2,6 @@
 #include <array>
 #include <string>
 #include <vector>
-#include <variant>
 #include <cstdint>
 
 struct SeedStruct {
@@ -11,50 +10,6 @@ struct SeedStruct {
 	uint8_t resource_index;
 	SeedStruct(): seed_id(0),star_num(0),resource_index(0) {}
 	SeedStruct(int seed_id,uint8_t star_num,uint8_t resource_index): seed_id(seed_id),star_num(star_num),resource_index(resource_index) {}
-};
-
-struct PlanetCondition {
-	uint32_t type = 0xFFFFFFFF;
-	uint16_t satisfy_num = 1;
-	uint8_t dsp_level = 0;
-	uint8_t singularity = 0;
-	bool need_veins_amount = false;
-	uint16_t need_veins = 0;
-	std::array<uint16_t,14> veins_point = {};
-	std::array<uint64_t,14> veins_amount = {};
-	std::vector<PlanetCondition> moons = std::vector<PlanetCondition>();
-};
-
-struct StarCondition {
-	float distance = 1000.0f;
-	float dyson_lumino = 0.0f;
-	uint16_t type = 0xFFFF;
-	uint16_t satisfy_num = 1;
-	uint16_t need_veins = 0;
-	bool need_veins_amount = false;
-	std::array<uint16_t,14> veins_point = {};
-	std::array<uint64_t,14> veins_amount = {};
-	std::vector<PlanetCondition> planets = std::vector<PlanetCondition>();
-};
-
-struct BondCondition {
-	double distance = 1000.0; // 单位：LY
-	int satisfy_num = 0;
-
-	std::variant<PlanetCondition,StarCondition> con1;
-	std::variant<PlanetCondition,StarCondition> con2;
-};
-
-struct GalaxyCondition {
-	uint16_t need_veins = 0;
-	bool valid_state = true;
-	bool need_gen_position = true;
-	bool need_veins_amount = false;
-	std::array<uint16_t,14> veins_point = {};
-	std::array<uint64_t,14> veins_amount = {};
-	std::vector<StarCondition> stars{};
-	std::vector<PlanetCondition> planets{};
-	std::vector<BondCondition> bonds{};
 };
 
 struct PlanetData {
@@ -120,7 +75,7 @@ struct GalaxyDataSimple {
 	int seed_id;
 	uint8_t star_num;
 	uint8_t resource_index;
-	std::array<uint8_t,15> star_type_num = {};
+	std::array<uint8_t,18> star_type_num = {};
 	std::array<uint16_t,23> planet_type_num = {};
 	std::array<uint16_t,14> veins_point = {};
 	std::array<uint64_t,14> veins_amount = {};

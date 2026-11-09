@@ -5,6 +5,7 @@
 #include <string>
 #include <cstdint>
 #include <string_view>
+#include <stdexcept>
 
 #include "src/Maths.hpp"
 #include "src/Vector2.hpp"
@@ -125,9 +126,6 @@ const uint16_t star_veins_mask[] = {
 	0x0000,
 	0x0000,
 	0x0000,
-	0x0B00, //白矮
-	0x2000, //中子
-	0x2000, //黑洞
 	0x0000,
 	0x0000,
 	0x0000,
@@ -136,6 +134,11 @@ const uint16_t star_veins_mask[] = {
 	0x0000,
 	0x0000,
 	0x0000,
+	0x0000,
+	0x0000,
+	0x0B00, //白矮星，类型编号 14
+	0x2000, //中子星，类型编号 15
+	0x2000, //黑洞，类型编号 16
 	0x0000
 };
 const float resource_rates[] = {
@@ -245,7 +248,11 @@ public:
 
 class StarClass {
 public:
-	static constexpr std::string_view type_names[15] = {"红巨星","黄巨星","蓝巨星","白巨星","白矮星","中子星","黑洞","A型恒星","B型恒星","F型恒星","G型恒星","K型恒星","M型恒星","O型恒星","未知恒星类型"};
+	static constexpr std::string_view type_names[18] = {
+		"M型恒星","K型恒星","G型恒星","F型恒星","A型恒星","B型恒星","O型恒星",
+		"M型巨星","K型巨星","G型巨星","F型巨星","A型巨星","B型巨星","O型巨星",
+		"白矮星","中子星","黑洞","未知恒星类型"
+	};
 
 	int seed;
 	int index;
@@ -293,41 +300,21 @@ public:
 	}
 
 	int typeId() const {
-		if(type == EStarType::GiantStar)
-		{
-			if(spectr <= ESpectrType::K)
-				return 0; //红巨星
-			else if(spectr <= ESpectrType::F)
-				return 1; //黄巨星
-			else if((spectr != ESpectrType::A))
-				return 2; //蓝巨星
-			else
-				return 3; //白巨星
-		} else if(type == EStarType::WhiteDwarf)
-			return 4; //白矮星
-		else if(type == EStarType::NeutronStar)
-			return 5; //中子星
-		else if(type == EStarType::BlackHole)
-			return 6; //黑洞
-		else if(type == EStarType::MainSeqStar)
-		{
-			if(spectr == ESpectrType::A)
-				return 7; //A型恒星
-			else if(spectr == ESpectrType::B)
-				return 8; //B型恒星
-			else if(spectr == ESpectrType::F)
-				return 9; //F型恒星
-			else if(spectr == ESpectrType::G)
-				return 10; //G型恒星
-			else if(spectr == ESpectrType::K)
-				return 11; //K型恒星
-			else if(spectr == ESpectrType::M)
-				return 12; //M型恒星
-			else if(spectr == ESpectrType::O)
-				return 13; //O型恒星
-			else
-				return 14; //未知恒星
-		} else
-			return 14; //未知恒星
+		switch(type) {
+			case EStarType::MainSeqStar:
+				return spectr != ESpectrType::X ? static_cast<uint8_t>(spectr) : 17;
+			case EStarType::GiantStar:
+				if(spectr != ESpectrType::X)
+					return static_cast<uint8_t>(spectr) + 7;
+				throw std::runtime_error("Unknown star type");
+			case EStarType::WhiteDwarf:
+				return 14;
+			case EStarType::NeutronStar:
+				return 15;
+			case EStarType::BlackHole:
+				return 16;
+			default:
+				return 17;
+		}
 	}
 };

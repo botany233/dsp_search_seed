@@ -495,42 +495,26 @@ static float RandNormal(float averageValue,float standardDeviation,double r1,dou
 }
 
 static uint8_t get_star_type_id(const EStarType type, const ESpectrType spectr) {
-	if(type == EStarType::GiantStar)
-	{
-		if(spectr <= ESpectrType::K)
-			return 0; //红巨星
-		else if(spectr <= ESpectrType::F)
-			return 1; //黄巨星
-		else if((spectr != ESpectrType::A))
-			return 2; //蓝巨星
+	switch(type) {
+		case EStarType::MainSeqStar:
+		if(spectr != ESpectrType::X)
+			return (uint8_t)spectr;
 		else
-			return 3; //白巨星
-	} else if(type == EStarType::WhiteDwarf)
-		return 4; //白矮星
-	else if(type == EStarType::NeutronStar)
-		return 5; //中子星
-	else if(type == EStarType::BlackHole)
-		return 6; //黑洞
-	else if(type == EStarType::MainSeqStar)
-	{
-		if(spectr == ESpectrType::A)
-			return 7; //A型恒星
-		else if(spectr == ESpectrType::B)
-			return 8; //B型恒星
-		else if(spectr == ESpectrType::F)
-			return 9; //F型恒星
-		else if(spectr == ESpectrType::G)
-			return 10; //G型恒星
-		else if(spectr == ESpectrType::K)
-			return 11; //K型恒星
-		else if(spectr == ESpectrType::M)
-			return 12; //M型恒星
-		else if(spectr == ESpectrType::O)
-			return 13; //O型恒星
+			throw std::runtime_error("Unknown star type");
+		case EStarType::GiantStar:
+		if(spectr != ESpectrType::X)
+			return (uint8_t)spectr + 7;
 		else
-			return 14; //未知恒星
-	} else
-		return 14; //未知恒星
+			throw std::runtime_error("Unknown star type");
+		case EStarType::WhiteDwarf:
+		return 14;
+		case EStarType::NeutronStar:
+		return 15;
+		case EStarType::BlackHole:
+		return 16;
+		default:
+			throw std::runtime_error("Unknown star type");
+	}
 }
 
 void StarClassSimple::init(GalaxyClassSimple& parent,int index,int seed,EStarType needtype,ESpectrType needSpectr) {
@@ -650,7 +634,7 @@ void StarClassSimple::init(GalaxyClassSimple& parent,int index,int seed,EStarTyp
 		star.distance = 2.0f;
 		}
 	star.type_id = get_star_type_id(star.type, star.spectr);
-	star.type_mask = 1 << star.type_id;
+	star.type_mask = uint32_t{1} << star.type_id;
 }
 
 void StarClassSimple::init_birth(int seed) {
