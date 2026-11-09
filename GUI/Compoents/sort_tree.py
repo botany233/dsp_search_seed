@@ -17,7 +17,6 @@ from qfluentwidgets import (
     Action,
     BodyLabel,
     FluentIcon,
-    SwitchButton,
     ToolButton,
     TransparentToolButton,
     setFont,
@@ -33,7 +32,6 @@ from .multicombobox import MultiComboBox
 from config import cfg
 from logger import log
 from config.cfg_dict_tying import (
-    BondCondition,
     GalaxyCondition,
     PlanetCondition,
     StarCondition,
@@ -182,9 +180,6 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
     def _on_add_button_clicked(self):
         self.addStarLeaf()
 
-    def _on_add_bond_button_clicked(self):
-        self.addBondLeaf()
-
     def add_widgets(self):
         self.leaf = GalaxyTreeLeave(config_obj=self.config_obj)
         self.root.setItemWidget(self, 1, self.leaf)
@@ -198,12 +193,6 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
         # self.manageButtons.addButton.setHidden(False)
         self.manageButtons.addButton.setIcon(AppIcons.STAR)
         self.manageButtons.addPlanetButton.clicked.connect(self._on_add_planet_button_clicked)
-
-        self.manageButtons.addBondButton = ToolButton(AppIcons.BOND)
-        self.manageButtons.addBondButton.setToolTip(tr("search.condition_tree.tooltips.add_bond"))
-        self.manageButtons.addBondButton.installEventFilter(ToolTipFilter(self.manageButtons.addBondButton, showDelay=0, position=ToolTipPosition.BOTTOM_LEFT))
-        self.manageButtons.mainLayout.insertWidget(2, self.manageButtons.addBondButton)
-        self.manageButtons.addBondButton.clicked.connect(self._on_add_bond_button_clicked)
 
     def addStarLeaf(self, new_star_condition: StarCondition|None = None) -> "StarTreeWidgetItem":
         if new_star_condition is None:
@@ -227,21 +216,6 @@ class GalaxyTreeWidgetItem(TreeWidgetItem):
             cfg.save()
 
         new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
-        index = 0
-        while index < self.childCount() and not isinstance(self.child(index), BondTreeWidgetItem):
-            index += 1
-        self.insertChild(index, new_leaf)
-        new_leaf.add_widgets()
-        self.setExpanded(True)
-        return new_leaf
-
-    def addBondLeaf(self, new_bond_condition: BondCondition|None = None) -> "BondTreeWidgetItem":
-        if new_bond_condition is None:
-            new_bond_condition = BondCondition()
-            self.config_obj.bond_condition.append(new_bond_condition)
-            cfg.save()
-
-        new_leaf = BondTreeWidgetItem(self.root, new_bond_condition)
         self.addChild(new_leaf)
         new_leaf.add_widgets()
         self.setExpanded(True)
@@ -742,297 +716,6 @@ class PlanetTreeLeave(LeaveBase):
         self.dspLevelComboBox.load_config()
 
 
-class BondTreeLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj=None, bond_item: "BondTreeWidgetItem" = None):
-        super().__init__(parent, config_obj=config_obj)
-        self.bond_item = bond_item
-        self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(0, 0, 0, 0)
-
-        self.distanceLabel = BodyLabel(tr("search.condition_tree.labels.distance"))
-        self.mainLayout.addWidget(self.distanceLabel)
-        self.distanceLineEdit = LimitLineEdit("distance", self.config_obj, "float", 0, default_value=-1.0)
-        self.mainLayout.addWidget(self.distanceLineEdit)
-
-        self.satisfyNumLabel = BodyLabel(tr("search.condition_tree.labels.bond_satisfy_num"))
-        self.mainLayout.addWidget(self.satisfyNumLabel)
-        self.satisfyNumLineEdit = LimitLineEdit("satisfy_num", self.config_obj, min_value=1, max_value=65535, default_value=1, empty_invisible=False)
-        self.mainLayout.addWidget(self.satisfyNumLineEdit)
-
-        self.con1Label = BodyLabel(tr("search.condition_tree.labels.bond_con1"))
-        self.mainLayout.addWidget(self.con1Label)
-        self.con1TypeSwitch = self._create_endpoint_switch(1)
-        self.mainLayout.addWidget(self.con1TypeSwitch)
-
-        self.con2Label = BodyLabel(tr("search.condition_tree.labels.bond_con2"))
-        self.mainLayout.addWidget(self.con2Label)
-        self.con2TypeSwitch = self._create_endpoint_switch(2)
-        self.mainLayout.addWidget(self.con2TypeSwitch)
-
-        self.distanceLineEdit.setMaximumHeight(28)
-        self.distanceLineEdit.setFixedHeight(28)
-        self.satisfyNumLineEdit.setMaximumHeight(28)
-        self.satisfyNumLineEdit.setFixedHeight(28)
-
-    def _create_endpoint_switch(self, endpoint: int) -> SwitchButton:
-        type_switch = SwitchButton()
-        star_text = tr("search.condition_tree.bond_switch.star")
-        planet_text = tr("search.condition_tree.bond_switch.planet")
-        type_switch.setOffText(star_text)
-        type_switch.setOnText(planet_text)
-        type_switch.label.setFixedWidth(max(
-            type_switch.label.fontMetrics().horizontalAdvance(star_text),
-            type_switch.label.fontMetrics().horizontalAdvance(planet_text),
-        ) + 6)
-        type_switch.setChecked(getattr(self.config_obj, f"con{endpoint}_is_planet"))
-        type_switch.checkedChanged.connect(lambda checked, endpoint=endpoint: self._on_type_changed(endpoint, checked))
-        return type_switch
-
-    def _on_type_changed(self, endpoint: int, checked: bool):
-        if self.bond_item is not None:
-            self.bond_item.set_endpoint_is_planet(endpoint, checked)
-        else:
-            setattr(self.config_obj, f"con{endpoint}_is_planet", checked)
-            cfg.save()
-
-
-class BondEndpointTreeLeave(LeaveBase):
-    def __init__(self, parent=None, config_obj=None, endpoint_item: "BondEndpointTreeWidgetItem" = None):
-        super().__init__(parent, config_obj=config_obj)
-        self.endpoint_item = endpoint_item
-        self.mainLayout = QHBoxLayout(self)
-        self.mainLayout.setContentsMargins(0, 0, 0, 0)
-        self.mainLayout.setSpacing(0)
-
-        self.conditionWidget: StarTreeLeave | PlanetTreeLeave | None = None
-        self.switch_condition_widget()
-
-    def switch_condition_widget(self):
-        if self.conditionWidget is not None:
-            self.mainLayout.removeWidget(self.conditionWidget)
-            self.conditionWidget.deleteLater()
-
-        if self.endpoint_item.active_is_planet:
-            self.conditionWidget = PlanetTreeLeave(config_obj=self.endpoint_item.active_config)
-        else:
-            self.conditionWidget = StarTreeLeave(config_obj=self.endpoint_item.active_config)
-        self.conditionWidget.load_config()
-        self.conditionWidget.hitStarNumLabel.setText(tr("search.condition_tree.labels.max_connection_num"))
-        self.mainLayout.addWidget(self.conditionWidget)
-
-
-class BondTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", config_obj: BondCondition):
-        super().__init__(root, config_obj, "bond_condition")
-
-    def add_widgets(self):
-        self.leaf = BondTreeLeave(config_obj=self.config_obj, bond_item=self)
-        self.root.setItemWidget(self, 1, self.leaf)
-
-        self.manageButtons = TreeWidgetLeave()
-        self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.add_placeholder_for(self.manageButtons.addButton)
-        self.manageButtons.add_placeholder_for(self.manageButtons.addPlanetButton)
-        self.manageButtons.delButton.clicked.connect(self._on_del_button_clicked)
-
-        if self.childCount() == 0:
-            self.addEndpointLeaf(1)
-            self.addEndpointLeaf(2)
-        self.setExpanded(True)
-
-    def addEndpointLeaf(self, endpoint: int) -> "BondEndpointTreeWidgetItem":
-        new_leaf = BondEndpointTreeWidgetItem(self.root, self.config_obj, endpoint)
-        self.addChild(new_leaf)
-        new_leaf.add_widgets()
-        return new_leaf
-
-    def getEndpointLeaf(self, endpoint: int) -> "BondEndpointTreeWidgetItem | None":
-        for index in range(self.childCount()):
-            child = self.child(index)
-            if isinstance(child, BondEndpointTreeWidgetItem) and child.endpoint == endpoint:
-                return child
-        return None
-
-    def set_endpoint_is_planet(self, endpoint: int, is_planet: bool):
-        endpoint_leaf = self.getEndpointLeaf(endpoint)
-        if endpoint_leaf is not None:
-            endpoint_leaf.set_is_planet(is_planet)
-            return
-        setattr(self.config_obj, f"con{endpoint}_is_planet", is_planet)
-        cfg.save()
-
-    def _on_del_button_clicked(self):
-        if self.parent() is None:
-            return
-
-        belong_list = self.parent().config_obj.bond_condition
-        delete_index = -1
-        for i, bond_condition in enumerate(belong_list):
-            if bond_condition is self.config_obj:
-                delete_index = i
-                break
-        if delete_index == -1:
-            for i, bond_condition in enumerate(belong_list):
-                if bond_condition == self.config_obj:
-                    delete_index = i
-                    break
-        if delete_index == -1:
-            raise Exception("bond condition not found!")
-
-        belong_list.pop(delete_index)
-        cfg.save()
-        self.parent().removeChild(self)
-
-
-class BondEndpointTreeWidgetItem(TreeWidgetItem):
-    def __init__(self, root: "SortTree", bond_config_obj: BondCondition, endpoint: int):
-        self.bond_config_obj = bond_config_obj
-        self.endpoint = endpoint
-        self.has_moon = False
-        super().__init__(root, self.active_config, f"con{endpoint}")
-        self._refresh_text()
-
-    @property
-    def active_is_planet(self) -> bool:
-        return getattr(self.bond_config_obj, f"con{self.endpoint}_is_planet")
-
-    @property
-    def active_config(self) -> PlanetCondition | StarCondition:
-        if self.active_is_planet:
-            return getattr(self.bond_config_obj, f"con{self.endpoint}_planet")
-        return getattr(self.bond_config_obj, f"con{self.endpoint}_star")
-
-    def add_widgets(self):
-        self.leaf = BondEndpointTreeLeave(config_obj=self.bond_config_obj, endpoint_item=self)
-        self.root.setItemWidget(self, 1, self.leaf)
-
-        self.manageButtons = TreeWidgetLeave()
-        self.root.setItemWidget(self, 2, self.manageButtons)
-        self.manageButtons.add_placeholder_for(self.manageButtons.addButton)
-        self.manageButtons.add_placeholder_for(self.manageButtons.delButton)
-        self.manageButtons.addPlanetButton.clicked.connect(self._on_add_button_clicked)
-        self._sync_manage_buttons()
-        self._populate_children()
-        self.setExpanded(True)
-
-    def setData(self, column: int, role: int, value: Any) -> None:
-        self.config_obj = self.active_config
-        return super().setData(column, role, value)
-
-    def set_is_planet(self, is_planet: bool):
-        if self.active_is_planet == is_planet:
-            return
-        setattr(self.bond_config_obj, f"con{self.endpoint}_is_planet", is_planet)
-        cfg.save()
-
-        self._clear_children()
-        self.config_obj = self.active_config
-        self.has_moon = False
-        self._refresh_text()
-        self._update_check_state_from_config()
-        self.leaf.switch_condition_widget()
-        self._sync_manage_buttons()
-        self._populate_children()
-        self.setExpanded(True)
-
-    def _refresh_text(self):
-        self.setText(0, tr_domain("condition_names", self.active_config.custom_name))
-
-    def _sync_manage_buttons(self):
-        if self.active_is_planet:
-            self.manageButtons.addPlanetButton.setIcon(AppIcons.MOON)
-            self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_moon"))
-        else:
-            self.manageButtons.addPlanetButton.setIcon(AppIcons.PLANET)
-            self.manageButtons.addPlanetButton.setToolTip(tr("search.condition_tree.tooltips.add_planet"))
-
-    def _clear_children(self):
-        while self.childCount() > 0:
-            self.takeChild(0)
-
-    def _populate_children(self):
-        if self.active_is_planet:
-            for moon_condition in self.active_config.moon_conditions:
-                self.addMoonLeaf(moon_condition)
-            return
-
-        for planet_condition in self.active_config.planet_condition:
-            planet_leaf = self.addPlanetLeaf(planet_condition)
-            for moon_condition in planet_condition.moon_conditions:
-                planet_leaf.addMoonLeaf(moon_condition)
-
-    def _on_add_button_clicked(self):
-        if self.active_is_planet:
-            self.addMoonLeaf()
-        else:
-            self.addPlanetLeaf()
-
-    def addPlanetLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "PlanetTreeWidgetItem":
-        if self.active_is_planet:
-            return self.addMoonLeaf(new_planet_condition)
-        if new_planet_condition is None:
-            new_planet_condition = PlanetCondition()
-            self.active_config.planet_condition.append(new_planet_condition)
-            cfg.save()
-
-        new_leaf = PlanetTreeWidgetItem(self.root, new_planet_condition)
-        self.addChild(new_leaf)
-        new_leaf.add_widgets()
-        self.setExpanded(True)
-        return new_leaf
-
-    def addMoonLeaf(self, new_planet_condition: PlanetCondition|None = None) -> "MoonTreeWidgetItem":
-        if not self.active_is_planet:
-            return None
-        if new_planet_condition is None:
-            new_planet_condition = PlanetCondition()
-            new_planet_condition.custom_name = "卫星条件"
-            self.active_config.moon_conditions.append(new_planet_condition)
-            cfg.save()
-
-        new_leaf = MoonTreeWidgetItem(self.root, new_planet_condition)
-        self.addChild(new_leaf)
-        new_leaf.add_widgets()
-        self.setExpanded(True)
-        self._switch_moons_planet()
-        return new_leaf
-
-    def _planet_leave(self) -> PlanetTreeLeave | None:
-        if not hasattr(self, "leaf") or not isinstance(self.leaf.conditionWidget, PlanetTreeLeave):
-            return None
-        return self.leaf.conditionWidget
-
-    def _switch_moons_planet(self):
-        if self.has_moon:
-            return
-        planet_leave = self._planet_leave()
-        if planet_leave is None:
-            return
-        planet_leave.planetTypeComboBox.clear()
-        planet_leave.planetTypeComboBox.addItems(moon_parent_planet_types)
-        planet_leave.planetTypeComboBox.load_config()
-        planet_leave.singularityComboBox.clear()
-        planet_leave.singularityComboBox.addItems(moon_parent_singularity)
-        planet_leave.singularityComboBox.load_config()
-        self.has_moon = True
-
-    def _switch_no_moons_planet(self):
-        if not self.has_moon:
-            return
-        planet_leave = self._planet_leave()
-        if planet_leave is None:
-            return
-        planet_leave.planetTypeComboBox.clear()
-        planet_leave.planetTypeComboBox.addItems(planet_types)
-        planet_leave.planetTypeComboBox.load_config()
-        planet_leave.singularityComboBox.clear()
-        planet_leave.singularityComboBox.addItems(singularity)
-        planet_leave.singularityComboBox.load_config()
-        self.has_moon = False
-
-    def _on_del_button_clicked(self):
-        return
-
 class SortTree(TreeWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -1073,27 +756,14 @@ class SortTree(TreeWidget):
         if item is None:
             return
         menu = RoundMenu("test", self)
-        if not isinstance(item, (GalaxyTreeWidgetItem, BondEndpointTreeWidgetItem)):
+        if not isinstance(item, GalaxyTreeWidgetItem):
             del_action = Action(tr("search.condition_tree.menu.delete"))
             del_action.triggered.connect(
                 lambda: self.on_menu_del_action_triggered(item)
             )
             menu.addAction(del_action)
 
-        if isinstance(item, BondEndpointTreeWidgetItem):
-            if item.active_is_planet:
-                add_moon_action = Action(tr("search.condition_tree.menu.add_moon"))
-                add_moon_action.triggered.connect(
-                    lambda: self.on_menu_add_moon_action_triggered(item)
-                )
-                menu.addAction(add_moon_action)
-            else:
-                add_action = Action(tr("search.condition_tree.menu.add_planet"))
-                add_action.triggered.connect(
-                    lambda: self.on_menu_add_action_triggered(item)
-                )
-                menu.addAction(add_action)
-        elif not isinstance(item, (PlanetTreeWidgetItem, MoonTreeWidgetItem, BondTreeWidgetItem)):
+        if not isinstance(item, (PlanetTreeWidgetItem, MoonTreeWidgetItem)):
             add_action = Action(tr("search.condition_tree.menu.add_planet"))
             add_action.triggered.connect(
                 lambda: self.on_menu_add_action_triggered(item)
@@ -1105,12 +775,6 @@ class SortTree(TreeWidget):
                 lambda: self.on_menu_add_star_action_triggered(item)
             )
             menu.addAction(add_star_action)
-
-            add_bond_action = Action(tr("search.condition_tree.menu.add_bond"))
-            add_bond_action.triggered.connect(
-                lambda: self.on_menu_add_bond_action_triggered(item)
-            )
-            menu.addAction(add_bond_action)
 
         if isinstance(item, PlanetTreeWidgetItem):
             add_moon_action = Action(tr("search.condition_tree.menu.add_moon"))
@@ -1126,16 +790,13 @@ class SortTree(TreeWidget):
     def on_menu_del_action_triggered(self, item: TreeWidgetItem):
         item._on_del_button_clicked()
 
-    def on_menu_add_moon_action_triggered(self, item: PlanetTreeWidgetItem|BondEndpointTreeWidgetItem):
+    def on_menu_add_moon_action_triggered(self, item: PlanetTreeWidgetItem):
         item.addMoonLeaf()
 
     def on_menu_add_star_action_triggered(self, item: GalaxyTreeWidgetItem):
         item.addStarLeaf()
 
-    def on_menu_add_bond_action_triggered(self, item: GalaxyTreeWidgetItem):
-        item.addBondLeaf()
-
-    def on_menu_add_action_triggered(self, item: GalaxyTreeWidgetItem|StarTreeWidgetItem|BondEndpointTreeWidgetItem):
+    def on_menu_add_action_triggered(self, item: GalaxyTreeWidgetItem|StarTreeWidgetItem):
         item.addPlanetLeaf()
 
     def addLeaf(self, new_galaxy_condition: GalaxyCondition) -> GalaxyTreeWidgetItem:

@@ -114,12 +114,7 @@
                 "dsp_level": "Dyson Reception",
                 "lumino": "Luminosity",
                 "distance": "Max Distance",
-                "satisfy_num": "Required Count",
-                "bond_satisfy_num": "Bond Count",
-                "max_connection_num": "Max Connections",
-                "bond_condition_type": "Condition Type",
-                "bond_con1": "Condition 1",
-                "bond_con2": "Condition 2"
+                "satisfy_num": "Required Count"
             },
             "buttons": {
                 "veins_point": "Vein Count",
@@ -129,22 +124,16 @@
                 "add_star": "Add star condition",
                 "add_planet": "Add planet condition",
                 "add_moon": "Add moon condition",
-                "add_bond": "Add bond condition",
                 "delete": "Delete this item and its children"
             },
             "menu": {
                 "delete": "Delete Item",
                 "add_star": "Add Star Condition",
                 "add_planet": "Add Planet Condition",
-                "add_moon": "Add Moon Condition",
-                "add_bond": "Add Bond Condition"
+                "add_moon": "Add Moon Condition"
             },
             "no_limit": "No Limit",
             "selected_count": "{count} selected",
-            "bond_switch": {
-                "star": "Star Condition  ",
-                "planet": "Planet Condition"
-            },
             "settings": {
                 "return": "Back",
                 "oil_rate_label": "Oil (unit: /s)",
@@ -424,12 +413,7 @@
             "星区条件": "Galaxy Condition",
             "恒星系条件": "Star Condition",
             "星球条件": "Planet Condition",
-            "卫星条件": "Moon Condition",
-            "绑定条件": "Bond Condition"
-        },
-        "bond_condition_types": {
-            "star": "Star Condition",
-            "planet": "Planet Condition"
+            "卫星条件": "Moon Condition"
         }
     }
 }
