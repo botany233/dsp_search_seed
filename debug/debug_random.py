@@ -16,7 +16,7 @@ def prepare_random_search(cpu_thread: int):
     need_veins, quick = random.choices([(False, True), (True, True), (True, False)], weights=[0.2, 0.4, 0.4], k=1)[0]
     for attempt in range(1, 101):
         raw, seeds, star_nums, resource_index, quick = get_random_debug_condition(need_veins, quick)
-        condition = change_galaxy_condition_legal(deepcopy(raw))
+        condition = change_condition_legal(deepcopy(raw))
         flag = perf_counter()
         results = check_seeds_py(seeds, star_nums, resource_index, condition, quick, cpu_thread)
         elapsed = perf_counter() - flag
@@ -58,13 +58,13 @@ def main(test_num: int, test_second: int, load_condition: bool = False):
                 star_nums = condition_data["star_nums"]
                 resource_index = condition_data["resource_index"]
                 quick = condition_data["quick"]
-            galaxy_condition = change_galaxy_condition_legal(deepcopy(galaxy_condition_raw))
+            galaxy_condition = change_condition_legal(deepcopy(galaxy_condition_raw))
             flag = perf_counter()
             py_results = check_seeds_py(seeds, star_nums, resource_index, galaxy_condition, quick, cpu_thread)
             py_time = perf_counter() - flag
         else:
             galaxy_condition_raw, seeds, star_nums, resource_index, quick, py_results, py_time = prepare_random_search(cpu_thread)
-            galaxy_condition = change_galaxy_condition_legal(deepcopy(galaxy_condition_raw))
+            galaxy_condition = change_condition_legal(deepcopy(galaxy_condition_raw))
         total = seeds[1] - seeds[0] + 1
         print(f"搜索范围: {seeds}，64星，{resource_rate_c[resource_index]}，{'快速' if quick else '标准'}，Python命中率{len(py_results) / total:.2%}")
 

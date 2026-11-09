@@ -13,7 +13,7 @@ with open("example.json", "w", encoding="utf-8") as f:
     f.write(galaxy_json)
 
 # get_data_manager = GetDataManager(10, True, 1024)
-# get_data_manager.add_task(6, 64, 10)
+# get_data_manager.add_task(Seed(6, 64, 10))
 # while not (result := get_data_manager.get_results()):
 #     pass
 

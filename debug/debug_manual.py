@@ -2,78 +2,92 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from time import perf_counter, sleep
+from copy import deepcopy
 
 from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        "valid_state": True,
-        "stars": [
-            {
-                "satisfy_num": 3,
-                "dyson_lumino": 0.9941314210289814,
-                "planets": [
-                    {
+        "type": 5,
+        "value": {
+            "satisfy_num": 4,
+            "children": [
+                {
+                    "type": 2,
+                    "value": {
+                        "satisfy_num": 3,
+                        "dyson_lumino": 0.9941314210289814,
+                        "planets": [
+                            {
+                                "satisfy_num": 1,
+                                "dsp_level": "全接收",
+                                "type": [
+                                    "红石",
+                                    "橙晶荒漠",
+                                    "灰烬冻土",
+                                    "潘多拉沼泽",
+                                    "飓风石林",
+                                    "干旱荒漠",
+                                    "冰原冻土",
+                                    "冰巨星",
+                                    "黑石盐滩",
+                                    "戈壁",
+                                    "气态巨星",
+                                    "极寒冻土"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "type": 3,
+                    "value": {
+                        "satisfy_num": 3,
+                        "liquid": "硫酸"
+                    }
+                },
+                {
+                    "type": 3,
+                    "value": {
+                        "satisfy_num": 2,
+                        "type": [
+                            "气态巨星",
+                            "极寒冻土",
+                            "水世界",
+                            "高产气巨",
+                            "草原",
+                            "海洋丛林",
+                            "樱林海",
+                            "冰巨星",
+                            "黑石盐滩",
+                            "灰烬冻土",
+                            "戈壁",
+                            "地中海"
+                        ]
+                    }
+                },
+                {
+                    "type": 3,
+                    "value": {
                         "satisfy_num": 1,
                         "dsp_level": "全接收",
                         "type": [
-                            "红石",
-                            "橙晶荒漠",
-                            "灰烬冻土",
+                            "火山灰",
                             "潘多拉沼泽",
-                            "飓风石林",
+                            "草原",
+                            "红石",
                             "干旱荒漠",
-                            "冰原冻土",
+                            "熔岩",
                             "冰巨星",
-                            "黑石盐滩",
-                            "戈壁",
-                            "气态巨星",
-                            "极寒冻土"
+                            "冰原冻土",
+                            "极寒冻土",
+                            "地中海",
+                            "樱林海"
                         ]
                     }
-                ]
-            }
-        ],
-        "planets": [
-            {
-                "satisfy_num": 3,
-                "liquid": "硫酸"
-            },
-            {
-                "satisfy_num": 2,
-                "type": [
-                    "气态巨星",
-                    "极寒冻土",
-                    "水世界",
-                    "高产气巨",
-                    "草原",
-                    "海洋丛林",
-                    "樱林海",
-                    "冰巨星",
-                    "黑石盐滩",
-                    "灰烬冻土",
-                    "戈壁",
-                    "地中海"
-                ]
-            },
-            {
-                "satisfy_num": 1,
-                "dsp_level": "全接收",
-                "type": [
-                    "火山灰",
-                    "潘多拉沼泽",
-                    "草原",
-                    "红石",
-                    "干旱荒漠",
-                    "熔岩",
-                    "冰巨星",
-                    "冰原冻土",
-                    "极寒冻土",
-                    "地中海",
-                    "樱林海"
-                ]
-            }
-        ]
+                }
+            ]
+        }
     },
     "seeds": [
         0,
@@ -106,10 +120,10 @@ def main():
     resource_index = galaxy_condition_raw["resource_index"]
     quick = galaxy_condition_raw["quick"]
 
-    galaxy_condition = change_galaxy_condition_legal(galaxy_condition)
+    galaxy_condition = change_condition_legal(deepcopy(galaxy_condition))
 
     flag = perf_counter()
-    py_results = check_seeds_py(seeds, star_nums, resource_index, galaxy_condition, quick, cpu_thread, device_id, local_size)
+    py_results = check_seeds_py(seeds, star_nums, resource_index, galaxy_condition, quick, cpu_thread)
     with open(py_save_path, "w") as f:
         f.writelines(map(lambda x: f"{x[0]}, {x[1]}\n", py_results))
     print(f"py完成: 用时{perf_counter() - flag:.2f}s，找到{len(py_results)}个种子")

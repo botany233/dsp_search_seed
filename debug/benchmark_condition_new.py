@@ -1,10 +1,3 @@
-"""新条件格式的基准场景，返回值与 benchmark_condition.py 保持一致。
-
-交给 CApi.c_util.change_galaxy_condition_legal 规范化后，可直接传给
-ConditionManager / CheckBatchManager。种子区间沿用旧基准，完整运行耗时较长。
-"""
-
-
 def benchmark_condition_level_1():
     condition = {"type": 2, "value": {"type": ["B型蓝巨星", "O型蓝巨星"], "satisfy_num": 3}}
     return condition, (0, 4999999), (64, 64), True

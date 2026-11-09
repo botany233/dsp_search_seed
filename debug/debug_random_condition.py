@@ -155,44 +155,47 @@ def get_bond_condition(resource_index: int, need_veins: bool, quick: bool):
     bond_condition = {}
     bond_condition["satisfy_num"] = random.randint(1, 10)
     bond_condition["distance"] = random.uniform(0, 100)
-    if random.random() < 0.5:
-        bond_condition["con1_is_planet"] = True
-        bond_condition["con1"] = get_planet_condition(resource_index, need_veins, quick)
-    else:
-        bond_condition["con1_is_planet"] = False
-        bond_condition["con1"] = get_star_condition(resource_index, need_veins, quick)
-    if random.random() < 0.5:
-        bond_condition["con2_is_planet"] = True
-        bond_condition["con2"] = get_planet_condition(resource_index, need_veins, quick)
-    else:
-        bond_condition["con2_is_planet"] = False
-        bond_condition["con2"] = get_star_condition(resource_index, need_veins, quick)
+    for key in ("con1", "con2"):
+        if random.random() < 0.5:
+            bond_condition[key] = {"type": 3, "value": get_planet_condition(resource_index, need_veins, quick)}
+        else:
+            bond_condition[key] = {"type": 2, "value": get_star_condition(resource_index, need_veins, quick)}
     return bond_condition
 
+
 def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool):
-    galaxy_condition = {
-        "valid_state": random.random() < 0.7
-    }
+    valid_state = random.random() < 0.7
+    children = []
     if need_veins:
         # 不同时叠加星系总矿量、行星矿量等独立限制，避免几乎全部失败。
         scope = random.choice(["galaxy", "stars", "planets", "bonds"])
         if scope == "galaxy":
             points, amounts = get_veins_condition("galaxy", resource_index, quick)
-            galaxy_condition["veins_point"] = points
+            value = {"veins_point": points}
             if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
-                galaxy_condition["veins_amount"] = amounts
+                value["veins_amount"] = amounts
+            children.append({"type": 1, "value": value})
         else:
-            factory = {"stars": get_star_condition, "planets": get_planet_condition,
-                       "bonds": get_bond_condition}[scope]
-            galaxy_condition[scope] = [factory(resource_index, need_veins, quick)]
-        return galaxy_condition
-    if random.random() < 0.5 and not need_veins:
-        galaxy_condition["stars"] = [get_star_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 2))]
-    if random.random() < 0.5:
-        galaxy_condition["planets"] = [get_planet_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 3))]
-    if "stars" not in galaxy_condition and "planets" not in galaxy_condition:
-        galaxy_condition["bonds"] = [get_bond_condition(resource_index, need_veins, quick) for _ in range(random.randint(1, 2))]
-    return galaxy_condition
+            condition_type, factory = {"stars": (2, get_star_condition),
+                                       "planets": (3, get_planet_condition),
+                                       "bonds": (4, get_bond_condition)}[scope]
+            children.append({"type": condition_type, "value": factory(resource_index, need_veins, quick)})
+    else:
+        if random.random() < 0.5:
+            children.extend({"type": 2, "value": get_star_condition(resource_index, need_veins, quick)}
+                            for _ in range(random.randint(1, 2)))
+        if random.random() < 0.5:
+            children.extend({"type": 3, "value": get_planet_condition(resource_index, need_veins, quick)}
+                            for _ in range(random.randint(1, 3)))
+        if not children:
+            children.extend({"type": 4, "value": get_bond_condition(resource_index, need_veins, quick)}
+                            for _ in range(random.randint(1, 2)))
+    condition = children[0] if len(children) == 1 else {
+        "type": 5, "value": {"satisfy_num": len(children), "children": children}}
+    if not valid_state:
+        condition = {"type": 5, "value": {"satisfy_num": 0, "children": [condition]}}
+    return condition
+
 
 def get_veins_condition(satro_type: Literal["galaxy", "star", "planet"], resource_index: int, quick: bool):
     point_rate = random.uniform(0.1, 0.7 if quick else 0.6)
