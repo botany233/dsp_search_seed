@@ -5,6 +5,7 @@ test.py
 *.json
 !assets/language/*.json
 AGENTS.md
+*task.md
 
 .venv/
 logs/
