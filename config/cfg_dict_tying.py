@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field
 from typing import Literal
 from uuid import UUID, uuid4
 from multiprocessing import cpu_count
@@ -130,22 +130,22 @@ def default_basic_condition() -> GalaxyCondition:
     )
 
 
-class SearchConfig(BaseModel):
+class SharedSearchConfig(BaseModel):
     start_seed: int = 0
     end_seed: int = 99999
     start_star_num: int = 32
     end_star_num: int = 64
     save_name: str = "seed"
-    search_mode: Literal[0, 1] = 0  # 0: 范围搜索, 1: 二次搜索
     resource_rate: str = "无限"
+    search_mode: Literal[0, 1] = 0  # 0: 范围搜索, 1: 二次搜索
     quick_check: bool = False
 
 
-class BasicSearchConfig(SearchConfig):
+class BasicSearchConfig(BaseModel):
     galaxy_condition: GalaxyCondition = Field(default_factory=default_basic_condition)
 
 
-class AdvancedSearchConfig(SearchConfig):
+class AdvancedSearchConfig(BaseModel):
     # 阶段三接入高级编辑模型；当前独立保存未规范化的后端条件树。
     condition: dict = Field(default_factory=lambda: {
         "type": 5, "value": {"satisfy_num": 0, "children": []},
@@ -154,6 +154,7 @@ class AdvancedSearchConfig(SearchConfig):
 
 class GUIConfig(BaseModel):
     condition_mode: Literal["basic", "advanced"] = "basic"
+    shared_search: SharedSearchConfig = Field(default_factory=SharedSearchConfig)
     basic_search: BasicSearchConfig = Field(default_factory=BasicSearchConfig)
     advanced_search: AdvancedSearchConfig = Field(default_factory=AdvancedSearchConfig)
     max_thread: int = cpu_count()
@@ -166,18 +167,6 @@ class GUIConfig(BaseModel):
     name_language: str = "English"
     # csv
     csv: CSVExportCondition = CSVExportCondition()
-
-    @model_validator(mode="before")
-    @classmethod
-    def migrate_legacy_search(cls, data):
-        if not isinstance(data, dict):
-            return data
-        data = dict(data)
-        legacy = {key: data.pop(key) for key in BasicSearchConfig.model_fields if key in data}
-        if "basic_search" not in data and legacy:
-            data["basic_search"] = legacy
-            data["condition_mode"] = "basic"
-        return data
 
     @property
     def active_search(self) -> BasicSearchConfig | AdvancedSearchConfig:

@@ -74,6 +74,8 @@
             "title": "Seed Searcher"
         },
         "main": {
+            "basic_mode": "Basic Mode",
+            "advanced_mode": "Advanced Mode",
             "import_seed": "Import Seeds",
             "clear_seed": "Clear Seeds",
             "seed_range": "Seed Range:",
@@ -101,6 +103,8 @@
             "invalid_state": "Save Invalid Seeds"
         },
         "condition_tree": {
+            "invert_all": "Invert All",
+            "invert_all_description": "Invert the final result of all basic conditions, regardless of whether galaxy mineral conditions are checked.",
             "headers": {
                 "name": "Name",
                 "condition": "Condition",

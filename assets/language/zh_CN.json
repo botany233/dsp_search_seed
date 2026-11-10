@@ -74,6 +74,8 @@
             "title": "种子搜索器"
         },
         "main": {
+            "basic_mode": "基础模式",
+            "advanced_mode": "高级模式",
             "import_seed": "导入种子",
             "clear_seed": "清空种子",
             "seed_range": "种子范围:",
@@ -101,6 +103,8 @@
             "invalid_state": "保存无效种子"
         },
         "condition_tree": {
+            "invert_all": "整体取反",
+            "invert_all_description": "对整套基础条件的最终结果取反，与星系矿物条件的勾选状态无关。",
             "headers": {
                 "name": "名称",
                 "condition": "条件",

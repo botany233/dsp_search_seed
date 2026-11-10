@@ -1,8 +1,8 @@
 from csv import reader
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QFileDialog
-from qfluentwidgets import BodyLabel, PushButton, VBoxLayout
+from PySide6.QtWidgets import QApplication, QFrame, QHBoxLayout, QBoxLayout, QFileDialog
+from qfluentwidgets import BodyLabel, PushButton, VBoxLayout, SegmentedWidget
 
 from CApi import SeedManager, resource_rate_c
 from config import cfg
@@ -28,20 +28,24 @@ class SearchInterface(QFrame):
         self.__build__()
         self.search_thread = SearchThread(self.seed_manager, self)
         SearchMessages.searchEnd.connect(self._on_search_finish)
-        self.__switch_search_mode(cfg.config.active_search.search_mode)
+        self.__switch_search_mode(cfg.config.shared_search.search_mode)
 
     def get_search_task(self) -> SearchThread:
         """返回退出协调及运行状态检查所需的搜索任务。"""
         return self.search_thread
 
     def __init__layout__(self):
+        self.topBarLayout = QBoxLayout(QBoxLayout.LeftToRight)
+        self.searchLayout.addLayout(self.topBarLayout)
         self.topLayout = QHBoxLayout()
         self.topLayout.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.searchLayout.addLayout(self.topLayout)
+        self.topBarLayout.addLayout(self.topLayout, 1)
+        self.modeLayout = QHBoxLayout()
+        self.modeLayout.addStretch()
+        self.topBarLayout.addLayout(self.modeLayout)
         self.middleLayout = QHBoxLayout()
         self.searchLayout.addLayout(self.middleLayout, stretch=1)
         self.userLayout = UserLayout()
-        self.userLayout.search_mode_switch.checkedChanged.connect(self._on_search_mode_changed)
         self.searchLayout.addLayout(self.userLayout)
         self.buttonLayout = QHBoxLayout()
         self.searchLayout.addStretch()
@@ -55,19 +59,22 @@ class SearchInterface(QFrame):
         self.del_file_button.clicked.connect(self.__on_del_file_button_clicked)
         self.seed_info_label = ImportSeedInfo(self.seed_manager)
         self.label_seed_range = BodyLabel(tr("search.main.seed_range"))
-        self.input_seed_start = LimitLineEdit("start_seed", cfg.config.active_search, min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
+        self.input_seed_start = LimitLineEdit("start_seed", cfg.config.shared_search, min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
         self.input_seed_start.setMaximumWidth(125)
         # self.input_seed_start.setMinimumWidth(80)
-        self.input_seed_end = LimitLineEdit("end_seed", cfg.config.active_search, min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
+        self.input_seed_end = LimitLineEdit("end_seed", cfg.config.shared_search, min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
         self.input_seed_end.setMaximumWidth(125)
         # self.input_seed_end.setMinimumWidth(80)
         self.label_star_num = BodyLabel(tr("search.main.star_count"))
-        self.input_star_num_start = LimitLineEdit("start_star_num", cfg.config.active_search, min_value=32, max_value=64, default_value=32, empty_invisible=False)
-        self.input_star_num_start.setMaximumWidth(125)
-        self.input_star_num_end = LimitLineEdit("end_star_num", cfg.config.active_search, min_value=32, max_value=64, default_value=64, empty_invisible=False)
-        self.input_star_num_end.setMaximumWidth(125)
+        self.input_star_num_start = LimitLineEdit("start_star_num", cfg.config.shared_search, min_value=32, max_value=64, default_value=32, empty_invisible=False)
+        self.input_star_num_end = LimitLineEdit("end_star_num", cfg.config.shared_search, min_value=32, max_value=64, default_value=64, empty_invisible=False)
+        for editor in (self.input_star_num_start, self.input_star_num_end):
+            # 当前 LineEdit 无附属按钮；按两位数字、文本边距和边框留白计算。
+            margins = editor.textMargins()
+            editor.setFixedWidth(editor.fontMetrics().horizontalAdvance("64")
+                                 + margins.left() + margins.right() + 24)
         self.label_resource_rate = BodyLabel(tr("search.main.resource_rate"))
-        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config.active_search, "str", resource_rate_c, domain="resource_rates")
+        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config.shared_search, "str", resource_rate_c, domain="resource_rates")
         # self.label_batch_size = BodyLabel("批处理大小:")
         # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         # self.label_thread_num = BodyLabel("进程数:")
@@ -84,6 +91,16 @@ class SearchInterface(QFrame):
         self.button_stop.setEnabled(False)
 
         self.tree_view = SortTreeWidget()
+        self.search_mode_segment = SegmentedWidget()
+        for mode, key in ((0, "range_mode"), (1, "precise_mode")):
+            self.search_mode_segment.addItem(str(mode), tr(f"search.status.{key}"),
+                                            onClick=lambda checked=False, m=mode: self._on_search_mode_changed(m))
+        self.search_mode_segment.setCurrentItem(str(cfg.config.shared_search.search_mode))
+        self.condition_mode_segment = SegmentedWidget()
+        for mode in ("basic", "advanced"):
+            self.condition_mode_segment.addItem(mode, tr(f"search.main.{mode}_mode"),
+                                                onClick=lambda checked=False, m=mode: self.set_condition_mode(m))
+        self.condition_mode_segment.setCurrentItem(cfg.config.condition_mode)
 
     def __build__(self):
         self.__init__layout__()
@@ -111,6 +128,9 @@ class SearchInterface(QFrame):
         # self.topLayout.addWidget(self.label_thread_num)
         # self.topLayout.addWidget(self.input_thread_num)
         self.topLayout.addStretch()
+        self.modeLayout.addWidget(self.search_mode_segment, 0, Qt.AlignRight)
+        self.modeLayout.addSpacing(12)
+        self.modeLayout.addWidget(self.condition_mode_segment, 0, Qt.AlignRight)
         self.middleLayout.addWidget(self.tree_view)
 
         self.buttonLayout.addWidget(self.button_start)
@@ -145,30 +165,33 @@ class SearchInterface(QFrame):
                 editor.setModified(False)
 
     def set_condition_mode(self, mode: str):
-        """阶段二的模式控件入口；运行和暂停期间只切换编辑配置。"""
+        """运行和暂停期间只切换编辑配置。"""
         if mode not in ("basic", "advanced"):
             raise ValueError(f"不支持的编辑模式: {mode}")
         if mode == cfg.config.condition_mode:
             return
         self._commit_search_edits()
         cfg.config.condition_mode = mode
-        for editor in (self.input_seed_start, self.input_seed_end,
-                       self.input_star_num_start, self.input_star_num_end):
-            editor.config_obj = cfg.config.active_search
-            editor.fresh()
-        self.input_resource_rate.blockSignals(True)
-        try:
-            self.input_resource_rate.config_obj = cfg.config.active_search
-            self.input_resource_rate.fresh()
-        finally:
-            self.input_resource_rate.blockSignals(False)
-        self.userLayout.bind_search_config()
+        self.condition_mode_segment.setCurrentItem(mode)
         self.tree_view.setVisible(mode == "basic")
-        self.__switch_search_mode(cfg.config.active_search.search_mode)
         cfg.save()
 
-    def _on_search_mode_changed(self, checked: bool):
-        self.__switch_search_mode(0 if not checked else 1)
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_top_layout()
+
+    def _update_top_layout(self):
+        required_width = (self.topLayout.sizeHint().width() + self.modeLayout.sizeHint().width()
+                          + self.topBarLayout.spacing())
+        available_width = self.width() - self.searchLayout.contentsMargins().left() - self.searchLayout.contentsMargins().right()
+        self.topBarLayout.setDirection(QBoxLayout.LeftToRight if available_width >= required_width
+                                       else QBoxLayout.TopToBottom)
+
+    def _on_search_mode_changed(self, mode: int):
+        self._commit_search_edits()
+        cfg.config.shared_search.search_mode = mode
+        self.__switch_search_mode(mode)
+        cfg.save()
 
     def __switch_search_mode(self, mode: int):
         if mode == 0:
@@ -197,6 +220,8 @@ class SearchInterface(QFrame):
             self.add_file_button.setHidden(False)
             self.del_file_button.setHidden(False)
             self.seed_info_label.setHidden(False)
+        self.topLayout.invalidate()
+        self._update_top_layout()
 
     def __on_add_file_button_clicked(self):
         if self.search_thread.isRunning() or self._importing_seeds:
@@ -247,7 +272,8 @@ class SearchInterface(QFrame):
             return
         self._commit_search_edits()
         self.search_thread.prepare_task(cfg.config)
-        search_config = self.search_thread.task_config.active_search
+        task_config = self.search_thread.task_config
+        search_config = task_config.shared_search
         if search_config.search_mode == 1 and self.seed_manager.get_seeds_count() == 0:
             log.info("当前无可搜索种子，请先导入种子文件或修改搜索范围")
             return

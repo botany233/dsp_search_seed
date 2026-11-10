@@ -83,6 +83,7 @@ class TreeWidgetItem(QTreeWidgetItem):
 class GalaxyTreeWidgetItem(TreeWidgetItem):
     def __init__(self, root: "SortTree", config_obj):
         super().__init__(root, config_obj, "galaxy_condition", root)
+        self.setFlags(self.flags() & ~Qt.ItemIsDragEnabled & ~Qt.ItemIsDropEnabled)
 
     def _on_add_planet_button_clicked(self):
         self.addPlanetLeaf()
@@ -338,6 +339,8 @@ class SortTree(TreeWidget):
         item.addPlanetLeaf()
 
     def addLeaf(self, new_galaxy_condition: GalaxyCondition) -> GalaxyTreeWidgetItem:
+        if self.leaf is not None:
+            raise ValueError("基础模式只能有一个固定的星系条件根节点")
         self.leaf = GalaxyTreeWidgetItem(self, new_galaxy_condition)
         self.leaf.add_widgets()
         return self.leaf

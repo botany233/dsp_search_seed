@@ -3,7 +3,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QWidget, QHBoxLayout
 from qfluentwidgets import (
     PushButton, BodyLabel, FluentIcon, ToolButton, setFont,
-    setCustomStyleSheet, ToolTipFilter, ToolTipPosition,
+    setCustomStyleSheet, ToolTipFilter, ToolTipPosition, CheckBox,
 )
 
 from ...Compoents.combox import AutoFixedComboBox
@@ -302,6 +302,18 @@ class GalaxyTreeLeave(LeaveBase):
         )
         self.mainLayout.addWidget(self.veinsConditionButton)
         self.mainLayout.addWidget(self.veinsPointConditionButton)
+        self.invertCheckBox = CheckBox(tr("search.condition_tree.invert_all"))
+        self.invertCheckBox.setToolTip(tr("search.condition_tree.invert_all_description"))
+        self.invertCheckBox.installEventFilter(ToolTipFilter(self.invertCheckBox, showDelay=0))
+        self.invertCheckBox.setChecked(not self.config_obj.valid_state)
+        self.invertCheckBox.toggled.connect(self._on_invert_changed)
+        self.mainLayout.addWidget(self.invertCheckBox)
+
+    def _on_invert_changed(self, checked: bool):
+        from config import cfg
+
+        self.config_obj.valid_state = not checked
+        cfg.save()
 
 
 class StarTreeLeave(LeaveBase):

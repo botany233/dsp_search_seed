@@ -44,20 +44,21 @@ class SearchThread(QThread):
                 raise RuntimeError("搜索任务缺少启动快照")
             task_config = self.task_config
             gui_cfg = task_config.active_search
+            shared_cfg = task_config.shared_search
             if task_config.condition_mode == "basic":
                 galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
             else:
                 # 规范化会原位修改字典，不能传入编辑配置或快照的原始条件。
                 galaxy_condition = deepcopy(gui_cfg.condition)
             galaxy_condition = change_condition_legal(galaxy_condition)
-            save_name = gui_cfg.save_name + ".csv"
+            save_name = shared_cfg.save_name + ".csv"
             max_thread = task_config.max_thread
-            quick = gui_cfg.quick_check
-            resource_index = resource_rate_c.index(gui_cfg.resource_rate)
+            quick = shared_cfg.quick_check
+            resource_index = resource_rate_c.index(shared_cfg.resource_rate)
 
-            if gui_cfg.search_mode == 0:
-                seeds = (gui_cfg.start_seed, gui_cfg.end_seed)
-                star_nums = (gui_cfg.start_star_num, gui_cfg.end_star_num)
+            if shared_cfg.search_mode == 0:
+                seeds = (shared_cfg.start_seed, shared_cfg.end_seed)
+                star_nums = (shared_cfg.start_star_num, shared_cfg.end_star_num)
 
                 if not self.end_flag:
                     self.range_search(galaxy_condition, seeds, star_nums, resource_index, max_thread, save_name, quick)
