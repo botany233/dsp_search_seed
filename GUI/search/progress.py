@@ -2,7 +2,7 @@ from collections import deque
 
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PySide6.QtGui import QColor
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import Qt
 from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, LineEdit
 
 from GUI.Messenger import SearchMessages
@@ -14,6 +14,7 @@ from ..Compoents.Widgets.button import ConfigSwitchButton
 class UserLayout(QVBoxLayout):
     def __init__(self):
         super().__init__()
+        self.search_config = cfg.config.active_search
         self.userButtonsLayout = QHBoxLayout()
 
         self.addLayout(self.userButtonsLayout)
@@ -21,24 +22,26 @@ class UserLayout(QVBoxLayout):
 
         self.search_mode_switch = ConfigSwitchButton(tr("search.status.range_mode"), indicatorPos=1)
         self.search_mode_switch.setOnText(tr("search.status.precise_mode"))
-        self.search_mode_switch.set_config(config_obj=cfg.config, config_key="search_mode")
+        self.search_mode_switch.set_config(config_obj=self.search_config, config_key="search_mode")
         self.userButtonsLayout.addWidget(self.search_mode_switch)
 
         self.quick_check_switch = ConfigSwitchButton(tr("search.status.standard_mode"), indicatorPos=1)
         self.quick_check_switch.setOnText(tr("search.status.quick_mode"))
-        self.quick_check_switch.set_config(config_obj=cfg.config, config_key="quick_check")
+        self.quick_check_switch.set_config(config_obj=self.search_config, config_key="quick_check")
         self.userButtonsLayout.addWidget(self.quick_check_switch)
 
         self.valid_state_switch = ConfigSwitchButton(tr("search.status.invalid_state"), indicatorPos=1)
         self.valid_state_switch.setOnText(tr("search.status.valid_state"))
-        self.valid_state_switch.set_config(config_obj=cfg.config.galaxy_condition, config_key="valid_state")
+        self.valid_state_switch.set_config(config_obj=cfg.config.basic_search.galaxy_condition, config_key="valid_state")
+        if cfg.config.condition_mode != "basic":
+            self.valid_state_switch.hide()
         self.userButtonsLayout.addWidget(self.valid_state_switch)
 
         self.outputFileLabel = BodyLabel(tr("search.status.output_file_name"))
         self.userButtonsLayout.addWidget(self.outputFileLabel)
         self.outputFileLine = LineEdit()
-        self.outputFileLine.setMinimumWidth(self.outputFileLine.sizeHint().width())
-        self.outputFileLine.setPlaceholderText(cfg.config.save_name)
+        self.outputFileLine.setFixedWidth(round(self.outputFileLine.sizeHint().width() * 1.5))
+        self.outputFileLine.setText(self.search_config.save_name)
         self.outputFileLine.textEdited.connect(self._update_output_filename)
         self.userButtonsLayout.addWidget(self.outputFileLine)
 
@@ -58,8 +61,7 @@ class UserLayout(QVBoxLayout):
         self.progressBar.setFixedHeight(9)
         self.barVLayout.addWidget(self.progressBar)
         self.userButtonsLayout.addLayout(self.barVLayout)
-        self.userButtonsLayout.setStretchFactor(self.barVLayout, 2)
-        QTimer.singleShot(0, self._init_stretch)
+        self.userButtonsLayout.setStretchFactor(self.barVLayout, 1)
 
         self.setContentsMargins(7, 0, 7, 7)
 
@@ -68,16 +70,21 @@ class UserLayout(QVBoxLayout):
 
         self.progress_cache = deque(maxlen=1000)
 
-    def _init_stretch(self):
-        original_width = self.outputFileLine.width()
-        input_width = round(original_width * 1.5)
-        progress_width = max(1, self.progressBar.width() - (input_width - original_width))
-        self.outputFileLine.setMinimumWidth(input_width)
-        self.userButtonsLayout.setStretchFactor(self.outputFileLine, input_width)
-        self.userButtonsLayout.setStretchFactor(self.barVLayout, progress_width)
-
     def _update_output_filename(self, filename: str):
-        cfg.config.save_name = "seed" if filename == "" else filename
+        self.search_config.save_name = "seed" if filename == "" else filename
+        cfg.save()
+
+    def bind_search_config(self):
+        self.search_config = cfg.config.active_search
+        for switch in (self.search_mode_switch, self.quick_check_switch):
+            switch.blockSignals(True)
+            try:
+                switch.config_obj = self.search_config
+                switch.setChecked(bool(getattr(self.search_config, switch.config_key)))
+            finally:
+                switch.blockSignals(False)
+        self.outputFileLine.setText(self.search_config.save_name)
+        self.valid_state_switch.setVisible(cfg.config.condition_mode == "basic")
 
     def _update_last_seed(self, total_seed_num: int, last_seed_id: int, last_star_num: int):
         self.seedInfoLabel.setText(tr("search.status.found_summary").format(total_seed_num=total_seed_num, last_seed_id=last_seed_id, last_star_num=last_star_num))

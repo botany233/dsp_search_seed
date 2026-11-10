@@ -24,10 +24,11 @@ class SearchInterface(QFrame):
         self.setObjectName("searchLayout")
         self.searchLayout = VBoxLayout(self)
         self.seed_manager = SeedManager()
+        self._importing_seeds = False
         self.__build__()
         self.search_thread = SearchThread(self.seed_manager, self)
         SearchMessages.searchEnd.connect(self._on_search_finish)
-        self.__switch_search_mode(cfg.config.search_mode)
+        self.__switch_search_mode(cfg.config.active_search.search_mode)
 
     def get_search_task(self) -> SearchThread:
         """返回退出协调及运行状态检查所需的搜索任务。"""
@@ -54,19 +55,19 @@ class SearchInterface(QFrame):
         self.del_file_button.clicked.connect(self.__on_del_file_button_clicked)
         self.seed_info_label = ImportSeedInfo(self.seed_manager)
         self.label_seed_range = BodyLabel(tr("search.main.seed_range"))
-        self.input_seed_start = LimitLineEdit("start_seed", min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
+        self.input_seed_start = LimitLineEdit("start_seed", cfg.config.active_search, min_value=0, max_value=99999999, default_value=0, empty_invisible=False)
         self.input_seed_start.setMaximumWidth(125)
         # self.input_seed_start.setMinimumWidth(80)
-        self.input_seed_end = LimitLineEdit("end_seed", min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
+        self.input_seed_end = LimitLineEdit("end_seed", cfg.config.active_search, min_value=0, max_value=99999999, default_value=99999, empty_invisible=False)
         self.input_seed_end.setMaximumWidth(125)
         # self.input_seed_end.setMinimumWidth(80)
         self.label_star_num = BodyLabel(tr("search.main.star_count"))
-        self.input_star_num_start = LimitLineEdit("start_star_num", min_value=32, max_value=64, default_value=32, empty_invisible=False)
+        self.input_star_num_start = LimitLineEdit("start_star_num", cfg.config.active_search, min_value=32, max_value=64, default_value=32, empty_invisible=False)
         self.input_star_num_start.setMaximumWidth(125)
-        self.input_star_num_end = LimitLineEdit("end_star_num", min_value=32, max_value=64, default_value=64, empty_invisible=False)
+        self.input_star_num_end = LimitLineEdit("end_star_num", cfg.config.active_search, min_value=32, max_value=64, default_value=64, empty_invisible=False)
         self.input_star_num_end.setMaximumWidth(125)
         self.label_resource_rate = BodyLabel(tr("search.main.resource_rate"))
-        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config, "str", resource_rate_c, domain="resource_rates")
+        self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config.active_search, "str", resource_rate_c, domain="resource_rates")
         # self.label_batch_size = BodyLabel("批处理大小:")
         # self.input_batch_size = LimitLineEdit("batch_size", min_value=1, max_value=4096, default_value=64, empty_invisible=False)
         # self.label_thread_num = BodyLabel("进程数:")
@@ -119,7 +120,8 @@ class SearchInterface(QFrame):
         self.__recover_condition()
 
     def __recover_condition(self):
-        galaxy_condition = cfg.config.galaxy_condition
+        self.tree_view.setVisible(cfg.config.condition_mode == "basic")
+        galaxy_condition = cfg.config.basic_search.galaxy_condition
         galaxy_leaf = self.tree_view.tree.addLeaf(galaxy_condition)
         for star_condition in galaxy_condition.star_condition:
             star_leaf = galaxy_leaf.addStarLeaf(star_condition)
@@ -131,6 +133,39 @@ class SearchInterface(QFrame):
             planet_leaf = galaxy_leaf.addPlanetLeaf(planet_condition)
             for moon_condition in planet_condition.moon_conditions:
                 planet_leaf.addMoonLeaf(moon_condition)
+
+    def _commit_search_edits(self):
+        # 包含行内条件数值；焦点离开时同时提交条件名称的 Qt 编辑器。
+        focused = QApplication.focusWidget()
+        if focused is not None and self.isAncestorOf(focused):
+            focused.clearFocus()
+        for editor in self.findChildren(LimitLineEdit):
+            if editor.isModified():
+                editor.editingFinished.emit()
+                editor.setModified(False)
+
+    def set_condition_mode(self, mode: str):
+        """阶段二的模式控件入口；运行和暂停期间只切换编辑配置。"""
+        if mode not in ("basic", "advanced"):
+            raise ValueError(f"不支持的编辑模式: {mode}")
+        if mode == cfg.config.condition_mode:
+            return
+        self._commit_search_edits()
+        cfg.config.condition_mode = mode
+        for editor in (self.input_seed_start, self.input_seed_end,
+                       self.input_star_num_start, self.input_star_num_end):
+            editor.config_obj = cfg.config.active_search
+            editor.fresh()
+        self.input_resource_rate.blockSignals(True)
+        try:
+            self.input_resource_rate.config_obj = cfg.config.active_search
+            self.input_resource_rate.fresh()
+        finally:
+            self.input_resource_rate.blockSignals(False)
+        self.userLayout.bind_search_config()
+        self.tree_view.setVisible(mode == "basic")
+        self.__switch_search_mode(cfg.config.active_search.search_mode)
+        cfg.save()
 
     def _on_search_mode_changed(self, checked: bool):
         self.__switch_search_mode(0 if not checked else 1)
@@ -164,7 +199,7 @@ class SearchInterface(QFrame):
             self.seed_info_label.setHidden(False)
 
     def __on_add_file_button_clicked(self):
-        if self.search_thread.isRunning():
+        if self.search_thread.isRunning() or self._importing_seeds:
             return
         file_paths, _ = QFileDialog.getOpenFileNames(
             self.window(),
@@ -172,48 +207,58 @@ class SearchInterface(QFrame):
             '',
             'CSV Files (*.csv);'
         )
-        for file_path in file_paths:
-            with open(file_path, "r", encoding="utf-8") as f:
-                data = reader(f)
-                for i, row in enumerate(data):
-                    try:
-                        seed = int(row[0])
-                        star_num = int(row[1])
-                    except Exception:
-                        continue
+        # processEvents 可能重入开始/清空槽；导入结束前禁止启动任务或修改列表。
+        self._importing_seeds = True
+        try:
+            for file_path in file_paths:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = reader(f)
+                    for i, row in enumerate(data):
+                        try:
+                            seed = int(row[0])
+                            star_num = int(row[1])
+                        except Exception:
+                            continue
 
-                    if not (0 <= seed <= 99999999 and 32 <= star_num <= 64):
-                        continue
+                        if not (0 <= seed <= 99999999 and 32 <= star_num <= 64):
+                            continue
 
-                    self.seed_manager.add_seed(seed, star_num)
+                        self.seed_manager.add_seed(seed, star_num)
 
-                    if i % 1000 == 0:
-                        QApplication.processEvents()
-        self.seed_info_label.fresh()
+                        if i % 1000 == 0:
+                            QApplication.processEvents()
+        finally:
+            self._importing_seeds = False
+            self.seed_info_label.fresh()
 
     def __on_del_file_button_clicked(self):
-        if self.search_thread.isRunning():
+        if self.search_thread.isRunning() or self._importing_seeds:
             return
         self.seed_manager.clear()
         self.seed_info_label.fresh()
 
     def __on_button_start_clicked(self):
+        if self._importing_seeds:
+            return
         if self.search_thread.isRunning():
             self.search_thread.end_wait()
             self.button_start.setEnabled(False)
             self.button_wait.setEnabled(True)
             return
-        if cfg.config.search_mode == 1 and self.seed_manager.get_seeds_count() == 0:
+        self._commit_search_edits()
+        self.search_thread.prepare_task(cfg.config)
+        search_config = self.search_thread.task_config.active_search
+        if search_config.search_mode == 1 and self.seed_manager.get_seeds_count() == 0:
             log.info("当前无可搜索种子，请先导入种子文件或修改搜索范围")
             return
 
-        seeds = (cfg.config.start_seed, cfg.config.end_seed)
-        star_nums = (cfg.config.start_star_num, cfg.config.end_star_num)
+        seeds = (search_config.start_seed, search_config.end_seed)
+        star_nums = (search_config.start_star_num, search_config.end_star_num)
         # self.userLayout.seeds = seeds
 
         log.info("开始搜索")
         self.button_start.setEnabled(False)
-        if cfg.config.search_mode == 0:
+        if search_config.search_mode == 0:
             task_num = (seeds[1]-seeds[0]+1)*(star_nums[1]-star_nums[0]+1)
         else:
             task_num = self.seed_manager.get_seeds_count()

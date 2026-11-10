@@ -4,8 +4,9 @@ from CApi import SeedManager, change_condition_legal, resource_rate_c, CheckPrec
 from multiprocessing import cpu_count
 from time import perf_counter, sleep
 from datetime import datetime
+from copy import deepcopy
 
-from config import cfg
+from config.cfg_dict_tying import GUIConfig
 from logger import log
 
 from .config_to_condition import config_to_galaxy_condition
@@ -18,6 +19,13 @@ class SearchThread(QThread):
         self.end_flag = False
         self.wait_flag = False
         self.seed_manager = seed_manager
+        self.task_config: GUIConfig | None = None
+
+    def prepare_task(self, config: GUIConfig):
+        """在 GUI 线程调用，继续暂停任务时不重新创建快照。"""
+        if self.isRunning():
+            raise RuntimeError("搜索运行期间不能替换任务快照")
+        self.task_config = config.model_copy(deep=True)
 
     def terminate(self) -> None:
         self.end_flag = True
@@ -32,11 +40,18 @@ class SearchThread(QThread):
         try:
             self.mutex.lock()
 
-            gui_cfg = cfg.copy()
-            galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
+            if self.task_config is None:
+                raise RuntimeError("搜索任务缺少启动快照")
+            task_config = self.task_config
+            gui_cfg = task_config.active_search
+            if task_config.condition_mode == "basic":
+                galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
+            else:
+                # 规范化会原位修改字典，不能传入编辑配置或快照的原始条件。
+                galaxy_condition = deepcopy(gui_cfg.condition)
             galaxy_condition = change_condition_legal(galaxy_condition)
             save_name = gui_cfg.save_name + ".csv"
-            max_thread = gui_cfg.max_thread
+            max_thread = task_config.max_thread
             quick = gui_cfg.quick_check
             resource_index = resource_rate_c.index(gui_cfg.resource_rate)
 

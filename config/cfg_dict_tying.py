@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
+from typing import Literal
 from uuid import UUID, uuid4
 from multiprocessing import cpu_count
 
@@ -39,17 +40,17 @@ class PlanetCondition(BaseModel):
     checked: bool = True
 
     # planet_type: str = "无限制"
-    planet_type: list[str] = []
+    planet_type: list[str] = Field(default_factory=list)
     # singularity: str = "无限制"
-    singularity: list[str] = []
+    singularity: list[str] = Field(default_factory=list)
     liquid_type: str = "无限制"
 
     dsp_level: str = "无限制"
     satisfy_num: int = 1
 
-    veins_point_condition: VeinsCondition = VeinsCondition()
-    veins_amount_condition: VeinsCondition = VeinsCondition()
-    moon_conditions: list['PlanetCondition'] = []
+    veins_point_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    moon_conditions: list['PlanetCondition'] = Field(default_factory=list)
     uuid: UUID = Field(default_factory=uuid4)
 
 class StarCondition(BaseModel):
@@ -57,14 +58,14 @@ class StarCondition(BaseModel):
     checked: bool = True
 
     # star_type: str = "无限制"
-    star_type: list[str] = []
+    star_type: list[str] = Field(default_factory=list)
     lumino_level: float = 0.0
     distance_level: float = -1.0
     satisfy_num: int = 1
 
-    veins_point_condition: VeinsCondition = VeinsCondition()
-    veins_amount_condition: VeinsCondition = VeinsCondition()
-    planet_condition: list[PlanetCondition] = []
+    veins_point_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    planet_condition: list[PlanetCondition] = Field(default_factory=list)
     uuid: UUID = Field(default_factory=uuid4)
 
 class GalaxyCondition(BaseModel):
@@ -72,10 +73,10 @@ class GalaxyCondition(BaseModel):
     checked: bool = True
     valid_state: bool = True
 
-    veins_point_condition: VeinsCondition = VeinsCondition()
-    veins_amount_condition: VeinsCondition = VeinsCondition()
-    star_condition: list[StarCondition] = []
-    planet_condition: list[PlanetCondition] = []
+    veins_point_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    star_condition: list[StarCondition] = Field(default_factory=list)
+    planet_condition: list[PlanetCondition] = Field(default_factory=list)
 
 # csv 导出设置
 class GalaxyExportCondition(BaseModel):
@@ -122,19 +123,42 @@ class CSVExportCondition(BaseModel):
     star: StarExportCondition = StarExportCondition()
     planet: PlanetExportCondition = PlanetExportCondition()
 
-class GUIConfig(BaseModel):
+def default_basic_condition() -> GalaxyCondition:
+    return GalaxyCondition(
+        star_condition=[StarCondition(planet_condition=[PlanetCondition(moon_conditions=[PlanetCondition()])])],
+        planet_condition=[PlanetCondition(moon_conditions=[PlanetCondition()])],
+    )
+
+
+class SearchConfig(BaseModel):
     start_seed: int = 0
     end_seed: int = 99999
     start_star_num: int = 32
     end_star_num: int = 64
+    save_name: str = "seed"
+    search_mode: Literal[0, 1] = 0  # 0: 范围搜索, 1: 二次搜索
+    resource_rate: str = "无限"
+    quick_check: bool = False
+
+
+class BasicSearchConfig(SearchConfig):
+    galaxy_condition: GalaxyCondition = Field(default_factory=default_basic_condition)
+
+
+class AdvancedSearchConfig(SearchConfig):
+    # 阶段三接入高级编辑模型；当前独立保存未规范化的后端条件树。
+    condition: dict = Field(default_factory=lambda: {
+        "type": 5, "value": {"satisfy_num": 0, "children": []},
+    })
+
+
+class GUIConfig(BaseModel):
+    condition_mode: Literal["basic", "advanced"] = "basic"
+    basic_search: BasicSearchConfig = Field(default_factory=BasicSearchConfig)
+    advanced_search: AdvancedSearchConfig = Field(default_factory=AdvancedSearchConfig)
     max_thread: int = cpu_count()
     ui_scale_factor: float = 1.0
     language: str = "zh_CN"
-    galaxy_condition: GalaxyCondition = GalaxyCondition()
-    save_name: str = "seed"
-    search_mode: int = 0  # 0: 范围搜索, 1: 二次搜索
-    resource_rate: str = "无限"
-    quick_check: bool = False
     local_size: int = 256
     device_name: str = "cpu"
     max_gpu_worker: int = 4
@@ -142,6 +166,22 @@ class GUIConfig(BaseModel):
     name_language: str = "English"
     # csv
     csv: CSVExportCondition = CSVExportCondition()
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_search(cls, data):
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+        legacy = {key: data.pop(key) for key in BasicSearchConfig.model_fields if key in data}
+        if "basic_search" not in data and legacy:
+            data["basic_search"] = legacy
+            data["condition_mode"] = "basic"
+        return data
+
+    @property
+    def active_search(self) -> BasicSearchConfig | AdvancedSearchConfig:
+        return self.basic_search if self.condition_mode == "basic" else self.advanced_search
 
 if __name__ == "__main__":
     # cfg = GUIConfig()
