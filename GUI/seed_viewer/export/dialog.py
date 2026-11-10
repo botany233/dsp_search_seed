@@ -189,7 +189,7 @@ class ChoiceWindow(QFrame, Ui_MessageBox):
         curTitleLayout = QHBoxLayout()
         curTitleLayout.setContentsMargins(0, 0, 0, 0)
         curTitleLayout.addWidget(BodyLabel(tr("viewer.export.planet_section")), alignment=Qt.AlignmentFlag.AlignLeft)
-        curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_planet_table"), config_key="enable", config_obj=cfg.config.csv.star), alignment=Qt.AlignmentFlag.AlignRight)
+        curTitleLayout.addWidget(ConfigCheckBox(tr("viewer.export.create_planet_table"), config_key="enable", config_obj=cfg.config.csv.planet), alignment=Qt.AlignmentFlag.AlignRight)
 
         boxs_paras = [
             [

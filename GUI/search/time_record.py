@@ -17,7 +17,9 @@ class TimeRecord:
         self.time_tag = now
 
     def pause(self):
-        self.do_record = False
+        if self.do_record:
+            self._record_time()
+            self.do_record = False
     
     def resume(self):
         if not self.do_record:
