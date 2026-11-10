@@ -40,9 +40,9 @@ class SortTreeWidget(QWidget):
         pass
 
     def _create_settings_window(self, obj):
-        settings_window = SettingsWindow(context=obj)
-        self.addWidgetPopRight(settings_window)
-        self.stackedWidget.setCurrentWidget(settings_window)
+        settings_window = SettingsWindow(self.window(), context=obj)
+        settings_window.exec()
+        settings_window.deleteLater()
 
     def add_item(self, texts):
         return self.tree.add_item(texts)
