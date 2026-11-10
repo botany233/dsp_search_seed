@@ -10,7 +10,7 @@ from config import cfg
 from logger import log
 from language import tr
 from GUI.Messenger import GPUBenchmarkMessages
-from CApi import *
+from CApi import GPUBenchmark, set_gpu_max_worker_c
 
 class LimitLineEdit(LineEdit):
     def __init__(

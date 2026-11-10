@@ -1,6 +1,6 @@
-from ..Compoents import SortTree
-from ..Messenger import SortTreeMessages
-from ..Compoents.Widgets.setting_window import SettingsWindow
+from .tree import SortTree
+from ...Messenger import SortTreeMessages
+from .settings import SettingsWindow
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QApplication
 
 from qfluentwidgets import VBoxLayout, PushButton, PopUpAniStackedWidget

@@ -8,8 +8,13 @@ from CApi import GetDataQueue, Seed
 from config import cfg
 # from logger import log
 from language import tr
-from .Compoents import *
+from .Compoents import (
+    ResourceRateComboBox, SeedScroll, SeedText, AstroTree, AstroInfo,
+    MainTypeComboBox, SubTypeComboBox, SortOrderSwitch, QuickSortSwitch,
+    ManualAddMessageBox,
+)
 from .sort_seed import SortThread
+from .seed_list import SeedList
 
 class ViewerInterface(QFrame):
     def __init__(self, parent=None):

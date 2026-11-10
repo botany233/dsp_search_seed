@@ -1,2 +1,1 @@
-from .sort_tree import *
-from .wait_ring import *
+from .wait_ring import WaitRing

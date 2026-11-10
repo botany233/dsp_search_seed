@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QVBoxLayout, QGridLayout, QHBoxLayout, QFrame
-from .line_edit import LabelWithLimitLineEdit
+from ...Compoents.Widgets.line_edit import LabelWithLimitLineEdit
 
 from qfluentwidgets import PushButton, PopUpAniStackedWidget, TitleLabel, CaptionLabel, isDarkTheme
 from config import cfg
@@ -7,9 +7,7 @@ from config.cfg_dict_tying import VeinsName
 from language import tr, tr_domain
 
 
-# from typing import TYPE_CHECKING
-# if TYPE_CHECKING:
-from GUI.Compoents.sort_tree import SettingsTreeLeave
+from .fields import SettingsTreeLeave
 
 class SettingsWindow(QFrame):
     def __init__(

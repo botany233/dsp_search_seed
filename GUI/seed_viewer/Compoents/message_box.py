@@ -1,7 +1,7 @@
 from qfluentwidgets import TitleLabel, CaptionLabel, LineEdit, MessageBoxBase
 from language import tr
 
-from .seed_list import SeedList
+from ..seed_list import SeedList
 
 class ManualAddMessageBox(MessageBoxBase):
     def __init__(self, seed_list: SeedList, parent=None):

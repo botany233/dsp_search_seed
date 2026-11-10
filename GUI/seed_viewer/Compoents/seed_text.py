@@ -1,7 +1,7 @@
 from qfluentwidgets import CaptionLabel
 from language import tr
 
-from .seed_list import SeedList
+from ..seed_list import SeedList
 
 class SeedText(CaptionLabel):
     def __init__(self, seed_list: SeedList):

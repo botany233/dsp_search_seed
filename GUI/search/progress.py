@@ -9,7 +9,7 @@ from GUI.Messenger import SearchMessages
 from config import cfg
 from language import tr
 
-from .Widgets.button import ConfigSwitchButton
+from ..Compoents.Widgets.button import ConfigSwitchButton
 
 class UserLayout(QVBoxLayout):
     def __init__(self):

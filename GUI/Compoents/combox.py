@@ -1,7 +1,6 @@
 from qfluentwidgets import ComboBox, setFont
 from PySide6.QtGui import QIcon
 from qfluentwidgets.common.icon import FluentIconBase
-from CApi import *
 
 from config import cfg
 from typing import Iterable, Literal

@@ -1,6 +1,6 @@
 from PySide6.QtCore import QThread, QMutex
-from .Messenger import SearchMessages
-from CApi import *
+from ..Messenger import SearchMessages
+from CApi import SeedManager, change_condition_legal, resource_rate_c, CheckPreciseManager, CheckBatchManager
 from multiprocessing import cpu_count
 from time import perf_counter, sleep
 from datetime import datetime

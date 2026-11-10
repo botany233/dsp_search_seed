@@ -4,8 +4,8 @@ from qfluentwidgets import TableWidget, TableItemDelegate, RoundMenu, CheckableM
 from logger import log
 from language import tr
 
-from .seed_list import SeedList
-from .export_window import ExportWindow
+from ..seed_list import SeedList
+from ..export.dialog import ExportWindow
 
 class SeedScroll(TableWidget):
     SeedListUpdated = Signal()

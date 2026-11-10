@@ -20,8 +20,8 @@ from config import cfg
 from logger import log
 from language import tr
 
-from .combox import ResourceRateComboBox
-from .save_seed_info import save_seed_info
+from ..Compoents.combox import ResourceRateComboBox
+from .formatter import save_seed_info
 
 class Ui_MessageBox:
     """ Ui of message box """

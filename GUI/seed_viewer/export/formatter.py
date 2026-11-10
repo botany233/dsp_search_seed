@@ -1,5 +1,5 @@
 from config.cfg_dict_tying import GalaxyExportCondition, StarExportCondition, PlanetExportCondition, CSVExportCondition
-from CApi import *
+from CApi import GalaxyData, gas_veins_c, vein_names_c, dsp_level_c, liquid_types_c, resource_rate_c, planet_types_c
 from language import tr, tr_domain
 from config import cfg as global_cfg
 
