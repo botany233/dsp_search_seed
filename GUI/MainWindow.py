@@ -60,7 +60,6 @@ class MainWindow(FluentWindow):
         # height: int = round(width * 0.5)
         width: int = round(1320 / cfg.config.ui_scale_factor)
         height: int = round(width * 0.5)
-        self.resize(width, height)
 
         lt_qss = """StackedWidget{background-color: #FCFCFC;}"""
         dk_qss = """StackedWidget{background-color: #181818;}"""
@@ -88,6 +87,8 @@ class MainWindow(FluentWindow):
         self.addSubInterface(self.settingInterface, icon=FluentIcon.SETTING, text=tr("navigation.settings"))
         self.addSubInterface(self.aboutInterface, icon=FluentIcon.INFO, text=tr("navigation.about"))
 
+        # 子页面初始化可能触发原生窗口尺寸回调；完成后再设置最终启动尺寸。
+        self.resize(width, height)
         screen = QApplication.primaryScreen()
         screen_geometry = screen.geometry()
         x = (screen_geometry.width() - width) // 2

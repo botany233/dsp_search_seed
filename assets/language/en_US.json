@@ -69,6 +69,29 @@
         }
     },
     "search": {
+        "advanced": {
+            "logic": "Logic group",
+            "star": "Star condition",
+            "planet": "Planet condition",
+            "mineral": "Galaxy mineral condition",
+            "bond": "Bond condition",
+            "all": "All",
+            "any": "Any",
+            "at_least": "At least N",
+            "not": "NOT",
+            "add": "Add child condition",
+            "add_type": "Add {kind}",
+            "empty_group": "A logic group cannot be empty. Add a child before searching.",
+            "not_one": "NOT requires exactly one child. Remove extra children first.",
+            "invalid_minimum": "At least N: N must be between 1 and {count}.",
+            "distance": "Max Distance",
+            "bond_count": "Bond Count",
+            "con1": "Endpoint A",
+            "con2": "Endpoint B",
+            "max_connections": "Max Connections",
+            "children_count": "{count} child conditions",
+            "bond_help": "Bonds count pairs toward endpoint capacities, once per pair. Planets use their star position. An object may match both endpoints; endpoint order does not affect the result."
+        },
         "window_title": "Dyson Sphere Program Seed Search Viewer made by QianQian & DaDa",
         "navigation": {
             "title": "Seed Searcher"

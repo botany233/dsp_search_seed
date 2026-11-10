@@ -1,6 +1,7 @@
 from qfluentwidgets import LineEdit, BodyLabel, isDarkTheme, ToolTipFilter
 from PySide6.QtCore import QTimer
 from typing import Any, Literal
+from math import isfinite
 from config import cfg
 from language import tr
 
@@ -44,10 +45,9 @@ class LimitLineEdit(LineEdit):
         try:
             if self.type_input == "int":
                 return int(text)
-            elif self.type_input == "float":
-                return float(text)
-            elif self.type_input == "liquid_float":
-                return float(text)
+            elif self.type_input in ("float", "liquid_float"):
+                value = float(text)
+                return value if isfinite(value) else None
             else:
                 return text
         except Exception:

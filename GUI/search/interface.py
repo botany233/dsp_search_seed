@@ -16,6 +16,7 @@ from .import_seed_info import ImportSeedInfo
 from ..Compoents import AutoFixedConfigComboBox
 from ..Compoents.Widgets.line_edit import LimitLineEdit
 from .conditions.editor import SortTreeWidget
+from .conditions.advanced import AdvancedConditionEditor
 
 
 class SearchInterface(QFrame):
@@ -69,10 +70,10 @@ class SearchInterface(QFrame):
         self.input_star_num_start = LimitLineEdit("start_star_num", cfg.config.shared_search, min_value=32, max_value=64, default_value=32, empty_invisible=False)
         self.input_star_num_end = LimitLineEdit("end_star_num", cfg.config.shared_search, min_value=32, max_value=64, default_value=64, empty_invisible=False)
         for editor in (self.input_star_num_start, self.input_star_num_end):
-            # 当前 LineEdit 无附属按钮；按两位数字、文本边距和边框留白计算。
+            # 在原有两位数字、文本边距和边框留白宽度基础上加倍。
             margins = editor.textMargins()
-            editor.setFixedWidth(editor.fontMetrics().horizontalAdvance("64")
-                                 + margins.left() + margins.right() + 24)
+            editor.setFixedWidth(2 * (editor.fontMetrics().horizontalAdvance("64")
+                                     + margins.left() + margins.right() + 24))
         self.label_resource_rate = BodyLabel(tr("search.main.resource_rate"))
         self.input_resource_rate =  AutoFixedConfigComboBox("resource_rate", None, cfg.config.shared_search, "str", resource_rate_c, domain="resource_rates")
         # self.label_batch_size = BodyLabel("批处理大小:")
@@ -91,6 +92,7 @@ class SearchInterface(QFrame):
         self.button_stop.setEnabled(False)
 
         self.tree_view = SortTreeWidget()
+        self.advanced_view = AdvancedConditionEditor(cfg.config.advanced_search)
         self.search_mode_segment = SegmentedWidget()
         for mode, key in ((0, "range_mode"), (1, "precise_mode")):
             self.search_mode_segment.addItem(str(mode), tr(f"search.status.{key}"),
@@ -132,6 +134,7 @@ class SearchInterface(QFrame):
         self.modeLayout.addSpacing(12)
         self.modeLayout.addWidget(self.condition_mode_segment, 0, Qt.AlignRight)
         self.middleLayout.addWidget(self.tree_view)
+        self.middleLayout.addWidget(self.advanced_view)
 
         self.buttonLayout.addWidget(self.button_start)
         self.buttonLayout.addWidget(self.button_wait)
@@ -141,6 +144,7 @@ class SearchInterface(QFrame):
 
     def __recover_condition(self):
         self.tree_view.setVisible(cfg.config.condition_mode == "basic")
+        self.advanced_view.setVisible(cfg.config.condition_mode == "advanced")
         galaxy_condition = cfg.config.basic_search.galaxy_condition
         galaxy_leaf = self.tree_view.tree.addLeaf(galaxy_condition)
         for star_condition in galaxy_condition.star_condition:
@@ -174,6 +178,7 @@ class SearchInterface(QFrame):
         cfg.config.condition_mode = mode
         self.condition_mode_segment.setCurrentItem(mode)
         self.tree_view.setVisible(mode == "basic")
+        self.advanced_view.setVisible(mode == "advanced")
         cfg.save()
 
     def resizeEvent(self, event):
@@ -271,6 +276,8 @@ class SearchInterface(QFrame):
             self.button_wait.setEnabled(True)
             return
         self._commit_search_edits()
+        if cfg.config.condition_mode == "advanced" and not self.advanced_view.validate_condition():
+            return
         self.search_thread.prepare_task(cfg.config)
         task_config = self.search_thread.task_config
         search_config = task_config.shared_search

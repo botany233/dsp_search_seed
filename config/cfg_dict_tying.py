@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 from multiprocessing import cpu_count
 
@@ -145,11 +145,55 @@ class BasicSearchConfig(BaseModel):
     galaxy_condition: GalaxyCondition = Field(default_factory=default_basic_condition)
 
 
+class AdvancedEndpoint(BaseModel):
+    kind: Literal["star", "planet"] = "star"
+    star: StarCondition = Field(default_factory=StarCondition)
+    planet: PlanetCondition = Field(default_factory=PlanetCondition)
+
+
+class AdvancedStarNode(BaseModel):
+    kind: Literal["star"] = "star"
+    condition: StarCondition = Field(default_factory=StarCondition)
+
+
+class AdvancedPlanetNode(BaseModel):
+    kind: Literal["planet"] = "planet"
+    condition: PlanetCondition = Field(default_factory=PlanetCondition)
+
+
+class AdvancedMineralNode(BaseModel):
+    kind: Literal["mineral"] = "mineral"
+    checked: bool = True
+    veins_point_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+    veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
+
+
+class AdvancedBondNode(BaseModel):
+    kind: Literal["bond"] = "bond"
+    checked: bool = True
+    distance: float = Field(default=1000.0, ge=0, allow_inf_nan=False)
+    satisfy_num: int = Field(default=1, ge=1, le=2147483647)
+    con1: AdvancedEndpoint = Field(default_factory=AdvancedEndpoint)
+    con2: AdvancedEndpoint = Field(default_factory=AdvancedEndpoint)
+
+
+class AdvancedLogicNode(BaseModel):
+    kind: Literal["logic"] = "logic"
+    checked: bool = True
+    operation: Literal["all", "any", "at_least", "not"] = "all"
+    minimum: int = Field(default=1, ge=1, le=65535)
+    children: list["AdvancedNode"] = Field(default_factory=list)
+
+
+AdvancedNode = Annotated[
+    AdvancedLogicNode | AdvancedStarNode | AdvancedPlanetNode | AdvancedMineralNode | AdvancedBondNode,
+    Field(discriminator="kind"),
+]
+AdvancedLogicNode.model_rebuild()
+
+
 class AdvancedSearchConfig(BaseModel):
-    # 阶段三接入高级编辑模型；当前独立保存未规范化的后端条件树。
-    condition: dict = Field(default_factory=lambda: {
-        "type": 5, "value": {"satisfy_num": 0, "children": []},
-    })
+    condition: AdvancedLogicNode = Field(default_factory=AdvancedLogicNode)
 
 
 class GUIConfig(BaseModel):

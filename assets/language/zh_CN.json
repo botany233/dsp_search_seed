@@ -69,6 +69,29 @@
         }
     },
     "search": {
+        "advanced": {
+            "logic": "逻辑组",
+            "star": "恒星条件",
+            "planet": "行星条件",
+            "mineral": "星区矿物条件",
+            "bond": "绑定条件",
+            "all": "全部满足",
+            "any": "任一满足",
+            "at_least": "至少满足 N 项",
+            "not": "取反",
+            "add": "添加子条件",
+            "add_type": "添加{kind}",
+            "empty_group": "逻辑组不能为空，请添加子条件后再搜索。",
+            "not_one": "取反必须且只能包含一个子条件；请先删除多余子项。",
+            "invalid_minimum": "至少满足 N 项：N 必须为 1～{count}。",
+            "distance": "最远距离",
+            "bond_count": "绑定数量",
+            "con1": "端点 A",
+            "con2": "端点 B",
+            "max_connections": "最大连接数",
+            "children_count": "子条件：{count} 项",
+            "bond_help": "绑定按两端容量统计配对，每对最多计一次；行星使用所属恒星位置。同一对象可匹配两端，端点顺序不影响结果。"
+        },
         "window_title": "戴森球计划种子搜索查看器 made by 前前&哒哒",
         "navigation": {
             "title": "种子搜索器"

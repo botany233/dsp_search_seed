@@ -1,4 +1,4 @@
-__all__ = ["config_to_galaxy_condition"]
+__all__ = ["config_to_galaxy_condition", "config_to_advanced_condition"]
 
 from config.cfg_dict_tying import (
     GalaxyCondition,
@@ -6,7 +6,46 @@ from config.cfg_dict_tying import (
     StarCondition,
     VeinsCondition,
     VeinsName,
+    AdvancedNode, AdvancedEndpoint,
 )
+from language import tr
+
+
+def config_to_endpoint(endpoint: AdvancedEndpoint) -> dict:
+    if endpoint.kind == "star":
+        return {"type": 2, "value": config_to_star_condition(endpoint.star)}
+    return {"type": 3, "value": config_to_planet_condition(endpoint.planet)}
+
+
+def config_to_advanced_condition(node: AdvancedNode) -> dict:
+    if node.kind in ("logic", "bond", "mineral") and not node.checked:
+        return {"type": 5, "value": {"satisfy_num": 0, "children": []}}
+    if node.kind == "mineral":
+        return {"type": 1, "value": {
+            "veins_point": get_veins_dict(node.veins_point_condition),
+            "veins_amount": get_veins_dict(node.veins_amount_condition),
+        }}
+    if node.kind == "star":
+        return {"type": 2, "value": config_to_star_condition(node.condition)}
+    if node.kind == "planet":
+        return {"type": 3, "value": config_to_planet_condition(node.condition)}
+    if node.kind == "bond":
+        return {"type": 4, "value": {
+            "distance": node.distance, "satisfy_num": node.satisfy_num,
+            "con1": config_to_endpoint(node.con1), "con2": config_to_endpoint(node.con2),
+        }}
+    count = len(node.children)
+    if count == 0:
+        raise ValueError(tr("search.advanced.empty_group"))
+    if node.operation == "not" and count != 1:
+        raise ValueError(tr("search.advanced.not_one"))
+    if node.operation == "at_least" and not 1 <= node.minimum <= count:
+        raise ValueError(tr("search.advanced.invalid_minimum").format(count=count))
+    thresholds = {"all": count, "any": 1, "at_least": node.minimum, "not": 0}
+    return {"type": 5, "value": {
+        "satisfy_num": thresholds[node.operation],
+        "children": [config_to_advanced_condition(child) for child in node.children],
+    }}
 
 def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
     mineral_condition = {}

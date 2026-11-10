@@ -4,12 +4,11 @@ from CApi import SeedManager, change_condition_legal, resource_rate_c, CheckPrec
 from multiprocessing import cpu_count
 from time import perf_counter, sleep
 from datetime import datetime
-from copy import deepcopy
 
 from config.cfg_dict_tying import GUIConfig
 from logger import log
 
-from .config_to_condition import config_to_galaxy_condition
+from .config_to_condition import config_to_galaxy_condition, config_to_advanced_condition
 from .time_record import TimeRecord
 
 class SearchThread(QThread):
@@ -48,8 +47,7 @@ class SearchThread(QThread):
             if task_config.condition_mode == "basic":
                 galaxy_condition = config_to_galaxy_condition(gui_cfg.galaxy_condition)
             else:
-                # 规范化会原位修改字典，不能传入编辑配置或快照的原始条件。
-                galaxy_condition = deepcopy(gui_cfg.condition)
+                galaxy_condition = config_to_advanced_condition(gui_cfg.condition)
             galaxy_condition = change_condition_legal(galaxy_condition)
             save_name = shared_cfg.save_name + ".csv"
             max_thread = task_config.max_thread
