@@ -122,6 +122,10 @@
             "found_summary": "Seeds found: {total_seed_num}  Last hit: {last_seed_id}, {last_star_num}",
             "progress": "Search progress: {finish_task}/{total_task}({percent}%)",
             "completed": "Search completed in {time}",
+            "task_status": "Current task: {mode} · {state}. Edits apply to the next new search.",
+            "task_running": "Running",
+            "task_paused": "Pause requested",
+            "task_stopping": "Stopping",
             "valid_state": "Save Valid Seeds  ",
             "invalid_state": "Save Invalid Seeds"
         },

@@ -10,7 +10,6 @@ from language import tr
 from logger import log
 
 from .worker import SearchThread
-from ..Messenger import SearchMessages
 from .progress import UserLayout
 from .import_seed_info import ImportSeedInfo
 from ..Compoents import AutoFixedConfigComboBox
@@ -26,9 +25,10 @@ class SearchInterface(QFrame):
         self.searchLayout = VBoxLayout(self)
         self.seed_manager = SeedManager()
         self._importing_seeds = False
+        self._task_active = False
         self.__build__()
         self.search_thread = SearchThread(self.seed_manager, self)
-        SearchMessages.searchEnd.connect(self._on_search_finish)
+        self.search_thread.finished.connect(self._on_search_finish)
         self.__switch_search_mode(cfg.config.shared_search.search_mode)
 
     def get_search_task(self) -> SearchThread:
@@ -229,7 +229,7 @@ class SearchInterface(QFrame):
         self._update_top_layout()
 
     def __on_add_file_button_clicked(self):
-        if self.search_thread.isRunning() or self._importing_seeds:
+        if self._task_active or self._importing_seeds:
             return
         file_paths, _ = QFileDialog.getOpenFileNames(
             self.window(),
@@ -262,7 +262,7 @@ class SearchInterface(QFrame):
             self.seed_info_label.fresh()
 
     def __on_del_file_button_clicked(self):
-        if self.search_thread.isRunning() or self._importing_seeds:
+        if self._task_active or self._importing_seeds:
             return
         self.seed_manager.clear()
         self.seed_info_label.fresh()
@@ -270,10 +270,13 @@ class SearchInterface(QFrame):
     def __on_button_start_clicked(self):
         if self._importing_seeds:
             return
-        if self.search_thread.isRunning():
+        if self._task_active:
+            if not self.search_thread.wait_flag or self.search_thread.end_flag:
+                return
             self.search_thread.end_wait()
             self.button_start.setEnabled(False)
             self.button_wait.setEnabled(True)
+            self._update_task_status("running")
             return
         self._commit_search_edits()
         if cfg.config.condition_mode == "advanced" and not self.advanced_view.validate_condition():
@@ -303,19 +306,38 @@ class SearchInterface(QFrame):
         # log.debug(self.userLayout.progressBar.maximum())
         self.search_thread.end_flag = False
         self.search_thread.wait_flag = False
+        self._task_active = True
+        self._update_task_status("running")
         self.search_thread.start()
         self.button_stop.setEnabled(True)
         self.button_wait.setEnabled(True)
 
     def __on_button_wait_clicked(self):
+        if not self._task_active or self.search_thread.end_flag:
+            return
         self.search_thread.start_wait()
         self.button_wait.setEnabled(False)
         self.button_start.setEnabled(True)
+        self._update_task_status("paused")
 
     def __on_button_stop_clicked(self):
+        if not self._task_active:
+            return
         self.search_thread.terminate()
+        self.button_start.setEnabled(False)
+        self.button_wait.setEnabled(False)
+        self.button_stop.setEnabled(False)
+        self._update_task_status("stopping")
+
+    def _update_task_status(self, state: str):
+        mode = self.search_thread.task_config.condition_mode
+        self.userLayout.taskStatusLabel.setText(tr("search.status.task_status").format(
+            mode=tr(f"search.main.{mode}_mode"), state=tr(f"search.status.task_{state}")))
+        self.userLayout.taskStatusLabel.show()
 
     def _on_search_finish(self):
+        self._task_active = False
+        self.userLayout.taskStatusLabel.hide()
         self.button_start.setEnabled(True)
         self.button_stop.setEnabled(False)
         self.button_wait.setEnabled(False)
