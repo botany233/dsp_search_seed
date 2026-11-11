@@ -44,6 +44,11 @@ class AdvancedTree(SortTree):
         if node.checked != checked:
             node.checked = checked
             self.editor._changed()
+        elif isinstance(node, (AdvancedLogicNode, AdvancedMineralNode)):
+            name = node.custom_name if node.custom_name is not None else tr(f"search.advanced.{node.kind}")
+            if item.text(0) != name:
+                node.custom_name = item.text(0)
+                cfg.save()
 
     def on_custom_context_menu_requested(self, pos):
         item = self.itemAt(pos)
@@ -61,10 +66,13 @@ class AdvancedConditionEditor(QWidget):
         self.tree = AdvancedTree(self)
         self.tree.setBorderVisible(True)
         self.tree.setBorderRadius(8)
-        layout.addWidget(self.tree)
         self.warningLabel = BodyLabel()
+        self.warningLabel.setTextColor("#c42b1c", "#ff99a4")
         self.warningLabel.setWordWrap(True)
         layout.addWidget(self.warningLabel)
+        layout.addWidget(self.tree)
+        # 与基础编辑器保持一致的底部布局间距。
+        layout.addLayout(QHBoxLayout())
         self.rebuild()
 
     def validate_condition(self):
@@ -141,9 +149,14 @@ class AdvancedConditionEditor(QWidget):
             item.remove_node = lambda: self.remove_node(parent_node, node)
             return item
         item = QTreeWidgetItem(parent or self.tree)
-        item.node = node
-        item.setText(0, tr(f"search.advanced.{node.kind}"))
+        name = tr(f"search.advanced.{node.kind}")
+        if isinstance(node, (AdvancedLogicNode, AdvancedMineralNode)):
+            item.setFlags(item.flags() | Qt.ItemIsEditable)
+            if node.custom_name is not None:
+                name = node.custom_name
+        item.setText(0, name)
         item.setCheckState(0, Qt.Checked if node.checked else Qt.Unchecked)
+        item.node = node
         item.remove_node = lambda: self.remove_node(parent_node, node)
         layout = self._row(item)
         add = self._manage(item, parent_node is not None)
@@ -156,9 +169,10 @@ class AdvancedConditionEditor(QWidget):
             layout.addWidget(combo)
             minimum = LimitLineEdit("minimum", node, min_value=1, max_value=65535,
                                     default_value=1, empty_invisible=False)
-            minimum.setMaximumWidth(125)
-            minimum.setVisible(node.operation == "at_least")
+            minimum.setMaximumWidth(96)
+            minimum.setFixedHeight(28)
             layout.addWidget(minimum)
+            minimum.setVisible(node.operation == "at_least")
             add.setEnabled(node.operation != "not" or not node.children)
 
             def change_operation(index):
@@ -197,12 +211,14 @@ class AdvancedConditionEditor(QWidget):
             layout.addWidget(BodyLabel(tr("search.advanced.distance")))
             distance = LimitLineEdit("distance", node, "float", min_value=0, max_value=1e9,
                                      default_value=1000.0, empty_invisible=False)
-            distance.setMaximumWidth(125)
+            distance.setMaximumWidth(96)
+            distance.setFixedHeight(28)
             layout.addWidget(distance)
             layout.addWidget(BodyLabel(tr("search.advanced.bond_count")))
             count = LimitLineEdit("satisfy_num", node, min_value=1, max_value=2147483647,
                                   default_value=1, empty_invisible=False)
-            count.setMaximumWidth(125)
+            count.setMaximumWidth(96)
+            count.setFixedHeight(28)
             layout.addWidget(count)
             for key in ("con1", "con2"):
                 endpoint = getattr(node, key)

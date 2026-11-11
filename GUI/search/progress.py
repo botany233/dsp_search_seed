@@ -3,13 +3,11 @@ from collections import deque
 from PySide6.QtWidgets import QVBoxLayout, QHBoxLayout, QFileDialog
 from PySide6.QtGui import QColor
 from PySide6.QtCore import Qt
-from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, LineEdit
+from qfluentwidgets import PushButton, BodyLabel, ProgressBar, CaptionLabel, LineEdit, SegmentedWidget
 
 from GUI.Messenger import SearchMessages
 from config import cfg
 from language import tr
-
-from ..Compoents.Widgets.button import ConfigSwitchButton
 
 class UserLayout(QVBoxLayout):
     def __init__(self):
@@ -23,10 +21,14 @@ class UserLayout(QVBoxLayout):
         self.addLayout(self.userButtonsLayout)
         self.addStretch()
 
-        self.quick_check_switch = ConfigSwitchButton(tr("search.status.standard_mode"), indicatorPos=1)
-        self.quick_check_switch.setOnText(tr("search.status.quick_mode"))
-        self.quick_check_switch.set_config(config_obj=cfg.config.shared_search, config_key="quick_check")
-        self.userButtonsLayout.addWidget(self.quick_check_switch)
+        self.quick_check_segment = SegmentedWidget()
+        for mode in ("standard", "quick"):
+            self.quick_check_segment.addItem(
+                mode, tr(f"search.status.{mode}_mode"),
+                onClick=lambda checked=False, quick=mode == "quick": self._set_quick_check(quick),
+            )
+        self.quick_check_segment.setCurrentItem("quick" if cfg.config.shared_search.quick_check else "standard")
+        self.userButtonsLayout.addWidget(self.quick_check_segment)
 
         self.outputFileLabel = BodyLabel(tr("search.status.output_file_name"))
         self.userButtonsLayout.addWidget(self.outputFileLabel)
@@ -60,6 +62,10 @@ class UserLayout(QVBoxLayout):
         SearchMessages.new_find_seed.connect(self._update_last_seed)
 
         self.progress_cache = deque(maxlen=1000)
+
+    def _set_quick_check(self, quick: bool):
+        cfg.config.shared_search.quick_check = quick
+        cfg.save()
 
     def _update_output_filename(self, filename: str):
         cfg.config.shared_search.save_name = "seed" if filename == "" else filename

@@ -34,6 +34,8 @@ class SettingsWindow(MessageBoxBase):
         self.viewLayout.addLayout(self.settingsLayout)
 
         self.warningLabel = CaptionLabel(self)
+        if cfg.config.condition_mode == "advanced":
+            self.warningLabel.setTextColor("#c42b1c", "#ff99a4")
         self.warningLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.warningLabel)
 

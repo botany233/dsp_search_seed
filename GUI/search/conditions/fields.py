@@ -300,8 +300,6 @@ class GalaxyTreeLeave(LeaveBase):
             display_title=tr("search.condition_tree.settings.galaxy_veins_amount_title"),
             description=tr("search.condition_tree.settings.galaxy_veins_amount_description"),
         )
-        self.mainLayout.addWidget(self.veinsConditionButton)
-        self.mainLayout.addWidget(self.veinsPointConditionButton)
         self.validStateSegment = SegmentedWidget()
         for route, valid in (("valid", True), ("invalid", False)):
             button = self.validStateSegment.addItem(
@@ -311,6 +309,8 @@ class GalaxyTreeLeave(LeaveBase):
             setFont(button, 12)
         self.validStateSegment.setCurrentItem("valid" if self.config_obj.valid_state else "invalid")
         self.mainLayout.addWidget(self.validStateSegment)
+        self.mainLayout.addWidget(self.veinsConditionButton)
+        self.mainLayout.addWidget(self.veinsPointConditionButton)
 
     def _on_valid_state_changed(self, valid: bool):
         from config import cfg

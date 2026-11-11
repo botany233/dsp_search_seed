@@ -164,6 +164,7 @@ class AdvancedPlanetNode(BaseModel):
 class AdvancedMineralNode(BaseModel):
     kind: Literal["mineral"] = "mineral"
     checked: bool = True
+    custom_name: str | None = None
     veins_point_condition: VeinsCondition = Field(default_factory=VeinsCondition)
     veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
 
@@ -180,6 +181,7 @@ class AdvancedBondNode(BaseModel):
 class AdvancedLogicNode(BaseModel):
     kind: Literal["logic"] = "logic"
     checked: bool = True
+    custom_name: str | None = None
     operation: Literal["all", "any", "at_least", "not"] = "all"
     minimum: int = Field(default=1, ge=1, le=65535)
     children: list["AdvancedNode"] = Field(default_factory=list)
