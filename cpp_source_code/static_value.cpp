@@ -29,3 +29,12 @@ std::size_t OpenCLManager::cfg_version;
 std::mutex OpenCLManager::lock;
 int OpenCLManager::max_worker = 8;
 int OpenCLManager::cur_worker = 0;
+
+#include "astro_class.hpp"
+std::mutex StarPositionCache::mutex;
+std::array<std::shared_ptr<const StarPositionData>,128> StarPositionCache::cache = [] {
+	std::array<std::shared_ptr<const StarPositionData>,128> entries;
+	entries.fill(std::make_shared<const StarPositionData>());
+	return entries;
+}();
+std::unordered_map<int,std::shared_ptr<StarPositionCache::PositionFlight>> StarPositionCache::inflight;

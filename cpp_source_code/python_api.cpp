@@ -35,6 +35,8 @@ std::vector<std::string> check_batch_c(int start_seed,int end_seed,int start_sta
 {
 	std::vector<std::string> result;
 	GalaxyClassSimple workspace;
+	workspace.max_position = start_seed < end_seed && end_star_num - start_star_num > 1 ?
+		static_cast<std::uint8_t>(end_star_num - 1) : 0;
 	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
 	{
 		for(int star_num = start_star_num;star_num<end_star_num;star_num++)
@@ -197,6 +199,9 @@ PYBIND11_MODULE(search_seed,m) {
 		py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 	m.def("get_galaxy_data_c",&get_galaxy_data,py::arg("seed"),py::arg("quick"));
 	m.def("get_galaxy_data_fast_c",&get_galaxy_data_fast,py::arg("seed"),py::arg("quick"),py::arg("gen_planet_num")=-1,py::arg("vein_mask")=0x3FFF);
-	m.def("check_batch_c",&check_batch_c,py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),
-	py::arg("end_star_num"),py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
+	m.def("check_batch_c",[](int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
+		const py::dict& condition,bool quick) {
+		return check_batch_c(start_seed,end_seed,start_star_num,end_star_num,resource_index,ConditionManager(condition),quick);
+	},py::arg("start_seed"),py::arg("end_seed"),py::arg("start_star_num"),py::arg("end_star_num"),
+		py::arg("resource_index"),py::arg("galaxy_condition"),py::arg("quick"));
 }

@@ -448,12 +448,18 @@ bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool q
 }
 
 bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace) {
+	return check_seed(seed,conditions,quick,workspace,0);
+}
+
+bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace,std::size_t start_index) {
 	workspace.init(seed);
 	ResultManager results = conditions.create_result_manager();
 	for(int level=1;level<=(quick ? 3 : 4);level++) {
 		if(level == 2)
 			workspace.ready_for_level2_check();
-		for(const ConditionRef& ref : conditions.core_conditions) {
+		const std::size_t count = conditions.core_conditions.size();
+		for(std::size_t i=0;i<count;i++) {
+			const ConditionRef& ref = conditions.core_conditions[(start_index+i) % count];
 			const EnumResult root = conditions.evaluate_root(results);
 			if(root != EnumResult::Unknown)
 				return root == EnumResult::True;

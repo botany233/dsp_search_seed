@@ -1,5 +1,6 @@
 #include "condition_struct.hpp"
 
+#include <algorithm>
 #include <limits>
 #include <stdexcept>
 #include <unordered_map>
@@ -34,6 +35,14 @@ ResultManager::ResultManager(std::size_t core_condition_count)
 
 ResultManager ConditionManager::create_result_manager() const {
 	return ResultManager(core_conditions.size());
+}
+
+void ConditionManager::rotate_core_conditions(std::size_t start_index) {
+	if(start_index == 0)
+		return;
+	if(start_index >= core_conditions.size())
+		throw std::out_of_range("核心条件轮换起点越界");
+	std::rotate(core_conditions.begin(),core_conditions.begin()+start_index,core_conditions.end());
 }
 
 // 去重表只在构造期间使用，结果下标写回 root、逻辑叶子及核心列表。

@@ -2,10 +2,13 @@
 #include <pybind11/pybind11.h>
 #include <algorithm>
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <cstdint>
 #include <mutex>
+#include <optional>
 #include <queue>
+#include <random>
 #include <stop_token>
 #include <thread>
 #include <utility>
@@ -19,8 +22,80 @@
 #include "python_api.hpp"
 #include "seed_manager.hpp"
 #include "condition_struct.hpp"
+#include "src/DotNet35Random.hpp"
 
 namespace py = pybind11;
+
+// 线程仅在学习结束时提交一次；最后一个提交者旋转共享条件并发布结果。
+struct CoreOrderLearning {
+	struct Observation {
+		std::size_t count = 0;
+		std::uint64_t nanoseconds = 0;
+	};
+	struct Worker {
+		std::vector<Observation> observations;
+		DotNet35RandomLong random;
+
+		explicit Worker(std::size_t core_count): observations(core_count),random(entropy_seed()) {}
+
+		bool check(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace) {
+			const std::size_t start = static_cast<std::size_t>(random.Next(static_cast<int>(observations.size())));
+			const std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
+			const bool passed = check_seed(seed,conditions,quick,workspace,start);
+			const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+			++observations[start].count;
+			observations[start].nanoseconds += static_cast<std::uint64_t>(
+				std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count());
+			return passed;
+		}
+
+		static int entropy_seed() {
+			// 使用 MSVC 的系统随机源，屏蔽符号位以避开 abs(INT_MIN)。
+			std::random_device entropy;
+			return static_cast<int>(entropy() & 0x7FFFFFFFu);
+		}
+	};
+	std::size_t budget = 0;
+	int submitted = 0;
+	bool frozen = false;
+	std::vector<Observation> observations;
+	std::mutex mtx;
+	std::condition_variable_any on_frozen;
+
+	void initialize(std::size_t task_count,std::size_t core_count,bool quick) {
+		if(core_count > 1 && task_count > 5000 * core_count && task_count > (quick ? 100000u : 10000u)) {
+			budget = 2000 * core_count;
+			observations.resize(core_count);
+		}
+	}
+
+	bool synchronize(const std::vector<Observation>& local,int worker_count,ConditionManager& conditions,std::stop_token token) {
+		std::unique_lock lck(mtx);
+		for(std::size_t i=0;i<local.size();++i) {
+			observations[i].count += local[i].count;
+			observations[i].nanoseconds += local[i].nanoseconds;
+		}
+		if(++submitted == worker_count) {
+			std::size_t count = 0,best = observations.size();
+			for(std::size_t i=0;i<observations.size();++i) {
+				const Observation& candidate = observations[i];
+				count += candidate.count;
+				if(candidate.count && (best == observations.size() ||
+					static_cast<long double>(candidate.nanoseconds) / candidate.count <
+					static_cast<long double>(observations[best].nanoseconds) / observations[best].count))
+					best = i;
+			}
+			// 精筛输入提前耗尽时保留原序；停止时也不提交新顺序。
+			if(count == budget && best != observations.size() && !token.stop_requested())
+				conditions.rotate_core_conditions(best);
+			frozen = true;
+			lck.unlock();
+			on_frozen.notify_all();
+			return !token.stop_requested();
+		}
+		return on_frozen.wait(lck,token,[this] { return frozen; }) && !token.stop_requested();
+	}
+};
 
 class GetDataQueue {
 protected:
@@ -302,7 +377,9 @@ protected:
 
 	std::uint8_t resource_index;
 	SeedManager* seed_manager;
-	const ConditionManager galaxy_condition;
+	std::size_t task_id = 0; // 由 task_mtx 保护，与实际出队顺序一致。
+	ConditionManager galaxy_condition;
+	CoreOrderLearning order_learning;
 	int max_thread;
 	bool quick;
 
@@ -339,18 +416,44 @@ protected:
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		GalaxyClassSimple workspace;
+		const std::size_t budget = order_learning.budget;
+		bool learning = budget != 0;
+		std::optional<CoreOrderLearning::Worker> learner;
+		if(learning)
+			learner.emplace(galaxy_condition.core_conditions.size());
 		while(true) {
 			SeedStruct current_task;
+			std::size_t current_task_id = 0;
+			bool exhausted;
 			{
 				std::unique_lock lck(task_mtx);
-				cv_consumer.wait(lck,token,[this] { return !paused && (!tasks.empty() || finish); });
-				if(stopped || token.stop_requested() || (tasks.empty() && finish))
+				cv_consumer.wait(lck,token,[this,&learning,budget] {
+					return !paused && (!tasks.empty() || finish || (learning && task_id >= budget));
+				});
+				if(stopped || token.stop_requested())
 					break;
-				current_task = tasks.front();
-				tasks.pop();
+				if(learning)
+					current_task_id = task_id;
+				exhausted = tasks.empty() && finish;
+				if(!exhausted && (!learning || current_task_id < budget)) {
+					current_task = tasks.front();
+					tasks.pop();
+					if(learning)
+						++task_id;
+				}
 			}
+			if(learning && (exhausted || current_task_id >= budget)) {
+				if(!order_learning.synchronize(learner->observations,max_thread,galaxy_condition,token))
+					break;
+				learning = false;
+				continue;
+			}
+			if(exhausted)
+				break;
 			cv_generator.notify_one();
-			if(check_seed(current_task,galaxy_condition,quick,workspace)) {
+			const bool passed = learning ? learner->check(current_task,galaxy_condition,quick,workspace) :
+				check_seed(current_task,galaxy_condition,quick,workspace);
+			if(passed) {
 				std::lock_guard lck(result_mtx);
 				result.push_back(current_task);
 			}
@@ -391,6 +494,7 @@ public:
 			std::lock_guard lck(task_mtx);
 			if(started || stopped)
 				return;
+			order_learning.initialize(seed_manager->get_seeds_count(),galaxy_condition.core_conditions.size(),quick);
 			started = true;
 		}
 		// Count all workers before any can finish, including those not yet created.
@@ -455,7 +559,7 @@ public:
 class CheckBatchManager {
 protected:
 	std::atomic<int> working_num = 0;
-	std::atomic<std::size_t> task_id = 0;
+	std::size_t task_id = 0; // 领取任务时始终持有 task_mtx，无需额外原子操作。
 	std::atomic<std::size_t> finish_task_num = 0;
 	std::mutex task_mtx;
 	std::condition_variable_any cv_resume;
@@ -463,8 +567,10 @@ protected:
 	bool stopped = false;
 	bool started = false;
 
-	const ConditionManager galaxy_condition;
+	ConditionManager galaxy_condition;
+	CoreOrderLearning order_learning;
 	bool quick;
+	std::uint8_t max_position;
 	int start_seed;
 	int start_star_num;
 	int star_num_count;
@@ -480,6 +586,12 @@ protected:
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
 		GalaxyClassSimple workspace;
+		workspace.max_position = max_position;
+		const std::size_t budget = order_learning.budget;
+		bool learning = budget != 0;
+		std::optional<CoreOrderLearning::Worker> learner;
+		if(learning)
+			learner.emplace(galaxy_condition.core_conditions.size());
 		while(true) {
 			std::size_t current_task_id;
 			{
@@ -487,7 +599,15 @@ protected:
 				cv_resume.wait(lck,token,[this] { return !paused; });
 				if(stopped || token.stop_requested())
 					break;
-				current_task_id = task_id.fetch_add(1);
+				current_task_id = task_id;
+				if(!learning || current_task_id < budget)
+					++task_id;
+			}
+			if(learning && current_task_id >= budget) {
+				if(!order_learning.synchronize(learner->observations,max_thread,galaxy_condition,token))
+					break;
+				learning = false;
+				continue;
 			}
 			if(current_task_id >= task_num)
 				break;
@@ -495,7 +615,9 @@ protected:
 			const int seed_id = start_seed + static_cast<int>(current_task_id / star_num_count);
 			const int star_num = start_star_num + static_cast<int>(current_task_id % star_num_count);
 			const SeedStruct task(seed_id,star_num,resource_index);
-			if(check_seed(task,galaxy_condition,quick,workspace)) {
+			const bool passed = learning ? learner->check(task,galaxy_condition,quick,workspace) :
+				check_seed(task,galaxy_condition,quick,workspace);
+			if(passed) {
 				std::lock_guard lck(result_mtx);
 				result.push_back(task);
 			}
@@ -504,6 +626,7 @@ protected:
 		working_num.fetch_sub(1);
 	}
 public:
+	// 非空批次仅在遍历多个恒星数时按最大实际星数缓存坐标。
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
 		const py::dict& galaxy_condition_dict,bool quick,int max_thread):
 		CheckBatchManager(start_seed,end_seed,start_star_num,end_star_num,resource_index,
@@ -512,9 +635,13 @@ public:
 	CheckBatchManager(int start_seed,int end_seed,int start_star_num,int end_star_num,std::uint8_t resource_index,
 		const ConditionManager& galaxy_condition,bool quick,int max_thread):
 		galaxy_condition(galaxy_condition),quick(quick),
+		max_position(start_seed < end_seed && end_star_num - start_star_num > 1 ?
+			static_cast<std::uint8_t>(end_star_num - 1) : 0),
 		start_seed(start_seed),start_star_num(start_star_num),star_num_count(std::max(end_star_num-start_star_num,0)),
 		resource_index(resource_index),task_num(std::size_t(std::max(end_seed-start_seed,0)) * star_num_count),
-		max_thread(std::clamp(max_thread,1,128)) {}
+		max_thread(std::clamp(max_thread,1,128)) {
+		order_learning.initialize(task_num,this->galaxy_condition.core_conditions.size(),quick);
+	}
 
 	~CheckBatchManager() {
 		shutdown();

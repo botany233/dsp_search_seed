@@ -2,6 +2,10 @@
 // Modified by https://github.com/botany233 on 2026.2
 #pragma once
 #include <array>
+#include <memory>
+#include <future>
+#include <mutex>
+#include <unordered_map>
 #include <algorithm>
 #include "data_struct.hpp"
 #include "defines.hpp"
@@ -126,10 +130,31 @@ private:
 	void SetStarAge(double rn,double rt);
 };
 
+struct StarPositionData {
+	int seed_id = 0;
+	std::uint8_t valid_position_num = 0;
+	std::array<VectorLF3,64> positions{};
+};
+class StarPositionCache {
+public:
+	// 输入合法性由调用方保证：1 <= need_position <= 64；非零时 need_position <= max_position <= 64。
+	static std::shared_ptr<const StarPositionData> get(int seed_id,std::uint8_t need_position,std::uint8_t max_position);
+private:
+	struct PositionFlight {
+		std::promise<std::shared_ptr<const StarPositionData>> promise;
+		std::shared_future<std::shared_ptr<const StarPositionData>> future = promise.get_future().share();
+	};
+	static std::mutex mutex;
+	static std::array<std::shared_ptr<const StarPositionData>,128> cache;
+	static std::unordered_map<int,std::shared_ptr<PositionFlight>> inflight;
+};
+
 // 搜索用轻量星系生成器，按检查阶段生成所需数据。
 class GalaxyClassSimple
 {
 public:
+	// 0 禁用；否则必须覆盖当前星数且不超过 64，init 保留此设置。
+	std::uint8_t max_position = 0;
 	int generated_planets;
 	int seed;
 	int starCount;

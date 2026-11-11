@@ -15,7 +15,7 @@ enum class EnumResult : std::uint8_t {
 	True = 2
 };
 
-// 与 ConditionManager::core_conditions 同序；只保存全星系核心条件的结果。
+// 通过稳定的 result_index 访问；只保存全星系核心条件的结果。
 struct ResultManager {
 	std::vector<EnumResult> results;
 
@@ -120,6 +120,8 @@ public:
 	// 每个 core_conditions 条目保存完整结果；局部条件在各自上下文求值。
 	ResultManager create_result_manager() const;
 	EnumResult evaluate_root(const ResultManager& result_manager) const;
+	// 仅允许在没有搜索线程读取时旋转核心列表；保留所有结果索引。
+	void rotate_core_conditions(std::size_t start_index);
 
 private:
 	ConditionRef add_galaxy_mineral_condition(const GalaxyMineralCondition& condition);

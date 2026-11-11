@@ -1,5 +1,9 @@
 // Original 2022 Copyright https://github.com/crazyyao0.
 // Modified by https://github.com/botany233 on 2026.2
+#include <future>
+#include <stdexcept>
+#include <mutex>
+#include <unordered_map>
 #include "astro_class.hpp"
 #include "PlanetAlgorithm.hpp"
 
@@ -1149,10 +1153,7 @@ static bool CheckCollision(int cur_num,double* x1,double* y1,double* z1,double x
 	return false;
 }
 
-void GalaxyClassSimple::ensure_star_position() {
-	if(is_gen_position)
-		return;
-	is_gen_position = true;
+static std::shared_ptr<const StarPositionData> generate_star_positions(int seed,int target_count) {
 	DotNet35Random dotNet35Random1(seed);
 	constexpr int iterCount = 4;
 	constexpr double minDist = 2.0;
@@ -1163,7 +1164,7 @@ void GalaxyClassSimple::ensure_star_position() {
 	double x2[8],y2[8],z2[8];
 	int cur_num = 1;
 	int cur_num_2 = 0;
-	int maxCount = (starCount - 1) * iterCount + 1;
+	int maxCount = (target_count - 1) * iterCount + 1;
 
 	double minDistSquare = minDist * minDist;
 	DotNet35RandomLong dotNet35Random(dotNet35Random1.Next());
@@ -1244,9 +1245,70 @@ void GalaxyClassSimple::ensure_star_position() {
 	}
 	finish_label:
 
+	if(cur_num < maxCount)
+		throw std::runtime_error("Star position generation exhausted before producing the requested sampled coordinates");
+	std::shared_ptr<StarPositionData> data = std::make_shared<StarPositionData>();
+	data->seed_id = seed;
+	data->valid_position_num = static_cast<std::uint8_t>(target_count);
+	for(int i = 0;i < target_count;++i)
+		data->positions[i] = VectorLF3(x1[i*4],y1[i*4],z1[i*4]);
+	return data;
+}
+
+std::shared_ptr<const StarPositionData> StarPositionCache::get(int seed_id,std::uint8_t need_position,std::uint8_t max_position) {
+	if(max_position == 0)
+		return generate_star_positions(seed_id,need_position);
+	while(true) {
+		std::shared_ptr<PositionFlight> flight;
+		bool producer = false;
+		{
+			std::lock_guard<std::mutex> lock(mutex);
+			for(std::size_t i = 0;i < cache.size();++i) {
+				if(cache[i]->seed_id == seed_id && cache[i]->valid_position_num >= need_position) {
+					std::shared_ptr<const StarPositionData> entry = std::move(cache[i]);
+					for(std::size_t j = i;j > 0;--j)
+						cache[j] = std::move(cache[j-1]);
+					cache[0] = std::move(entry);
+					return cache[0];
+				}
+			}
+			auto found = inflight.find(seed_id);
+			if(found != inflight.end())
+				flight = found->second;
+			else {
+				flight = std::make_shared<PositionFlight>();
+				inflight.emplace(seed_id,flight);
+				producer = true;
+			}
+		}
+		if(!producer) {
+			// 不持管理锁等待；较大需求等前一轮结束后再登记升级。这种情况应该尽量避免
+			std::shared_ptr<const StarPositionData> data = flight->future.get();
+			if(data->valid_position_num >= need_position)
+				return data;
+			continue;
+		}
+		std::shared_ptr<const StarPositionData> data = generate_star_positions(seed_id,max_position);
+		std::lock_guard<std::mutex> lock(mutex);
+		std::size_t index = 0;
+		while(index + 1 < cache.size() && cache[index]->seed_id != seed_id)
+			++index;
+		for(std::size_t j = index;j > 0;--j)
+			cache[j] = std::move(cache[j-1]);
+		cache[0] = data;
+		flight->promise.set_value(data);
+		inflight.erase(seed_id);
+		return data;
+	}
+}
+
+void GalaxyClassSimple::ensure_star_position() {
+	if(is_gen_position)
+		return;
+	std::shared_ptr<const StarPositionData> position_data = StarPositionCache::get(seed,static_cast<std::uint8_t>(starCount),max_position);
 	for(int i=0;i<starCount;i++) {
 		StarClassSimple& star = stars[i];
-		star.position = VectorLF3(x1[i*4],y1[i*4],z1[i*4]);
+		star.position = position_data->positions[i];
 		star.uPosition = star.position * 2400000.0;
 		star.distance = (star.position - stars[0].position).magnitude();
 		if(i == 0)
@@ -1258,4 +1320,5 @@ void GalaxyClassSimple::ensure_star_position() {
 			star.resourceCoef = Mathf.Pow(7.0f,num1) * 0.6f;
 		}
 	}
+	is_gen_position = true;
 }
