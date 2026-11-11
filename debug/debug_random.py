@@ -22,11 +22,11 @@ def prepare_random_search(cpu_thread: int):
         elapsed = perf_counter() - flag
         # 仅用Python参考实现预筛，不依赖待校验的C++搜索结果。
         sample_num = seeds[1] - seeds[0] + 1
-        if 0.05 <= len(results) / sample_num <= 0.6:
+        if 0.02 <= len(results) / sample_num <= 0.2:
             print(f"预筛第{attempt}次选中条件，样本命中{len(results)}/{sample_num}")
             break
     else:
-        raise RuntimeError("连续100个条件未获得10%~90%的样本命中率，请检查条件生成范围")
+        raise RuntimeError("连续100个条件未获得2%~20%的样本命中率，请检查条件生成范围")
 
     # 预筛结果计入本轮搜索。每批目标5秒，逐批根据实测速度调整。
     py_time = elapsed
