@@ -69,6 +69,7 @@ class AdvancedConditionEditor(QWidget):
         self.warningLabel = BodyLabel()
         self.warningLabel.setTextColor("#c42b1c", "#ff99a4")
         self.warningLabel.setWordWrap(True)
+        self.warningLabel.hide()
         layout.addWidget(self.warningLabel)
         layout.addWidget(self.tree)
         # 与基础编辑器保持一致的底部布局间距。
@@ -79,10 +80,15 @@ class AdvancedConditionEditor(QWidget):
         try:
             config_to_advanced_condition(self.config_obj.condition)
         except ValueError as error:
-            self.warningLabel.setText(str(error))
+            self._show_warning(str(error))
             return False
         self.warningLabel.clear()
+        self.warningLabel.hide()
         return True
+
+    def _show_warning(self, text):
+        self.warningLabel.setText(text)
+        self.warningLabel.show()
 
     def rebuild(self):
         self.tree.clear()
@@ -100,7 +106,7 @@ class AdvancedConditionEditor(QWidget):
 
     def add_node(self, parent_node, kind):
         if parent_node.operation == "not" and parent_node.children:
-            self.warningLabel.setText(tr("search.advanced.not_one"))
+            self._show_warning(tr("search.advanced.not_one"))
             return
         constructors = {"logic": AdvancedLogicNode, "star": AdvancedStarNode,
                         "planet": AdvancedPlanetNode, "mineral": AdvancedMineralNode,
@@ -181,7 +187,7 @@ class AdvancedConditionEditor(QWidget):
                     combo.blockSignals(True)
                     combo.setCurrentIndex(operations.index(node.operation))
                     combo.blockSignals(False)
-                    self.warningLabel.setText(tr("search.advanced.not_one"))
+                    self._show_warning(tr("search.advanced.not_one"))
                     return
                 node.operation = operation
                 minimum.setVisible(operation == "at_least")

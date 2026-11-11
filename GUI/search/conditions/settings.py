@@ -36,6 +36,7 @@ class SettingsWindow(MessageBoxBase):
         self.warningLabel = CaptionLabel(self)
         if cfg.config.condition_mode == "advanced":
             self.warningLabel.setTextColor("#c42b1c", "#ff99a4")
+            self.warningLabel.hide()
         self.warningLabel.setWordWrap(True)
         self.viewLayout.addWidget(self.warningLabel)
 
@@ -78,6 +79,7 @@ class SettingsWindow(MessageBoxBase):
                 error = tr("common.min_value").format(value=0)
             if error is not None:
                 self.warningLabel.setText(f"{line_edit.label_box.text()}: {error}")
+                self.warningLabel.show()
                 line_edit.setFocus()
                 line_edit.selectAll()
                 return False
