@@ -13,24 +13,24 @@ from language import tr
 
 def config_to_endpoint(endpoint: AdvancedEndpoint) -> dict:
     if endpoint.kind == "star":
-        return {"type": 2, "value": config_to_star_condition(endpoint.star)}
-    return {"type": 3, "value": config_to_planet_condition(endpoint.planet)}
+        return {"type": "恒星", "value": config_to_star_condition(endpoint.star)}
+    return {"type": "星球", "value": config_to_planet_condition(endpoint.planet)}
 
 
 def config_to_advanced_condition(node: AdvancedNode) -> dict:
     if node.kind in ("logic", "bond", "mineral") and not node.checked:
-        return {"type": 5, "value": {"satisfy_num": 0, "children": []}}
+        return {"type": "逻辑", "value": {"satisfy_num": 0, "children": []}}
     if node.kind == "mineral":
-        return {"type": 1, "value": {
+        return {"type": "矿物", "value": {
             "veins_point": get_veins_dict(node.veins_point_condition),
             "veins_amount": get_veins_dict(node.veins_amount_condition),
         }}
     if node.kind == "star":
-        return {"type": 2, "value": config_to_star_condition(node.condition)}
+        return {"type": "恒星", "value": config_to_star_condition(node.condition)}
     if node.kind == "planet":
-        return {"type": 3, "value": config_to_planet_condition(node.condition)}
+        return {"type": "星球", "value": config_to_planet_condition(node.condition)}
     if node.kind == "bond":
-        return {"type": 4, "value": {
+        return {"type": "绑定", "value": {
             "distance": node.distance, "satisfy_num": node.satisfy_num,
             "con1": config_to_endpoint(node.con1), "con2": config_to_endpoint(node.con2),
         }}
@@ -42,7 +42,7 @@ def config_to_advanced_condition(node: AdvancedNode) -> dict:
     if node.operation == "at_least" and not 1 <= node.minimum <= count:
         raise ValueError(tr("search.advanced.invalid_minimum").format(count=count))
     thresholds = {"all": count, "any": 1, "at_least": node.minimum, "not": 0}
-    return {"type": 5, "value": {
+    return {"type": "逻辑", "value": {
         "satisfy_num": thresholds[node.operation],
         "children": [config_to_advanced_condition(child) for child in node.children],
     }}
@@ -56,25 +56,25 @@ def config_to_galaxy_condition(galaxy_cfg: GalaxyCondition) -> dict:
             mineral_condition["veins_amount"] = veins_amount
     children = []
     if mineral_condition:
-        children.append({"type": 1, "value": mineral_condition})
-    children.extend({"type": 2, "value": config_to_star_condition(star_cfg)} for star_cfg in galaxy_cfg.star_condition)
-    children.extend({"type": 3, "value": config_to_planet_condition(planet_cfg)} for planet_cfg in galaxy_cfg.planet_condition)
+        children.append({"type": "矿物", "value": mineral_condition})
+    children.extend({"type": "恒星", "value": config_to_star_condition(star_cfg)} for star_cfg in galaxy_cfg.star_condition)
+    children.extend({"type": "星球", "value": config_to_planet_condition(planet_cfg)} for planet_cfg in galaxy_cfg.planet_condition)
     galaxy_condition = {
-        "type": 5,
+        "type": "逻辑",
         "value": {"satisfy_num": len(children), "children": children},
     }
     if not galaxy_cfg.valid_state:
-        galaxy_condition = {"type": 5, "value": {"satisfy_num": 0, "children": [galaxy_condition]}}
+        galaxy_condition = {"type": "逻辑", "value": {"satisfy_num": 0, "children": [galaxy_condition]}}
     return galaxy_condition
 
 # def config_to_bond_condition(bond_cfg: BondCondition) -> dict:
 #     bond_condition = {
 #         "con1": {
-#             "type": 3 if bond_cfg.con1_is_planet else 2,
+#             "type": "星球" if bond_cfg.con1_is_planet else "恒星",
 #             "value": config_to_planet_condition(bond_cfg.con1_planet) if bond_cfg.con1_is_planet else config_to_star_condition(bond_cfg.con1_star),
 #         },
 #         "con2": {
-#             "type": 3 if bond_cfg.con2_is_planet else 2,
+#             "type": "星球" if bond_cfg.con2_is_planet else "恒星",
 #             "value": config_to_planet_condition(bond_cfg.con2_planet) if bond_cfg.con2_is_planet else config_to_star_condition(bond_cfg.con2_star),
 #         },
 #     }

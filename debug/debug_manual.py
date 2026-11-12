@@ -8,12 +8,12 @@ from CApi import *
 
 galaxy_condition_raw = {
     "condition": {
-        "type": 5,
+        "type": "逻辑",
         "value": {
             "satisfy_num": 4,
             "children": [
                 {
-                    "type": 2,
+                    "type": "恒星",
                     "value": {
                         "satisfy_num": 3,
                         "dyson_lumino": 0.9941314210289814,
@@ -40,14 +40,14 @@ galaxy_condition_raw = {
                     }
                 },
                 {
-                    "type": 3,
+                    "type": "星球",
                     "value": {
                         "satisfy_num": 3,
                         "liquid": "硫酸"
                     }
                 },
                 {
-                    "type": 3,
+                    "type": "星球",
                     "value": {
                         "satisfy_num": 2,
                         "type": [
@@ -67,7 +67,7 @@ galaxy_condition_raw = {
                     }
                 },
                 {
-                    "type": 3,
+                    "type": "星球",
                     "value": {
                         "satisfy_num": 1,
                         "dsp_level": "全接收",

@@ -1,7 +1,7 @@
 """ConditionManager 新格式的规范化入口。
 
-根、逻辑子节点和绑定端点使用 {"type": 编号, "value": 字典}：
-1=星系矿物，2=恒星，3=行星，4=绑定，5=逻辑。
+根、逻辑子节点和绑定端点使用 {"type": 名称, "value": 字典}：
+矿物、恒星、星球、绑定、逻辑依次转换为 C++ 编号 1..5。
 恒星的 planets 和行星的 moons 仍是未包装的行星条件列表。
 与旧入口一样原位补齐字段；名称转为 C++ 使用的掩码、编号和矿物数组。
 """
@@ -14,6 +14,7 @@ from .const_values import (
     singularity_c,
     star_types_c,
     vein_names_c,
+    condition_type_c
 )
 
 __all__ = ["change_condition_legal", "init_process"]
@@ -27,6 +28,7 @@ def init_process(device_id: int, local_size: int):
 
 
 def change_condition_legal(condition: dict) -> dict:
+    condition["type"] = condition_type_c.index(condition["type"]) + 1
     match condition["type"]:
         case 1: condition["value"] = change_mineral_condition_legal(condition["value"])
         case 2: condition["value"] = change_star_condition_legal(condition["value"])
@@ -76,7 +78,7 @@ def change_bond_condition_legal(condition: dict) -> dict:
     condition["satisfy_num"] = condition.get("satisfy_num", 1)
     condition["distance"] = condition.get("distance", 1000)
     for key in ("con1", "con2"):
-        if condition[key]["type"] not in (2, 3):
+        if condition[key]["type"] not in ("恒星", "星球"):
             raise ValueError("绑定端点必须为恒星或行星条件")
         condition[key] = change_condition_legal(condition[key])
     return condition

@@ -157,21 +157,21 @@ def get_bond_condition(resource_index: int, need_veins: bool, quick: bool):
     bond_condition["distance"] = random.uniform(0, 100)
     for key in ("con1", "con2"):
         if random.random() < 0.5:
-            bond_condition[key] = {"type": 3, "value": get_planet_condition(resource_index, need_veins, quick)}
+            bond_condition[key] = {"type": "星球", "value": get_planet_condition(resource_index, need_veins, quick)}
         else:
-            bond_condition[key] = {"type": 2, "value": get_star_condition(resource_index, need_veins, quick)}
+            bond_condition[key] = {"type": "恒星", "value": get_star_condition(resource_index, need_veins, quick)}
     return bond_condition
 
 
 def get_leaf_condition(resource_index: int, need_veins: bool, quick: bool):
-    condition_type = random.choice([1, 2, 3, 4] if need_veins else [2, 3, 4])
-    if condition_type == 1:
+    condition_type = random.choice(["矿物", "恒星", "星球", "绑定"] if need_veins else ["恒星", "星球", "绑定"])
+    if condition_type == "矿物":
         points, amounts = get_veins_condition("galaxy", resource_index, quick)
         value = {"veins_point": points}
         if resource_rate_c[resource_index] != "无限" and random.random() < 0.5:
             value["veins_amount"] = amounts
     else:
-        factory = {2: get_star_condition, 3: get_planet_condition, 4: get_bond_condition}[condition_type]
+        factory = {"恒星": get_star_condition, "星球": get_planet_condition, "绑定": get_bond_condition}[condition_type]
         value = factory(resource_index, need_veins, quick)
     return {"type": condition_type, "value": value}
 
@@ -188,12 +188,12 @@ def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool, dep
             (["中子星"], 10, 15),
             (["黑洞"], 10, 15),
         ])
-        nearby_star = {"type": 2, "value": {
+        nearby_star = {"type": "恒星", "value": {
             "type": star_types, "distance": random.uniform(min_distance, max_distance),
         }}
         children = [nearby_star, get_galaxy_condition(resource_index, need_veins, quick, depth + 1)]
         random.shuffle(children)
-        return {"type": 5, "value": {"satisfy_num": 2, "children": children}}
+        return {"type": "逻辑", "value": {"satisfy_num": 2, "children": children}}
     operation = random.choices(["all", "any", "at_least", "not", "empty"], weights=[3, 3, 2, 2, 0.5], k=1)[0]
     child_num = 0 if operation == "empty" else 1 if operation == "not" else random.randint(2, 3)
     if operation == "at_least":
@@ -206,7 +206,7 @@ def get_galaxy_condition(resource_index: int, need_veins: bool, quick: bool, dep
             child = get_leaf_condition(resource_index, need_veins, quick)
         children.append(child)
     satisfy_num = {"all": child_num, "any": 1, "at_least": 2, "not": 0, "empty": 0}[operation]
-    return {"type": 5, "value": {"satisfy_num": satisfy_num, "children": children}}
+    return {"type": "逻辑", "value": {"satisfy_num": satisfy_num, "children": children}}
 
 
 def get_veins_condition(satro_type: Literal["galaxy", "star", "planet"], resource_index: int, quick: bool):
