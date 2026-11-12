@@ -166,6 +166,11 @@ public:
 	bool is_infinite_resource;
 	bool is_gen_position;
 	int generated_stars;
+	// 汇总所有已生成资源；上界未必覆盖所有行星，由调用方按需求补齐。
+	std::array<uint64_t,14> upper_veins_point;
+	std::array<uint64_t,14> upper_veins_amount;
+	std::array<uint64_t,14> real_veins_point;
+	std::array<uint64_t,14> real_veins_amount;
 	std::vector<StarClassSimple> stars;
 	std::vector<PlanetClassSimple> planets;
 

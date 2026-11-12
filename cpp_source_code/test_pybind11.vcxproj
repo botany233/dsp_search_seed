@@ -158,6 +158,7 @@
   <ItemGroup>
     <ClCompile Include="astro_class.cpp" />
     <ClCompile Include="check_seed.cpp" />
+    <ClCompile Include="check_seed_util.cpp" />
     <ClCompile Include="get_galaxy_data.cpp" />
     <ClCompile Include="condition_struct.cpp" />
     <ClCompile Include="PlanetAlgorithm.cpp" />
@@ -168,6 +169,7 @@
   <ItemGroup>
     <ClInclude Include="astro_class.hpp" />
     <ClInclude Include="check_seed.hpp" />
+    <ClInclude Include="check_seed_util.hpp" />
     <ClInclude Include="get_galaxy_data.hpp" />
     <ClInclude Include="condition_struct.hpp" />
     <ClInclude Include="const_value.hpp" />
@@ -198,6 +200,13 @@
     <None Include="assets\generate_terrain_double.cl" />
     <None Include="packages.config" />
     <None Include="vcpkg.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tests\random_conditions.cpp">
+      <ExcludedFromBuild Condition="'$(ConfigurationType)'!='Application' or '$(BuildingInsideVisualStudio)'=='true'">true</ExcludedFromBuild>
+      <FloatingPointModel>Precise</FloatingPointModel>
+    </ClCompile>
+    <ClInclude Include="tests\random_conditions.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

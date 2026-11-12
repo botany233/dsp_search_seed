@@ -259,8 +259,13 @@ void PlanetClassSimple::generate_upper_points() {
 		veins_point[i] = Mathf.RoundToInt(veins_count_percent[i]*24.0f) * veins_group[i];
 	}
 	veins_point[6] = veins_group[6]; // 石油按油井数量统计。
-	for(int i=0;i<14;i++)
+	// 只有算法 1～6、8～10 使用基类矿脉流程，水下油井候选最多补生 15% 矿组。
+	if((algoId >= 1 && algoId <= 6) || (algoId >= 8 && algoId <= 10))
+		veins_point[6] += (veins_group[6] * 15 + 99) / 100;
+	for(int i=0;i<14;i++) {
 		star->upper_veins_point[i] += veins_point[i];
+		star->galaxy->upper_veins_point[i] += veins_point[i];
+	}
 	veins_state |= EVeinsState::UpperPoints;
 	vein_mask = get_planet_vein_mask(*this);
 }
@@ -284,7 +289,9 @@ void PlanetClassSimple::generate_upper_amount() {
 			veins_amount[i] = (uint64_t)veins_point[i] * 1000000000;
 			continue;
 		}
-		veins_amount[i] = Mathf.RoundToInt(veins_amount_percent[i]*100000.0f*num8);
+		// 石油使用资源系数的平方根；乘法精度与真实矿脉生成保持一致。
+		float amount_coef = i == 6 ? Mathf.Pow(num8,0.5f) : num8;
+		veins_amount[i] = Mathf.RoundToInt(static_cast<float>(static_cast<double>(veins_amount_percent[i]) * 100000.0 * static_cast<double>(amount_coef)));
 		if(veins_amount[i]<20)
 			veins_amount[i] = 20;
 		veins_amount[i] += (veins_amount[i]<16000)?Mathf.FloorToInt((float)veins_amount[i]*0.9375f):15000;
@@ -305,8 +312,10 @@ void PlanetClassSimple::generate_upper_amount() {
 			veins_amount[i] = 1;
 		veins_amount[i] *= veins_point[i];
 	}
-	for(int i=0;i<14;i++)
+	for(int i=0;i<14;i++) {
 		star->upper_veins_amount[i] += veins_amount[i];
+		star->galaxy->upper_veins_amount[i] += veins_amount[i];
+	}
 	veins_state |= EVeinsState::UpperAmounts;
 }
 
@@ -342,24 +351,22 @@ bool PlanetClassSimple::ensure_real_veins() {
 		veins_amount.fill(0);
 		generate_planet_veins(*this);
 	}
-	//同时修正恒星矿物上下限
+	// 恒星与星系汇总只在生成接口中更新，避免调度器重复累计。
+	const bool upper_point_before = static_cast<bool>(veins_state & EVeinsState::UpperPoints);
+	const bool upper_amount_before = static_cast<bool>(veins_state & EVeinsState::UpperAmounts);
 	for(int i=0;i<14;i++) {
 		star->real_veins_point[i] += veins_point[i];
 		star->real_veins_amount[i] += veins_amount[i];
-	}
-	if(veins_state & EVeinsState::UpperPoints) {
-		for(int i=0;i<14;i++)
-			star->upper_veins_point[i] -= (upper_vein_point[i] - veins_point[i]);
-	} else {
-		for(int i=0;i<14;i++)
-			star->upper_veins_point[i] += veins_point[i];
-	}
-	if(veins_state & EVeinsState::UpperAmounts) {
-		for(int i=0;i<14;i++)
-			star->upper_veins_amount[i] -= (upper_vein_amount[i] - veins_amount[i]);
-	} else {
-		for(int i=0;i<14;i++)
-			star->upper_veins_amount[i] += veins_amount[i];
+		star->upper_veins_point[i] -= upper_point_before ? upper_vein_point[i] : 0;
+		star->upper_veins_point[i] += veins_point[i];
+		star->upper_veins_amount[i] -= upper_amount_before ? upper_vein_amount[i] : 0;
+		star->upper_veins_amount[i] += veins_amount[i];
+		star->galaxy->real_veins_point[i] += veins_point[i];
+		star->galaxy->real_veins_amount[i] += veins_amount[i];
+		star->galaxy->upper_veins_point[i] -= upper_point_before ? upper_vein_point[i] : 0;
+		star->galaxy->upper_veins_point[i] += veins_point[i];
+		star->galaxy->upper_veins_amount[i] -= upper_amount_before ? upper_vein_amount[i] : 0;
+		star->galaxy->upper_veins_amount[i] += veins_amount[i];
 	}
 	veins_state |= EVeinsState::Real;
 	vein_mask = get_planet_vein_mask(*this);
@@ -1028,6 +1035,10 @@ void GalaxyClassSimple::init(const SeedStruct& input) {
 	float resource_rate = resource_rates[input.resource_index];
 	generated_stars = 0;
 	generated_planets = 0;
+	upper_veins_point.fill(0);
+	upper_veins_amount.fill(0);
+	real_veins_point.fill(0);
+	real_veins_amount.fill(0);
 	birthPlanetId = 0;
 	planetCount = 0;
 	seed = galaxySeed;

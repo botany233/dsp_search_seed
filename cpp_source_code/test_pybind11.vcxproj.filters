@@ -21,6 +21,9 @@
     <ClCompile Include="astro_class.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="check_seed_util.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
     <ClCompile Include="check_seed.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -43,6 +46,9 @@
       <Filter>源文件\src</Filter>
     </ClCompile>
     <ClInclude Include="astro_class.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="check_seed_util.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="check_seed.hpp">
@@ -132,5 +138,13 @@
     <None Include="vcpkg.json">
       <Filter>资源文件</Filter>
     </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="tests\random_conditions.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClInclude Include="tests\random_conditions.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

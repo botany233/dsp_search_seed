@@ -1,7 +1,11 @@
-#include "check_seed.hpp"
+#include <limits>
 #include <stdexcept>
-#include "astro_class.hpp"
+
 #include "src/max_flow.hpp"
+#include "check_seed.hpp"
+#include "check_seed_util.hpp"
+#include "astro_class.hpp"
+
 
 namespace {
 // 同一候选只计数一次；数量为零时不触发生成。
@@ -299,25 +303,11 @@ static bool check_bond(GalaxyClassSimple& galaxy,const BondCondition& condition,
 }
 
 static uint16_t galaxy_missing_upper(const GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
-	std::array<uint64_t,14> points{};
-	std::array<uint64_t,14> amounts{};
-	for(const StarClassSimple& star : galaxy.stars)
-		for(int i=0;i<14;i++) {
-			points[i] += star.upper_veins_point[i];
-			amounts[i] += star.upper_veins_amount[i];
-		}
-	return missing_veins(condition,points,amounts);
+	return missing_veins(condition,galaxy.upper_veins_point,galaxy.upper_veins_amount);
 }
 
 static uint16_t galaxy_missing_real(const GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
-	std::array<uint64_t,14> points{};
-	std::array<uint64_t,14> amounts{};
-	for(const StarClassSimple& star : galaxy.stars)
-		for(int i=0;i<14;i++) {
-			points[i] += star.real_veins_point[i];
-			amounts[i] += star.real_veins_amount[i];
-		}
-	return missing_veins(condition,points,amounts);
+	return missing_veins(condition,galaxy.real_veins_point,galaxy.real_veins_amount);
 }
 
 static bool check_galaxy_upper_vein(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
@@ -340,30 +330,107 @@ static bool check_galaxy_upper_vein(GalaxyClassSimple& galaxy,const GalaxyMinera
 	return false;
 }
 
-static bool check_galaxy_real_vein(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
-	uint16_t missing = galaxy_missing_real(galaxy,condition);
-	if(!missing)
-		return true;
+static std::vector<int> prepare_galaxy_vein_candidates(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition,std::array<int,14>& remaining_cost) {
+	std::vector<int> candidates;
+	candidates.reserve(16);
 	for(StarClassSimple& star : galaxy.stars) {
 		star.ensure_planets();
 		for(PlanetClassSimple& planet : star.planets) {
 			planet.ensure_theme();
-			if(!(planet.vein_mask & missing))
+			if(!(planet.vein_mask & condition.need_veins))
 				continue;
-			if(planet.ensure_upper_veins(condition.need_veins_amount)) {
-				if(!(planet.vein_mask & missing)) //vein_mask用upper收紧后不再跟需求重叠
-					continue;
-				if(!check_galaxy_upper_vein(galaxy,condition))
-					return false;
-			}
-			if(planet.ensure_real_veins()) {
-				missing = galaxy_missing_real(galaxy,condition);
-				if(!missing)
-					return true;
+			planet.ensure_upper_veins(condition.need_veins_amount);
+			if(!(planet.veins_state & EVeinsState::Real) && (planet.vein_mask & condition.need_veins)) {
+				candidates.push_back(static_cast<int>(&planet-galaxy.planets.data()));
+				for(int i=0;i<14;++i)
+					if(planet.vein_mask & (1<<i))
+						++remaining_cost[i];
 			}
 		}
 	}
-	return false;
+	return candidates;
+}
+
+// 调用前已确认 R < D <= U；评分只影响顺序，边界判定始终使用整数。
+static int select_galaxy_vein_constraint(const GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition,const std::array<int,14>& remaining_cost,bool& selected_amount) {
+	int selected_id = -1;
+	selected_amount = false;
+	double best_score = std::numeric_limits<double>::infinity();
+	for(int i=0;i<14;++i) {
+		if(!(condition.need_veins & (1<<i)))
+			continue;
+		for(int amount=0;amount<2;++amount) {
+			if(amount && !condition.need_veins_amount)
+				continue;
+			uint64_t demand = amount ? condition.veins_amount[i] : condition.veins_point[i];
+			uint64_t real = amount ? galaxy.real_veins_amount[i] : galaxy.real_veins_point[i];
+			uint64_t upper = amount ? galaxy.upper_veins_amount[i] : galaxy.upper_veins_point[i];
+			if(real >= demand)
+				continue;
+			const double ratio = static_cast<double>(demand-real) / static_cast<double>(upper-real);
+			// 经验概率仅决定顺序；严格超过比例与整数满足需求的边界差异不参与判定。
+			const double probability = get_vein_exceed_probability(static_cast<EVeinType>(i+1),amount ? VeinMetric::Amount : VeinMetric::Point,ratio);
+			const double score = probability < 1.0 ? static_cast<double>(remaining_cost[i])/(1.0-probability) : std::numeric_limits<double>::infinity();
+			if(score < best_score) {
+				best_score = score;
+				selected_id = i;
+				selected_amount = amount != 0;
+			}
+		}
+	}
+	// 全部概率为 1 时兜底选择最低成本；倒序遍历使成本相同时优先最大矿种编号。
+	if(selected_id < 0) {
+		int best_cost = std::numeric_limits<int>::max();
+		for(int i=13;i>=0;--i) {
+			if(!(condition.need_veins & (1<<i)) || remaining_cost[i] >= best_cost)
+				continue;
+			const bool missing_points = galaxy.real_veins_point[i] < condition.veins_point[i];
+			const bool missing_amounts = condition.need_veins_amount && galaxy.real_veins_amount[i] < condition.veins_amount[i];
+			if(!missing_points && !missing_amounts)
+				continue;
+			best_cost = remaining_cost[i];
+			selected_id = i;
+			selected_amount = !missing_points;
+		}
+	}
+	return selected_id;
+}
+
+static bool check_galaxy_real_vein(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
+	if(!galaxy_missing_real(galaxy,condition))
+		return true;
+	// 三级的汇总可能不完整，仅在当前四级条件确实需要时补齐相关上界。
+	std::array<int,14> remaining_cost{};
+	std::vector<int> candidates = prepare_galaxy_vein_candidates(galaxy,condition,remaining_cost);
+	while(true) {
+		if(!galaxy_missing_real(galaxy,condition))
+			return true;
+		if(galaxy_missing_upper(galaxy,condition))
+			return false;
+		bool amount = false;
+		int mineral = select_galaxy_vein_constraint(galaxy,condition,remaining_cost,amount);
+		int selected = -1;
+		uint64_t best_contribution = 0;
+		for(int i=0;i<static_cast<int>(candidates.size());++i) {
+			const PlanetClassSimple& planet = galaxy.planets[candidates[i]];
+			uint64_t contribution = amount ? planet.veins_amount[mineral] : planet.veins_point[mineral];
+			if(contribution > best_contribution) {
+				best_contribution = contribution;
+				selected = i;
+			}
+		}
+		if(selected < 0)
+			return !galaxy_missing_real(galaxy,condition);
+		// 一颗星球生成全部矿种，接口同步全部汇总，下一轮重新选择约束。
+		PlanetClassSimple& planet = galaxy.planets[candidates[selected]];
+		// 真实生成会改写掩码，先扣除该候选对所有矿种的剩余检查成本。
+		for(int i=0;i<14;++i)
+			if(planet.vein_mask & (1<<i))
+				--remaining_cost[i];
+		planet.ensure_real_veins();
+		// 保序移除已生成行星，同贡献时继续沿用原恒星/行星顺序。
+		candidates.erase(candidates.begin()+selected);
+	}
 }
 
 using CheckStar = bool (*)(StarClassSimple&,const StarCondition&,const ConditionManager&);
