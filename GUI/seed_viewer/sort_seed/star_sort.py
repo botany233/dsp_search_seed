@@ -5,7 +5,7 @@ def handle_star_sort(subtype: str):
 
 class GetStarValue:
     def __init__(self, n):
-        # 查看器保留巨星大类，原生计数按光谱类型细分。
+        # 兼容旧的大类名称；细分类型直接读取对应的原生计数。
         giant_types = {
             "红巨星": ("M型红巨星", "K型红巨星"),
             "黄巨星": ("G型黄巨星", "F型黄巨星"),

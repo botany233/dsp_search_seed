@@ -140,19 +140,19 @@ GPU性能测试：测试在指定的CPU线程数下，不同GPU线程数对地�
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">341365</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">69563</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63032</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">18639</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.10</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">220176</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">148962</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">71090</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">322792</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">92074</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62055</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">35356</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">154.44</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">245016</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">135186</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">64385</td>
   </tr>
 </table>
 
-- 级别1：蓝巨×3
-- 级别2：水世界×6 + 具有至少3个卫星的气态巨星×2
+- 级别1：蓝巨（B型或O型）至少3颗，且B型蓝巨星少于2颗
+- 级别2：以下三项至少满足两项：水世界至少6颗、具有至少3个卫星的气态巨星至少2颗、蓝巨（B型或O型）至少3颗
 - 级别3：油×250 + 磁石矿脉×250
 - 级别4：铁矿脉×30000
 - 更好的出生点：初始恒星系存在气态巨星且其中一卫星为地中海，另一卫星为有刺笋结晶和可燃冰的贫瘠荒漠

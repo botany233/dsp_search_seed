@@ -140,19 +140,19 @@ The searcher no longer uses GPU computation. The performance table is shown belo
   </tr>
   <tr>
     <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">CPU(Ultra 7 155H)</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">341365</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">69563</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">63032</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">18639</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">98.10</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">220176</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">148962</td>
-    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">71090</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">322792</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">92074</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">62055</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">35356</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">154.44</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">245016</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">135186</td>
+    <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">64385</td>
   </tr>
 </table>
 
-- Level 1: Blue Giant x3
-- Level 2: Aquatica x6 + Gas Giant with at least 3 satellites x2
+- Level 1: at least 3 Blue Giants (B Type or O Type), with fewer than 2 B Type Blue Giants
+- Level 2: at least two of the following three conditions: at least 6 Aquatica planets; at least 2 Gas Giants with at least 3 satellites each; at least 3 Blue Giants (B Type or O Type)
 - Level 3: Oil x250 + Unipolar Magnet veins x250
 - Level 4: Iron veins x30000
 - Better Starting System: the initial star system has a Gas Giant, one of its satellites is Mediterranean, and another satellite is Desolus with Stalagmite Crystal and Fire Ice

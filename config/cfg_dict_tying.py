@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Annotated, Literal
 from uuid import UUID, uuid4
 from multiprocessing import cpu_count
@@ -67,6 +67,22 @@ class StarCondition(BaseModel):
     veins_amount_condition: VeinsCondition = Field(default_factory=VeinsCondition)
     planet_condition: list[PlanetCondition] = Field(default_factory=list)
     uuid: UUID = Field(default_factory=uuid4)
+
+    @field_validator("star_type", mode="before")
+    @classmethod
+    def expand_giant_types(cls, value):
+        # 旧配置的巨星大类保留原语义，展开后可在多选框中显示和编辑。
+        giant_types = {
+            "红巨星": ("M型红巨星", "K型红巨星"),
+            "黄巨星": ("G型黄巨星", "F型黄巨星"),
+            "蓝巨星": ("B型蓝巨星", "O型蓝巨星"),
+            "白巨星": ("A型白巨星",),
+        }
+        if not isinstance(value, list):
+            return value
+        return list(dict.fromkeys(
+            subtype for name in value for subtype in giant_types.get(name, (name,))
+        ))
 
 class GalaxyCondition(BaseModel):
     custom_name: str = "星区条件"
