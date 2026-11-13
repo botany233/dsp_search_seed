@@ -122,10 +122,6 @@
             "found_summary": "累计找到种子数: {total_seed_num}  上次命中的种子: {last_seed_id}, {last_star_num}",
             "progress": "搜索进度: {finish_task}/{total_task}({percent}%)",
             "completed": "搜索完成！用时{time}",
-            "task_status": "当前任务：{mode} · {state}；当前编辑将在下次新搜索生效。",
-            "task_running": "运行中",
-            "task_paused": "已请求暂停",
-            "task_stopping": "正在停止",
             "valid_state": "保存有效种子",
             "invalid_state": "保存无效种子"
         },

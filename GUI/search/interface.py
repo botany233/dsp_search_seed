@@ -276,7 +276,6 @@ class SearchInterface(QFrame):
             self.search_thread.end_wait()
             self.button_start.setEnabled(False)
             self.button_wait.setEnabled(True)
-            self._update_task_status("running")
             return
         self._commit_search_edits()
         if cfg.config.condition_mode == "advanced" and not self.advanced_view.validate_condition():
@@ -307,7 +306,6 @@ class SearchInterface(QFrame):
         self.search_thread.end_flag = False
         self.search_thread.wait_flag = False
         self._task_active = True
-        self._update_task_status("running")
         self.search_thread.start()
         self.button_stop.setEnabled(True)
         self.button_wait.setEnabled(True)
@@ -318,7 +316,6 @@ class SearchInterface(QFrame):
         self.search_thread.start_wait()
         self.button_wait.setEnabled(False)
         self.button_start.setEnabled(True)
-        self._update_task_status("paused")
 
     def __on_button_stop_clicked(self):
         if not self._task_active:
@@ -327,17 +324,9 @@ class SearchInterface(QFrame):
         self.button_start.setEnabled(False)
         self.button_wait.setEnabled(False)
         self.button_stop.setEnabled(False)
-        self._update_task_status("stopping")
-
-    def _update_task_status(self, state: str):
-        mode = self.search_thread.task_config.condition_mode
-        self.userLayout.taskStatusLabel.setText(tr("search.status.task_status").format(
-            mode=tr(f"search.main.{mode}_mode"), state=tr(f"search.status.task_{state}")))
-        self.userLayout.taskStatusLabel.show()
 
     def _on_search_finish(self):
         self._task_active = False
-        self.userLayout.taskStatusLabel.hide()
         self.button_start.setEnabled(True)
         self.button_stop.setEnabled(False)
         self.button_wait.setEnabled(False)

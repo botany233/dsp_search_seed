@@ -4,12 +4,17 @@
 
 ## Searcher Features
 
-- Detailed search conditions: Conditions are divided into four levels: galaxy, star, planet, and moon. They can be freely combined for customized filtering of veins, star/planet types, etc.
-- High simulation accuracy: As far as I know, this is the only tool that implements planetary vein generation, restoring the vein count in the game almost 100%, instead of the traditional vein group count.
+- Detailed search conditions: Basic Mode organizes conditions by galaxy, star, planet, and moon. Advanced Mode adds logic groups and bonds to combine requirements for veins, star/planet types, and distances between celestial bodies.
 - High search efficiency: The seed search part is written in C++ for higher execution efficiency. The single-thread speed is more than 20 times that of [DspFindSeed](https://github.com/Xinyuell/DspFindSeed) (tested with the starter system Barren Desert condition).
 - Built-in multi-threading: No need to open multiple instances.
 
-![image](/assets/language/en_US/show_search.png)
+Basic Mode:
+
+![Basic Mode search interface](/assets/language/en_US/show_search_simple.png)
+
+Advanced Mode:
+
+![Advanced Mode search interface](/assets/language/en_US/show_search_complex.png)
 
 ## Viewer Features
 
@@ -22,13 +27,17 @@
 ## Usage Instructions
 
 ### General
-- Standard Mode / Fast Mode: In Standard Mode, the tool ensures the calculated vein group/vein count is as consistent with the game as possible, representing the highest accuracy of this tool. However, fully generating veins has a huge performance overhead, hence the introduction of Fast Mode. In Fast Mode, the vein groups and veins used are theoretical maximums, and the actual generated count is about `0.8` times this value. Fast Mode has a similar performance overhead for each seed.
+- Standard Mode / Quick Mode: In Standard Mode, the tool ensures the calculated vein group/vein count is as consistent with the game as possible, representing the highest accuracy of this tool. However, fully generating veins has a huge performance overhead, hence the introduction of Quick Mode. In Quick Mode, the vein groups and veins used are theoretical maximums, and the actual generated count is about `0.8` times this value. Quick Mode has a similar performance overhead for each seed.
 
 ### Searcher
-- Search Conditions: Searcher conditions are divided into four levels: galaxy, star, planet, and moon. The galaxy level can directly add planet sub-conditions. Checking a condition only controls whether it takes effect itself, and does not chain to its sub-conditions.
-- Range Search / Secondary Search: Range Search iterates based on the set seed ID and star count range. Secondary Search iterates based on an imported CSV file. Secondary Search automatically deduplicates the imported seeds.
-- Condition Optimization: Besides the Fast/Standard Mode setting, search conditions also significantly affect search speed. For specific reasons and related data, please refer to the in-app tutorial interface.
+- Basic Mode: Conditions follow the galaxy, star, planet, and moon hierarchy. The galaxy can also contain planet conditions directly. Child conditions are combined with AND. Unchecking a condition disables only its own filter fields; its child conditions still apply. Unchecking the galaxy condition only disables galaxy mineral filters. Save Invalid Seeds inverts the final result of the entire set of conditions.
+- Advanced Mode: Logic groups combine conditions using All, Any, At least N, or NOT, and can be nested. Galaxy mineral conditions and bond conditions can also be added. Unchecking a logic group, galaxy mineral condition, or bond condition makes that entire item count as passed, including toward the parent group's number of passing children. Star and planet checkboxes follow the same rules as Basic Mode.
+- Switching Modes: Select Basic Mode or Advanced Mode at the top. Each saves its own conditions without automatic conversion; searches use the currently selected mode.
+- Range Search / Precise Search: Range Search iterates over the configured seed ID and star count range. Precise Search performs a secondary search on an imported CSV file and automatically deduplicates the seeds. Both condition editing modes support these search ranges.
+- Condition Optimization: Besides the Quick/Standard Mode setting, search conditions also significantly affect search speed. For specific reasons and related data, please refer to the in-app tutorial interface.
 - Storage Format: Saves as `.csv` files. Each line represents one seed: `Seed ID, Star Count`, compatible with [DspFindSeed](https://github.com/Xinyuell/DspFindSeed).
+
+For detailed instructions and examples, see the in-app tutorial or the [English tutorial](/assets/language/en_US/tutorial.md).
 
 ### Viewer
 - Seed List: Maximum import limit is `100,000` seeds, with deduplication.
@@ -38,7 +47,7 @@
 
 ### Settings
 #### Basic Settings
-- Max CPU Threads: Can be set up to 128 threads, but the actual number of threads used will not exceed the CPU core count.
+- Max CPU Threads: Can be set up to 128 threads, but the actual number of threads used will not exceed the CPU's logical processor count.
 - GPU Acceleration: This program relies on OpenCL to accelerate planet terrain generation. Some GPUs may not support this. In this case, please disable this option, and the algorithm will fall back to CPU execution.
 #### GPU Settings
 - Work Group Size: Recommended to set to the maximum value supported by the GPU to improve performance. Since we cannot directly obtain whether the GPU supports this size, if normal searching/sorting fails, please try decreasing this value.
@@ -65,8 +74,13 @@
   - Match Count: Number of planets that need to meet the condition
   - Minimum count of 14 vein types
   - Minimum yield of 14 vein types
-- Bond Condition
-  - Contains two independent star/planet-level sub-conditions, designed to search for combinations of two celestial bodies within a specified distance.
+- Logic Group (Advanced Mode):
+  - Supports All, Any, At least N, and NOT, with nested groups.
+  - Groups cannot be empty. NOT requires exactly one child; N must be between 1 and the number of children.
+- Bond Condition (Advanced Mode):
+  - Each endpoint selects a star or planet condition to find pairs of celestial bodies within a specified distance.
+  - Bond Count sets the minimum number of pairs; each endpoint's Max Connections limits the number of pairs per body.
+  - Each pair is counted at most once, regardless of endpoint order. Planets use their host star's position to approximate distance.
 
 ## Special Thanks
 

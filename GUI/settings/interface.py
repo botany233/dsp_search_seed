@@ -40,6 +40,8 @@ class NormalSettingFrame(BaseSettingFrame):
             cfg_key="name_language",
             type_input="str",
         )
+        self.nameLanguageSetting.comboBox.setItemText(1, tr("meta.native_name", "zh_CN"))
+        self.nameLanguageSetting.comboBox.setMinimumWidth(self.languageSetting.comboBox.minimumWidth())
         self.useGpuSetting = SwitchButtonSettingItemFrame(
             tr("settings.basic.use_gpu"),
             None,

@@ -9,10 +9,17 @@ Project repository: [dsp_search_seed](https://github.com/botany233/dsp_search_se
 
 ## Seed Search Tutorial
 ### UI
-Click the magnifying-glass icon on the left to enter the seed search page. This page is mainly divided into three sections: search range settings, search condition settings, and extra settings. The search range includes both the left and right boundaries.
-![image](tutorial_search.png)
+Click the magnifying-glass icon on the left to enter the seed search page. At the top, set the search range, star count, and resource rate, and switch between Range Search / Precise Search and Basic Mode / Advanced Mode. Edit search conditions in the middle. At the bottom, select search accuracy, set the output file name, and view search progress.
 
-### Search Condition Types
+Basic Mode uses a fixed celestial hierarchy. Advanced Mode supports logic such as Any, At least N, and NOT, as well as distance requirements between celestial bodies. Each mode saves its own conditions. Switching modes does not convert conditions automatically; searches use the currently selected mode.
+
+### Basic Mode
+#### UI
+Select Basic Mode at the top to edit galaxy, star, and planet conditions in a condition tree.
+
+![Basic Mode search interface](show_search_simple.png)
+
+#### Search Condition Types
 Each Dyson Sphere Program save is a galaxy. By celestial hierarchy, it can be divided into three levels, galaxy-star-planet, or four levels, galaxy-star-planet-moon.
 
 Similarly, this program divides search conditions into three types: galaxy, star, and planet. A planet condition can add itself as a child condition, corresponding to the four-level celestial hierarchy. The supported search content and notes for the three condition types are listed below:
@@ -41,9 +48,7 @@ Planet conditions
 - Minimum counts for 14 vein types
 - Minimum amounts for 14 vein types
 
-There is also a special condition type used to check whether the current seed contains enough paired celestial bodies. A Bond Condition has two independent child conditions, which can be star or planet conditions. Each child condition can set a maximum connection count to limit how many celestial bodies from the other group a single celestial body can pair with at most. During search, the searcher first filters two groups of celestial bodies based on the child conditions, then filters all possible pair connections by distance requirements, and finally filters the pair connections by the maximum connection counts of the two celestial body groups. Note that for planet conditions, coordinate information is approximated using the star's coordinates.
-
-### Search Condition Structure
+#### Search Condition Structure
 When searching seeds, the searcher starts from the galaxy condition and checks whether the current seed satisfies itself and all of its child conditions. When multiple child conditions exist, the searcher checks them one by one. Child conditions are independent of each other, so the same celestial body can satisfy multiple child conditions. The parent condition is considered satisfied only when all child conditions are satisfied, meaning child conditions are combined with an AND relationship.
 
 The searcher also allows planet conditions to be added directly as child conditions of the galaxy. All possible condition structures are shown below:
@@ -55,25 +60,62 @@ Galaxy Condition
 |   `-- Planet Condition
 |       `-- Moon Condition
 |-- Planet Condition
-|-- Planet Condition
-|   `-- Moon Condition
-`-- Bond Condition
+`-- Planet Condition
+    `-- Moon Condition
 ```
 
-Click the button before a condition name to choose whether to enable the current condition. This does not cascade to its child conditions.
+Use the buttons in the Manage column or the right-click menu to add and delete conditions. The galaxy condition is the fixed root and cannot be deleted. Adding a moon condition to a planet condition makes the parent condition filter planets with those moons.
 
-### Saving Search Results
+The checkbox before a condition name enables or disables that condition's filter fields without changing its child conditions. Unchecking the galaxy condition only disables galaxy mineral filters; its star and planet child conditions still apply.
+
+The galaxy condition row offers Save Valid Seeds and Save Invalid Seeds. The former saves seeds that satisfy the entire set of conditions. The latter inverts the final result and saves seeds that do not satisfy it. This inversion applies regardless of whether galaxy mineral filters are checked.
+
+### Advanced Mode
+#### UI
+Select Advanced Mode at the top to organize search conditions using logic groups. Click the plus button in a logic group's Manage column or use its right-click menu to add a logic group, star condition, planet condition, galaxy mineral condition, or bond condition.
+
+![Advanced Mode search interface](show_search_complex.png)
+
+#### Logic Groups
+Advanced Mode uses a logic group as its root. Each group combines its direct child conditions in one of the following ways:
+
+- All: every child condition must pass.
+- Any: at least one child condition must pass.
+- At least N: at least N child conditions must pass. N must be between 1 and the number of children.
+- NOT: requires exactly one child condition. The group passes when that child fails.
+
+Logic groups can be nested. For example, to find seeds satisfying at least two of these three requirements—at least 3 Blue Giants, at least 2 Gas Giants with 3 moons each, and at least 6 Aquatica planets—create an At least N group, set N to 2, and add the three conditions separately.
+
+A logic group cannot be empty. Invalid structures display a warning and must be corrected before searching. Unchecking a logic group makes the entire group count as passed; its internal conditions are no longer evaluated.
+
+#### Celestial Conditions and Galaxy Mineral Conditions
+Star and planet conditions use the same filter fields as Basic Mode. Stars can still contain planet conditions, and planets can still contain moon conditions. Planet conditions directly under a logic group search the entire galaxy; planet conditions under a star only search that star system.
+
+A Galaxy mineral condition sets minimum counts and amounts for the galaxy's 14 vein types and can be combined with other conditions in a logic group. Unchecking it makes it count as passed. In Any and At least N groups, unchecked items that count as passed still contribute to the number of passing children.
+
+#### Bond Conditions
+A bond condition checks whether the seed contains enough pairs of celestial bodies within the required distance. Endpoint A and Endpoint B can each use a star or planet condition to select two groups of bodies. Max Distance limits the distance between the bodies in a pair; Bond Count sets the minimum number of pairs required.
+
+Each endpoint's Max Connections limits how many bodies on the other side a single body can pair with. Each pair is counted at most once, endpoint order does not affect the result, and the same object can match both endpoints. Planets use their host star's position as an approximation.
+
+For example, to find a Unipolar Magnet planet near a particular type of star, set Endpoint A to the desired star condition and Endpoint B to a planet condition requiring Unipolar Magnets. Then set Max Distance, Bond Count, and Max Connections for each endpoint.
+
+Unchecking a bond condition makes the entire condition count as passed.
+
+### Settings Shared by Both Modes
+
+#### Saving Search Results
 Results are stored as `.csv` files and can be viewed with Excel or WPS. Each row is a seed, including seed ID and star count but not resource rate, and is compatible with [DspFindSeed](https://github.com/Xinyuell/DspFindSeed). The file name can be configured at the bottom. The save location is the program's root directory.
 
-### Range Search / Secondary Search
-Range Search mode determines the search range by setting the starting seed ID, ending seed ID, and star count. Secondary Search mode determines the search range by importing a previously saved `.csv` seed list. Secondary Search includes deduplication.
+#### Range Search / Precise Search
+Range Search mode determines the search range by setting the starting seed ID, ending seed ID, and star count. Precise Search performs a secondary search on an imported, previously saved `.csv` seed list and includes deduplication.
 
-Click the first button in Extra Settings to switch between the two search modes.
+Use Range Search / Precise Search at the top to switch between these search ranges. Both Basic Mode and Advanced Mode support them.
 
-### Standard Mode / Quick Mode
+#### Standard Mode / Quick Mode
 In Standard Mode, the calculated vein counts and amounts are kept as consistent with the game as possible, representing this program's highest accuracy. However, fully generating veins has a substantial performance cost, so Quick Mode is introduced. In Quick Mode, the calculated vein counts and amounts are theoretical maximum values. The actual vein count averages 78% of that value, and the actual vein amount averages 72% of that value. Quick Mode has roughly consistent performance cost for each seed, while Standard Mode varies greatly.
 
-Click the second button in Extra Settings to switch between the two search accuracy modes.
+Use Standard Mode / Quick Mode at the bottom to switch search accuracy. Both Basic Mode and Advanced Mode support these accuracy settings.
 
 ## Seed Viewer Tutorial
 ### UI

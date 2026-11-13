@@ -12,10 +12,6 @@ from language import tr
 class UserLayout(QVBoxLayout):
     def __init__(self):
         super().__init__()
-        self.taskStatusLabel = CaptionLabel()
-        self.taskStatusLabel.setWordWrap(True)
-        self.taskStatusLabel.hide()
-        self.addWidget(self.taskStatusLabel)
         self.userButtonsLayout = QHBoxLayout()
 
         self.addLayout(self.userButtonsLayout)
