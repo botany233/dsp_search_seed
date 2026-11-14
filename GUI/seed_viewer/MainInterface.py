@@ -251,7 +251,7 @@ class ViewerInterface(QFrame):
         for file_path in file_paths:
             if self.seed_list.is_full():
                 break
-            with open(file_path, "r", encoding="utf-8") as f:
+            with open(file_path, "r", encoding="utf-8-sig") as f:
                 data = reader(f)
                 for row in data:
                     if self.seed_list.is_full():

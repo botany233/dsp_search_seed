@@ -138,7 +138,7 @@ Click any celestial body in the celestial information display to view its detail
 ### Seed Sorting
 The viewer includes four common seed sorting methods: Vein Count, Vein Amount, Planet Type, and Star Type. It also supports customization with Python code. See [README.md](../README.md) for the detailed tutorial.
 
-The first button switches between ascending and descending sort order. The second button switches between Quick Mode and Standard Mode. Unlike the searcher, the viewer's Standard Mode is not performance-optimized. Sorting requires fully generating all information for every seed. On CPU, it is about 3,000 times slower than Quick Mode, so use it carefully.
+The first button switches between ascending and descending sort order. The second button switches between Quick Mode and Standard Mode. The four built-in sorting methods have some performance optimizations. For compatibility, custom sorting remains unoptimized and requires fully generating all information for every seed. On CPU, custom sorting in Standard Mode is about 3,000 times slower than in Quick Mode, so use it carefully.
 
 Note that High-Yield Gas Giants are treated as Gas Giants when sorting by planet type.
 
@@ -154,10 +154,10 @@ Click the gear icon on the left to enter the settings page. This page is divided
 ### Basic Settings
 Max CPU Threads: controls the maximum number of threads that the searcher and viewer can create at the same time. It can be set up to 128 threads, but the number of threads actually used will not exceed the CPU's logical processor count. The default value is the same as the CPU's logical processor count. Note that with this setting, the UI may freeze during search and sorting. If you care about UI smoothness, reduce this value by 1.
 
-Enable GPU Acceleration: the viewer must generate planet terrain when calculating buildable areas. This process is extremely time-consuming, but GPU acceleration can be used. After enabling it, the delay when refreshing seed information and the time required for sorting in the viewer can be significantly reduced. This program's GPU acceleration depends on OpenCL 3.0, and some ancient GPUs may not support it. Some GPUs do not support double precision, mainly Intel integrated graphics before the Ultra series. In that case, single precision will be used for calculation, but the generated mineral information will differ slightly from double precision. About 10% of seeds will have anomalies on 1 to 2 planets.
+Enable GPU Acceleration: the viewer must generate planet terrain when calculating buildable areas. This process is extremely time-consuming, but GPU acceleration can be used. After enabling it, the delay when refreshing seed information and the time required for custom sorting in the viewer can be significantly reduced. This program's GPU acceleration requires OpenCL 3.0 and double-precision floating-point calculations, which some older or integrated GPUs may not support.
 
 ### GPU Settings
-Work Group Size: this value has a negligible effect on GPU acceleration performance. Different GPUs support different maximum values. If search or sorting does not work properly, try reducing this value.
+Work Group Size: this value has a negligible effect on GPU acceleration performance. Different GPUs support different maximum values. If search or sorting does not work properly, try reducing this value. Keeping it at 256 is recommended.
 
 GPU Device: currently, the application only supports using at most one GPU. It is recommended to use the highest-performance GPU to improve performance.
 
