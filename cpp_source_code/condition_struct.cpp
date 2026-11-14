@@ -33,6 +33,11 @@ ConditionRef append_condition(std::vector<T>& pool,ConditionType type,const T& c
 ResultManager::ResultManager(std::size_t core_condition_count)
 	: results(core_condition_count,EnumResult::Unknown) {}
 
+void ResultManager::reset(std::size_t core_condition_count) {
+	results.resize(core_condition_count);
+	std::fill(results.begin(),results.end(),EnumResult::Unknown);
+}
+
 ResultManager ConditionManager::create_result_manager() const {
 	return ResultManager(core_conditions.size());
 }

@@ -34,8 +34,8 @@ std::vector<std::string> check_batch_c(int start_seed,int end_seed,int start_sta
 	const ConditionManager& galaxy_condition,bool quick)
 {
 	std::vector<std::string> result;
-	GalaxyClassSimple workspace;
-	workspace.max_position = start_seed < end_seed && end_star_num - start_star_num > 1 ?
+	WorkSpace workspace;
+	workspace.galaxy.max_position = start_seed < end_seed && end_star_num - start_star_num > 1 ?
 		static_cast<std::uint8_t>(end_star_num - 1) : 0;
 	for(int seed_id = start_seed;seed_id < end_seed;seed_id++)
 	{

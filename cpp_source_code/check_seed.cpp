@@ -7,7 +7,6 @@
 #include "astro_class.hpp"
 
 
-namespace {
 // 同一候选只计数一次；数量为零时不触发生成。
 template<class Range,class Check>
 static bool check_count(Range&& candidates,int need,Check check) {
@@ -256,9 +255,9 @@ static int endpoint_capacity(const ConditionManager& manager,ConditionRef ref) {
 }
 
 template<class CheckPlanet,class CheckStar>
-static std::vector<VectorLF3> bond_positions(GalaxyClassSimple& galaxy,
-	ConditionRef condition,CheckPlanet check_planet,CheckStar check_star,const ConditionManager& manager) {
-	std::vector<VectorLF3> result;
+static void bond_positions(GalaxyClassSimple& galaxy,
+	ConditionRef condition,CheckPlanet check_planet,CheckStar check_star,const ConditionManager& manager,std::vector<VectorLF3>& result) {
+	result.clear();
 	if(condition.type == ConditionType::Planet) {
 		const PlanetCondition& pc = manager.planets[condition.index];
 		for(StarClassSimple& star : galaxy.stars) {
@@ -271,28 +270,31 @@ static std::vector<VectorLF3> bond_positions(GalaxyClassSimple& galaxy,
 		for(StarClassSimple& star : galaxy.stars)
 			if(check_star(star,sc,manager)) result.push_back(star.position);
 	}
-	return result;
 }
 
 template<class CheckPlanet,class CheckStar>
-static bool check_bond(GalaxyClassSimple& galaxy,const BondCondition& condition,CheckPlanet check_planet,CheckStar check_star,const ConditionManager& manager) {
+static bool check_bond(WorkSpace& workspace,const BondCondition& condition,CheckPlanet check_planet,CheckStar check_star,const ConditionManager& manager) {
 	if(condition.satisfy_num <= 0)
 		return true;
 	const int limit1 = endpoint_capacity(manager,condition.con1);
 	const int limit2 = endpoint_capacity(manager,condition.con2);
 	if(limit1 <= 0 || limit2 <= 0)
 		return false;
+	GalaxyClassSimple& galaxy = workspace.galaxy;
 	galaxy.ensure_star_position();
-	const std::vector<VectorLF3> pos1 = bond_positions(galaxy,condition.con1,check_planet,check_star,manager);
+	std::vector<VectorLF3>& pos1 = workspace.bond_positions1;
+	std::vector<VectorLF3>& pos2 = workspace.bond_positions2;
+	bond_positions(galaxy,condition.con1,check_planet,check_star,manager,pos1);
 	if(pos1.size()*limit1 < condition.satisfy_num)
 		return false;
-	const std::vector<VectorLF3> pos2 = bond_positions(galaxy,condition.con2,check_planet,check_star,manager);
+	bond_positions(galaxy,condition.con2,check_planet,check_star,manager,pos2);
 	if(pos2.size()*limit2 < condition.satisfy_num)
 		return false;
 	const int n1 = static_cast<int>(pos1.size());
 	const int n2 = static_cast<int>(pos2.size());
 	const int sink = n1+n2+1;
-	MaxFlowGraph graph(sink+1);
+	MaxFlowGraph& graph = workspace.bond_graph;
+	graph.reset(sink+1);
 	for(int i=0;i<n1;++i) graph.add_edge(0,i+1,limit1);
 	for(int j=0;j<n2;++j) graph.add_edge(n1+j+1,sink,limit2);
 	for(int i=0;i<n1;++i)
@@ -310,7 +312,8 @@ static uint16_t galaxy_missing_real(const GalaxyClassSimple& galaxy,const Galaxy
 	return missing_veins(condition,galaxy.real_veins_point,galaxy.real_veins_amount);
 }
 
-static bool check_galaxy_upper_vein(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
+static bool check_galaxy_upper_vein(WorkSpace& workspace,const GalaxyMineralCondition& condition) {
+	GalaxyClassSimple& galaxy = workspace.galaxy;
 	uint16_t missing = galaxy_missing_upper(galaxy,condition);
 	if(!missing)
 		return true;
@@ -330,8 +333,8 @@ static bool check_galaxy_upper_vein(GalaxyClassSimple& galaxy,const GalaxyMinera
 	return false;
 }
 
-static std::vector<int> prepare_galaxy_vein_candidates(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition,std::array<int,14>& remaining_cost) {
-	std::vector<int> candidates;
+static void prepare_galaxy_vein_candidates(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition,std::array<int,14>& remaining_cost,std::vector<int>& candidates) {
+	candidates.clear();
 	candidates.reserve(16);
 	for(StarClassSimple& star : galaxy.stars) {
 		star.ensure_planets();
@@ -348,7 +351,6 @@ static std::vector<int> prepare_galaxy_vein_candidates(GalaxyClassSimple& galaxy
 			}
 		}
 	}
-	return candidates;
 }
 
 // 调用前已确认 R < D <= U；评分只影响顺序，边界判定始终使用整数。
@@ -396,12 +398,14 @@ static int select_galaxy_vein_constraint(const GalaxyClassSimple& galaxy,const G
 	return selected_id;
 }
 
-static bool check_galaxy_real_vein(GalaxyClassSimple& galaxy,const GalaxyMineralCondition& condition) {
+static bool check_galaxy_real_vein(WorkSpace& workspace,const GalaxyMineralCondition& condition) {
+	GalaxyClassSimple& galaxy = workspace.galaxy;
 	if(!galaxy_missing_real(galaxy,condition))
 		return true;
 	// 三级的汇总可能不完整，仅在当前四级条件确实需要时补齐相关上界。
 	std::array<int,14> remaining_cost{};
-	std::vector<int> candidates = prepare_galaxy_vein_candidates(galaxy,condition,remaining_cost);
+	std::vector<int>& candidates = workspace.vein_candidates;
+	prepare_galaxy_vein_candidates(galaxy,condition,remaining_cost,candidates);
 	while(true) {
 		if(!galaxy_missing_real(galaxy,condition))
 			return true;
@@ -435,7 +439,7 @@ static bool check_galaxy_real_vein(GalaxyClassSimple& galaxy,const GalaxyMineral
 
 using CheckStar = bool (*)(StarClassSimple&,const StarCondition&,const ConditionManager&);
 using CheckPlanet = bool (*)(PlanetClassSimple&,const PlanetCondition&,const ConditionManager&);
-using CheckMineral = bool (*)(GalaxyClassSimple&,const GalaxyMineralCondition&);
+using CheckMineral = bool (*)(WorkSpace&,const GalaxyMineralCondition&);
 
 struct Stage {
 	CheckStar star;
@@ -444,14 +448,15 @@ struct Stage {
 };
 
 // 各级核心检查独立实现；公共调度只负责集合、引用、三态结果和逻辑聚合。
-const Stage stages[] = {
+static const Stage stages[] = {
 	{check_star_level_1,nullptr,nullptr},
 	{check_star_level_2,check_planet_level_2,nullptr},
 	{check_star_level_3,check_planet_level_3,check_galaxy_upper_vein},
 	{check_star_level_4,check_planet_level_4,check_galaxy_real_vein}
 };
 
-EnumResult check_core(GalaxyClassSimple& galaxy,const ConditionManager& manager,ConditionRef ref,int level,bool quick) {
+static EnumResult check_core(WorkSpace& workspace,const ConditionManager& manager,ConditionRef ref,int level,bool quick) {
+	GalaxyClassSimple& galaxy = workspace.galaxy;
 	const Stage& stage = stages[level-1];
 	bool passed = false;
 	int complete_level = 1;
@@ -462,7 +467,7 @@ EnumResult check_core(GalaxyClassSimple& galaxy,const ConditionManager& manager,
 			return EnumResult::True;
 		if(!stage.mineral)
 			return EnumResult::Unknown;
-		passed = stage.mineral(galaxy,condition);
+		passed = stage.mineral(workspace,condition);
 		complete_level = 3;
 		break;
 	}
@@ -494,7 +499,7 @@ EnumResult check_core(GalaxyClassSimple& galaxy,const ConditionManager& manager,
 			return EnumResult::True;
 		if(!stage.planet)
 			return EnumResult::Unknown;
-		passed = check_bond(galaxy,condition,stage.planet,stage.star,manager);
+		passed = check_bond(workspace,condition,stage.planet,stage.star,manager);
 		complete_level = condition.level;
 		break;
 	}
@@ -507,23 +512,26 @@ EnumResult check_core(GalaxyClassSimple& galaxy,const ConditionManager& manager,
 		complete_level = 4;
 	return level >= complete_level ? EnumResult::True : EnumResult::Unknown;
 }
-}
 
 bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick) {
-	GalaxyClassSimple workspace;
+	WorkSpace workspace;
 	return check_seed(seed,conditions,quick,workspace);
 }
 
-bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace) {
+bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,WorkSpace& workspace) {
 	return check_seed(seed,conditions,quick,workspace,0);
 }
 
-bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace,std::size_t start_index) {
-	workspace.init(seed);
-	ResultManager results = conditions.create_result_manager();
+bool check_seed(const SeedStruct& seed,const ConditionManager& conditions,bool quick,WorkSpace& workspace,std::size_t start_index) {
+	workspace.results.reset(conditions.core_conditions.size());
+	workspace.bond_positions1.clear();
+	workspace.bond_positions2.clear();
+	workspace.vein_candidates.clear();
+	workspace.galaxy.init(seed);
+	ResultManager& results = workspace.results;
 	for(int level=1;level<=(quick ? 3 : 4);level++) {
 		if(level == 2)
-			workspace.ready_for_level2_check();
+			workspace.galaxy.ready_for_level2_check();
 		const std::size_t count = conditions.core_conditions.size();
 		for(std::size_t i=0;i<count;i++) {
 			const ConditionRef& ref = conditions.core_conditions[(start_index+i) % count];

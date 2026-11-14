@@ -1,4 +1,5 @@
 from concurrent.futures import ProcessPoolExecutor
+from ctypes import c_float
 from math import sqrt
 from multiprocessing import cpu_count
 
@@ -44,10 +45,10 @@ def check_planet_py(planet_data: PlanetData, planet_condition: dict) -> bool:
 def check_star_py(star_data: StarData, star_condition: dict) -> bool:
     if ((1 << star_data.type_id) & star_condition["type"]) == 0:
         return False
-    # C++ 将这两个条件字段转换为 float。
-    if star_condition["distance"] < star_data.distance:
+    # 与 C++ 条件转换一致，先将距离和光度阈值舍入到 float32。
+    if c_float(star_condition["distance"]).value < star_data.distance:
         return False
-    if star_condition["dyson_lumino"] > star_data.dyson_lumino:
+    if c_float(star_condition["dyson_lumino"]).value > star_data.dyson_lumino:
         return False
     if not check_mineral_py(star_data, star_condition):
         return False

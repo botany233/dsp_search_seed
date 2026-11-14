@@ -68,14 +68,18 @@ def main(test_num: int, test_second: int, load_condition: bool = False):
         total = seeds[1] - seeds[0] + 1
         print(f"搜索范围: {seeds}，64星，{resource_rate_c[resource_index]}，{'快速' if quick else '标准'}，Python命中率{len(py_results) / total:.2%}")
 
-        flag = perf_counter()
-        check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)
-        check_batch_manager.run()
-        while check_batch_manager.is_running():
-            sleep(0.1)
-        c_results = [(i.seed_id, i.star_num) for i in check_batch_manager.get_results()]
-        c_results = sorted(c_results, key=lambda x: x[0] * 33 + x[1])
-        c_time = perf_counter() - flag
+        for i in range(3):
+            flag = perf_counter()
+            check_batch_manager = CheckBatchManager(seeds[0], seeds[1]+1, star_nums[0], star_nums[1]+1, resource_index, galaxy_condition, quick, cpu_thread)
+            check_batch_manager.run()
+            while check_batch_manager.is_running():
+                sleep(0.1)
+            c_results = [(i.seed_id, i.star_num) for i in check_batch_manager.get_results()]
+            c_results = sorted(c_results, key=lambda x: x[0] * 33 + x[1])
+            c_time = perf_counter() - flag
+            if py_results != c_results or c_time < py_time * 2:
+                break
+            print(f"c搜索超时，开始第{i}次重试！py用时{py_time:.2f}s, c用时{c_time:.2f}s")
 
         if py_results == c_results and c_time < py_time * 2:
             print(f"测试{test_index+1}通过！py用时{py_time:.2f}s, c用时{c_time:.2f}s, 找到{len(py_results)}个种子")

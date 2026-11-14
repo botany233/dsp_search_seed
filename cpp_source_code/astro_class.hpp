@@ -55,9 +55,7 @@ public:
 	uint8_t dsp_level;
 	uint8_t veins_state;
 	uint32_t type_mask;
-	uint8_t type_id;
-
-	EPlanetType type;
+	
 	int theme;
 	float temperatureBias;
 	int algoId;
@@ -67,6 +65,8 @@ public:
 	PlanetClassSimple* orbitAroundPlanet = nullptr;
 	std::span<PlanetClassSimple> moons;
 	StarClassSimple* star;
+	uint8_t type_id;
+	EPlanetType type;
 
 	uint16_t vein_mask;
 	std::array<uint16_t,14> veins_point{};
@@ -89,7 +89,6 @@ class StarClassSimple
 {
 public:
 	int planet_num;
-	bool planets_initialized;
 	int seed;
 	int index;
 	int id;
@@ -101,6 +100,8 @@ public:
 	float age;
 	EStarType type;
 	ESpectrType spectr;
+	bool planets_initialized;
+	uint8_t type_id;
 	float luminosity;
 	float radius;
 	float habitableRadius;
@@ -109,7 +110,6 @@ public:
 	float distance;
 	std::span<PlanetClassSimple> planets;
 	int themed_planet_count;
-	uint8_t type_id;
 
 	uint32_t type_mask;
 	GalaxyClassSimple* galaxy;
@@ -153,8 +153,10 @@ private:
 class GalaxyClassSimple
 {
 public:
-	// 0 禁用；否则必须覆盖当前星数且不超过 64，init 保留此设置。
-	std::uint8_t max_position = 0;
+	std::uint8_t max_position = 0; // 0 禁用；否则必须覆盖当前星数且不超过 64，init 保留此设置。
+	bool is_rare_resource;
+	bool is_infinite_resource;
+	bool is_gen_position;
 	int generated_planets;
 	int seed;
 	int starCount;
@@ -162,9 +164,6 @@ public:
 	float resource_multiplier;
 	int habitableCount;
 	int birthPlanetId;
-	bool is_rare_resource;
-	bool is_infinite_resource;
-	bool is_gen_position;
 	int generated_stars;
 	// 汇总所有已生成资源；上界未必覆盖所有行星，由调用方按需求补齐。
 	std::array<uint64_t,14> upper_veins_point;

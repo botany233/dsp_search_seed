@@ -37,6 +37,16 @@ class MaxFlowGraph {
 public:
 	explicit MaxFlowGraph(int n): _n(n),g(n) {}
 
+	// 保留各节点邻接表及求解缓冲；缩小图时也不销毁多余节点的容量。
+	void reset(int n) {
+		_n = n;
+		if(g.size() < static_cast<std::size_t>(n))
+			g.resize(n);
+		for(std::vector<_edge>& edges : g)
+			edges.clear();
+		pos.clear();
+	}
+
 	int add_edge(int from,int to,int cap = 1) {
 		int m = int(pos.size());
 		pos.push_back({from,int(g[from].size())});
@@ -54,8 +64,8 @@ public:
 	};
 
 	bool flow(int s,int t,int flow_limit) {
-		std::vector<int> level(_n),iter(_n);
-		simple_queue<int> que;
+		level.resize(_n);
+		iter.resize(_n);
 
 		auto bfs = [&]() {
 			std::fill(level.begin(),level.end(),-1);
@@ -110,6 +120,8 @@ private:
 		int to,rev;
 		int cap;
 	};
+	std::vector<int> level,iter;
+	simple_queue<int> que;
 	std::vector<std::pair<int,int>> pos;
 	std::vector<std::vector<_edge>> g;
 };

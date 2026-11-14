@@ -38,7 +38,7 @@ struct CoreOrderLearning {
 
 		explicit Worker(std::size_t core_count): observations(core_count),random(entropy_seed()) {}
 
-		bool check(const SeedStruct& seed,const ConditionManager& conditions,bool quick,GalaxyClassSimple& workspace) {
+		bool check(const SeedStruct& seed,const ConditionManager& conditions,bool quick,WorkSpace& workspace) {
 			const std::size_t start = static_cast<std::size_t>(random.Next(static_cast<int>(observations.size())));
 			const std::chrono::steady_clock::time_point begin = std::chrono::steady_clock::now();
 			const bool passed = check_seed(seed,conditions,quick,workspace,start);
@@ -415,7 +415,7 @@ protected:
 	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-		GalaxyClassSimple workspace;
+		WorkSpace workspace;
 		const std::size_t budget = order_learning.budget;
 		bool learning = budget != 0;
 		std::optional<CoreOrderLearning::Worker> learner;
@@ -585,8 +585,8 @@ protected:
 	void search_func(std::stop_token token) {
 		SetThreadPriorityBoost(GetCurrentThread(),TRUE);
 		SetThreadPriority(GetCurrentThread(),THREAD_PRIORITY_BELOW_NORMAL);
-		GalaxyClassSimple workspace;
-		workspace.max_position = max_position;
+		WorkSpace workspace;
+		workspace.galaxy.max_position = max_position;
 		const std::size_t budget = order_learning.budget;
 		bool learning = budget != 0;
 		std::optional<CoreOrderLearning::Worker> learner;

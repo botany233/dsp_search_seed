@@ -20,6 +20,8 @@ struct ResultManager {
 	std::vector<EnumResult> results;
 
 	explicit ResultManager(std::size_t core_condition_count);
+	// 清除上一种子的结果，条件数量变化时调整长度并保留容量。
+	void reset(std::size_t core_condition_count);
 	ResultManager(const ResultManager&) = delete;
 	ResultManager& operator=(const ResultManager&) = delete;
 };
@@ -56,10 +58,10 @@ struct GalaxyMineralCondition {
 
 // 核心属性隐式 AND；普通集合中 satisfy_num 为最低数量，零自动满足。
 struct PlanetCondition {
-	std::uint16_t need_veins = 0;
-	bool need_veins_amount = false;
-	std::uint32_t type = 0xFFFFFFFF;
 	std::uint16_t satisfy_num = 1;
+	std::uint16_t need_veins = 0;
+	std::uint32_t type = 0xFFFFFFFF;
+	bool need_veins_amount = false;
 	std::uint8_t dsp_level = 0;
 	std::uint8_t singularity = 0;
 	std::uint8_t level = 0; //1-3
